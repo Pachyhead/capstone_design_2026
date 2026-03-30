@@ -2,7 +2,7 @@
 
 # 🌀 capstone_design_2026 🌀
 
-<h3 align="center">🌬️"선풍기"💨</h3>
+<h3 align="center">🌬️ 선풍기 💨</h3>
 
 <br />
 
