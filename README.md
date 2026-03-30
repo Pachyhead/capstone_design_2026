@@ -1,32 +1,32 @@
 <div align="center">
 
 # 🌀 capstone_design_2026 🌀
-
-<img src="http://googleusercontent.com/image_collection/image_retrieval/13497397250329340693_0" width="120px" alt="Pixel Art Fan GIF" />
+**"시원한 바람처럼 세상을 바꾸는 선풍기 팀"** 🌬️💨
 
 <br />
 
-**"시원한 바람처럼 세상을 바꾸는 픽셀 선풍기 팀"** 🌬️💨
+<img src="./assets/fan.gif" width="150px" alt="Team Fan Sticker" />
 
+<br />
 <br />
 
 ## 👥 Team Members
 
 <table>
   <tr>
-    <td align="center" width="200px">
+    <td align="center" width="220px">
       <a href="https://github.com/Pachyhead">
         <img src="https://github.com/Pachyhead.png" width="120px" alt="이종찬 프로필" style="border-radius: 50%;" />
         <br />
         <br />
-        <img src="https://img.shields.io/badge/Leader-FFD700?style=for-the-badge&logo=crown&logoColor=white" height="20px" />
+        <img src="https://img.shields.io/badge/Leader-FFD700?style=for-the-badge&logo=crown&logoColor=white" height="22px" />
         <br />
-        <strong>👑 Pachyhead</strong>
+        <strong>👑 이종찬</strong>
       </a>
       <br />
       <a href="https://github.com/Pachyhead">@Pachyhead</a>
     </td>
-    <td align="center" width="200px">
+    <td align="center" width="220px">
       <a href="https://github.com/zxxxv">
         <img src="https://github.com/zxxxv.png" width="120px" alt="최재웅 프로필" style="border-radius: 50%;" />
         <br />
@@ -40,7 +40,7 @@
     </td>
   </tr>
   <tr>
-    <td align="center" width="200px">
+    <td align="center" width="220px">
       <a href="https://github.com/TaeWonM">
         <img src="https://github.com/TaeWonM.png" width="120px" alt="민태원 프로필" style="border-radius: 50%;" />
         <br />
@@ -52,7 +52,7 @@
       <br />
       <a href="https://github.com/TaeWonM">@TWMin</a>
     </td>
-    <td align="center" width="200px">
+    <td align="center" width="220px">
       <a href="https://github.com/KyeongTaek">
         <img src="https://github.com/user-attachments/assets/66b8985c-2e1e-4b3a-865d-488d0899a6bf" width="120px" alt="임경택 프로필" style="border-radius: 50%;" />
         <br />
