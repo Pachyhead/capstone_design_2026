@@ -1,13 +1,13 @@
 <div align="center">
 
 # 🌀 capstone_design_2026 🌀
-**"시원한 바람처럼 세상을 바꾸는 선풍기 팀"** 🌬️💨
-
-<br />
 
 <img src="./assets/fan.gif" width="150px" alt="Team Fan Sticker" />
 
 <br />
+
+<h3 align="center">"선풍기" 🌬️💨</h3>
+
 <br />
 
 ## 👥 Team Members
