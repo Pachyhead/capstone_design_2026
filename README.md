@@ -2,12 +2,14 @@
 
 # 🌀 capstone_design_2026 🌀
 
-<img src="./assets/fan.gif" width="150px" alt="Team Fan Sticker" />
+<h3 align="center">🌬️"선풍기"💨</h3>
 
 <br />
 
-<h3 align="center">"선풍기" 🌬️💨</h3>
+<img src="./assets/fan.gif" width="150px" alt="Team Fan Sticker" />
 
+
+<br />
 <br />
 
 ## 👥 Team Members
