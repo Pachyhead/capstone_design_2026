@@ -9,7 +9,7 @@ class WhisperSTT:
             config.whisper_model_size,
             device=config.whisper_device,
             device_index=config.whisper_device_index,
-            compute_type="float16",
+            compute_type=config.whisper_compute_type,
         )
         self.config = config
  
