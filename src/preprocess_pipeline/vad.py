@@ -35,7 +35,7 @@ class VadSegmenter:
         else:
             wav = wav.squeeze(0)
  
-        # 리샘플링 silero vad (saple_rate = 16000) 필요
+        # 리샘플링 silero vad (sample_rate = 16000) 필요
         if sr != self.config.sample_rate:
             resampler = torchaudio.transforms.Resample(sr, self.config.sample_rate)
             wav = resampler(wav)
