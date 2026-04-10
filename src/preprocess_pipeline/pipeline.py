@@ -1,0 +1,89 @@
+import argparse
+import json
+import traceback
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from tqdm import tqdm
+from preprocess_pipeline.config import Config
+from preprocess_pipeline.preprocessor import Preprocessor
+
+def load_processed_state(metadata_path: Path) -> tuple[set[str], int]:
+    """
+    기존 jsonl에서 처리완료 source_file 집합과 다음 chunk_id를 복원
+    """
+    processed_sources: set[str] = set()
+    max_id = -1
+
+    if metadata_path.exists():
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    meta = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                processed_sources.add(meta["source_file"])
+                max_id = max(max_id, int(meta["id"]))
+    return processed_sources, max_id + 1
+
+def main():
+    parser = argparse.ArgumentParser(description="감정 음성 전처리 파이프라인")
+    parser.add_argument("-i", "--input_dir", type=str, required=True, help="원본 오디오 폴더")
+    parser.add_argument("-o", "--output_dir", type=str, required=True, help="출력 데이터셋 폴더")
+    parser.add_argument("--whisper_model", type=str, default="large-v3")
+    args = parser.parse_args()
+
+    # 설정
+    config = Config(
+        whisper_model_size=args.whisper_model,
+    )
+
+    # 출력 디렉토리 생성
+    output_dir = Path(args.output_dir)
+    (output_dir / "chunks").mkdir(parents=True, exist_ok=True)
+    (output_dir / "embeddings").mkdir(parents=True, exist_ok=True)
+    metadata_path = output_dir / "metadata.jsonl"
+    error_log_path = output_dir / "errors.log"
+
+    # 이어하기 상태 복원
+    processed_sources, next_id = load_processed_state(metadata_path)
+    if processed_sources:
+        print(f"[이어하기] 기존 처리 {len(processed_sources)}개 파일, 다음 chunk_id={next_id}")
+
+    # 오디오 파일 수집
+    audio_files: list[Path] = []
+    for ext in config.extensions:
+        audio_files.extend(Path(args.input_dir).rglob(f"*.{ext}"))
+    audio_files = sorted(set(audio_files))
+
+    # 이미 처리한 파일 스킵
+    reamins = [p for p in audio_files if p.stem not in processed_sources]
+    print(f"총 {len(audio_files)}개 / 처리 대상 {len(reamins)}개\n")
+
+    # 처리
+    total_written = 0
+    with ThreadPoolExecutor(max_workers=2) as executor, \
+         open(metadata_path, "a", encoding="utf-8") as f_meta, \
+         open(error_log_path, "a", encoding="utf-8") as f_err:
+        preprocessor = Preprocessor(config, executor)
+        for audio_path in tqdm(reamins):
+            try:
+                results, next_id = preprocessor.process_file(str(audio_path), output_dir, next_id)
+                for meta in results:
+                    f_meta.write(json.dumps(meta, ensure_ascii=False) + "\n")
+                f_meta.flush()
+                total_written += len(results)
+            except Exception:
+                f_err.write(f"[{audio_path}]\n{traceback.format_exc()}\n")
+                f_err.flush()
+                print(f"[에러] {audio_path} : {error_log_path})")
+                continue
+
+    print("\n" + "@" * 60)
+    print(f"[완] 이번 실행에서 {total_written}개 발화 추가 생성")
+    print(f"메타데이터: {metadata_path}")
+    print(f"청크 오디오: {output_dir / 'chunks'}")
+    print(f"감정 임베딩: {output_dir / 'embeddings'}")
+    print("@" * 60)
+
+if __name__ == "__main__":
+    main()

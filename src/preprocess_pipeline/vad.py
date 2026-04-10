@@ -1,6 +1,6 @@
 import torch
 import torchaudio
-from .config import Config
+from preprocess_pipeline.config import Config
 
 class VadSegmenter:
     def __init__(self, config: Config):
