@@ -1,6 +1,6 @@
 import numpy as np
 from faster_whisper import WhisperModel
-from .config import Config
+from preprocess_pipeline.config import Config
 
 
 class WhisperSTT:

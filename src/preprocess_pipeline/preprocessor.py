@@ -1,7 +1,8 @@
-from .emotion import EmotionExtractor
-from .stt import WhisperSTT
-from .vad import VadSegmenter
-from .config import Config
+from preprocess_pipeline.emotion import EmotionExtractor
+from preprocess_pipeline.stt import WhisperSTT
+from concurrent.futures import ThreadPoolExecutor
+from preprocess_pipeline.vad import VadSegmenter
+from preprocess_pipeline.config import Config
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
@@ -96,6 +97,7 @@ class Preprocessor:
                 "wav": f"chunks/{chunk_id}.wav",
                 "text": text,
                 "non_verbal": (text.strip() == ""),
+                "emo_vec": f"embeddings/{chunk_id}.npy",
                 "emo_labels": emotion_labels,
                 "emo_scores": [float(s) for s in emotion_scores],
                 "start_sec": chunk["start_sec"],

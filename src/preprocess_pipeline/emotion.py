@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from funasr import AutoModel
-from .config import Config
+from preprocess_pipeline.config import Config
 
 class EmotionExtractor:
     def __init__(self, config: Config):
