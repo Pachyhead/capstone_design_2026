@@ -14,7 +14,7 @@ class EmotionExtractor:
  
     def extract(self, audio: np.ndarray, sr: int) -> tuple[np.ndarray, list[str], list[float]]:
         """
-        numpy 오디오 to 768d 감정 임베딩
+        numpy 오디오 to 1024d 감정 임베딩
         
         Args:
         - audio (np.ndarray): 1D numpy 오디오 데이터
