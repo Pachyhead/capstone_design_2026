@@ -124,8 +124,8 @@ class Preprocessor:
         """
         VAD와 GPU 처리를 파이프라인으로 병렬 실행
 
-        - VAD 스레드: 파일 → 세그먼팅 → Queue에 청크 넣기
-        - 메인 스레드: Queue에서 꺼내기 → GPU(STT + 감정) 처리 → 저장
+        - VAD 스레드: 1.파일 2.세그먼팅 3.Queue에 청크 넣기
+        - 메인 스레드: 1.Queue에서 꺼내기  2.GPU(STT + 감정) 처리  3.저장
 
         Returns:
             총 기록된 청크 수
@@ -150,7 +150,7 @@ class Preprocessor:
         vad_thread = Thread(target=vad_worker, daemon=True)
         vad_thread.start()
 
-        # 메인 루프: 1.Queue 2.GPU 처리  3.저장
+        # 메인 루프: 1.Queue 2.GPU 처리 3.저장
         while True:
             msg_type, audio_path, data = chunk_queue.get()
 

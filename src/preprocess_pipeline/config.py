@@ -9,8 +9,8 @@ class Config:
     sample_rate: int = 16000                # VAD 모델이 기대하는 샘플링 레이트
     vad_threshold: float = 0.5              # 음성 감지 임계값
     min_speech_duration_ms: int = 250       # 최소 발화 길이 (ms)
-    min_silence_duration_ms: int = 500      # 발화 사이 최소 침묵 (ms)
-    speech_pad_ms: int = 100       # 발화 앞뒤 패딩 (ms)
+    min_silence_duration_ms: int = 200      # 발화 사이 최소 침묵 (ms)
+    speech_pad_ms: int = 100                # 발화 앞뒤 패딩 (ms)
     
     # GPU 할당
     whisper_device: str = "cuda"            # faster-Whisper는 deviee:"cuda", device_index:0 으로 분리해서 받음
