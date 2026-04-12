@@ -1,6 +1,5 @@
 import argparse
 import json
-import traceback
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tqdm import tqdm
@@ -56,27 +55,25 @@ def main():
     audio_files = sorted(set(audio_files))
 
     # 이미 처리한 파일 스킵
-    reamins = [p for p in audio_files if p.stem not in processed_sources]
-    print(f"총 {len(audio_files)}개 / 처리 대상 {len(reamins)}개\n")
+    remains = [p for p in audio_files if p.stem not in processed_sources]
+    print(f"총 {len(audio_files)}개 / 처리 대상 {len(remains)}개\n")
+
 
     # 처리
-    total_written = 0
     with ThreadPoolExecutor(max_workers=2) as executor, \
          open(metadata_path, "a", encoding="utf-8") as f_meta, \
-         open(error_log_path, "a", encoding="utf-8") as f_err:
+         open(error_log_path, "a", encoding="utf-8") as f_err, \
+         tqdm(desc="처리 중", unit="file", total=len(remains)) as pbar:
+             
         preprocessor = Preprocessor(config, executor)
-        for audio_path in tqdm(reamins):
-            try:
-                results, next_id = preprocessor.process_file(str(audio_path), output_dir, next_id)
-                for meta in results:
-                    f_meta.write(json.dumps(meta, ensure_ascii=False) + "\n")
-                f_meta.flush()
-                total_written += len(results)
-            except Exception:
-                f_err.write(f"[{audio_path}]\n{traceback.format_exc()}\n")
-                f_err.flush()
-                print(f"[에러] {audio_path} : {error_log_path})")
-                continue
+        total_written = preprocessor.process_pipeline(
+            audio_files=remains,
+            output_dir=output_dir,
+            start_id=next_id,
+            f_meta=f_meta,
+            f_err=f_err,
+            pbar=pbar,
+        )
 
     print("\n" + "@" * 60)
     print(f"[완] 이번 실행에서 {total_written}개 발화 추가 생성")
