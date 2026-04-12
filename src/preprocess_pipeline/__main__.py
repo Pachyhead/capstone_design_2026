@@ -1,4 +1,4 @@
-from .pipeline import main
+from preprocess_pipeline.pipeline import main
 
 if __name__ == "__main__":
     main()

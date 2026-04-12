@@ -8,6 +8,8 @@ class EmotionExtractor:
         self.model = AutoModel(
             model="iic/emotion2vec_plus_large",
             device=config.emotion_device,
+            disable_update=True,
+            #hub="ms",
         )
  
     def extract(self, audio: np.ndarray, sr: int) -> tuple[np.ndarray, list[str], list[float]]:
@@ -21,7 +23,7 @@ class EmotionExtractor:
         Returns:
         - tuple[np.ndarray, list[str], list[float]]: (감정 임베딩, 감정 레이블, 감정 점수)
         """
-
+        
         # emotion2vec은 16kHz 기대
         result = self.model.generate(
             input=audio,
@@ -29,6 +31,7 @@ class EmotionExtractor:
             granularity="utterance",
             extract_embedding=True,
             sampling_rate=sr,
+            disable_pbar=True,
         )
         
         labels = result[0]["labels"]  # 감정 레이블

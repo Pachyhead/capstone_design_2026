@@ -10,6 +10,7 @@ class VadSegmenter:
             model="silero_vad",
             trust_repo=True,
         )
+        #self.model = self.model.to("cuda:0")
         self.get_speech_timestamps = self.utils[0]
  
     def segment(self, audio_path: str) -> list[dict]:
@@ -49,7 +50,7 @@ class VadSegmenter:
             sampling_rate=sr,
             min_speech_duration_ms=self.config.min_speech_duration_ms,
             min_silence_duration_ms=self.config.min_silence_duration_ms,
-            speech_pad_duration_ms=self.config.speech_pad_duration_ms,
+            speech_pad_ms=self.config.speech_pad_ms,
         )
  
         # 청크 추출
