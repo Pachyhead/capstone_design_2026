@@ -16,7 +16,7 @@ service RouteGuide { // definition of service
 }
 
 // message type: data structure that clients send to server
-message Point 
+message Point { 
   // Codelab Hint: Define the Point messages here
   int32 latitude = 1; // 1, 2: unique id for each field of message type
   int32 longitude = 2;	
