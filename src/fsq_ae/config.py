@@ -12,7 +12,7 @@ class FSQAEConfig:
     levels: List[int] = field(default_factory=lambda: [5, 5, 5, 5, 5, 5, 5, 5])
  
     # 데이터
-    data_path: str = "/data/processed/emotion2vec_dataset.pt"
+    data_path: str = "../data/processed/emotion2vec_dataset.pt"
     val_speaker_ratio: float = 0.1                         
  
     # 학습
@@ -24,6 +24,6 @@ class FSQAEConfig:
  
     # 환경
     seed: int = 66
-    save_dir: str = "/checkpoints/fsq_ae"
+    save_dir: str = "../data/checkpoints/fsq_ae"
     log_interval: int = 100
  
