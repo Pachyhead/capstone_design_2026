@@ -30,3 +30,9 @@ torchaudio = { index = "pytorch-cu121" }
 name = "pytorch-cu121"
 url = "https://download.pytorch.org/whl/cu121"
 explicit = true
+
+[dependency-groups]
+dev = [
+    "pandas>=3.0.2",
+    "pudb>=2025.1.5",
+]
