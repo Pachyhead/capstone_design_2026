@@ -14,7 +14,7 @@ from .model import FSQAutoEncoder
 def train(config: FSQAEConfig):
     torch.manual_seed(config.seed)
     device = torch.device(
-        config.device if torch.cuda.is_available() else "cpu"
+        "cuda" if torch.cuda.is_available() else "cpu"
     )
  
     # 데이터
