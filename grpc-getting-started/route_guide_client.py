@@ -1,16 +1,3 @@
-# Copyright 2024 gRPC authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """The Python implementation of the gRPC route guide client."""
 
 import logging
@@ -34,6 +21,17 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
+    channel = grpc.insecure_channel("localhost:50051") # RouteGuideStub 인스턴스화
+    stub = route_guide_pb2_grpc.RouteGuideStub(channel)
+    
+    point = route_guide_pb2.Point(latitude=412346009, longitude=-744026814) # 서비스를 호출할 Point 정의
+    feature = stub.GetFeature(point) # 서버 메서드 호출(rpc 호출)
+    print(feature)
+
+    if feature.name:
+        print(f"Feature called '{feature.name}' at {format_point(feature.location)}")
+    else:
+        printf(f"Found no feature at {format_point(feature.location)}")    
 
 
 if __name__ == "__main__":
