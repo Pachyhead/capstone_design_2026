@@ -7,6 +7,8 @@ import grpc
 import route_guide_pb2
 import route_guide_pb2_grpc
 
+import os
+
 
 def format_point(point):
     # Not delegating in point.__str__ because it is an empty string when its
@@ -21,7 +23,8 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
-    channel = grpc.insecure_channel("localhost:50051") # RouteGuideStub 인스턴스화
+    server_addr = os.environ.get('SERV_IP') + ":" + os.environ.get('SERV_PORT')
+    channel = grpc.insecure_channel(server_addr) # RouteGuideStub 인스턴스화
     stub = route_guide_pb2_grpc.RouteGuideStub(channel)
     
     point = route_guide_pb2.Point(latitude=412346009, longitude=-744026814) # 서비스를 호출할 Point 정의
