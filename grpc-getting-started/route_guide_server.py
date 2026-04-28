@@ -24,7 +24,7 @@ import route_guide_pb2_grpc
 import route_guide_resources
 
 
-def get_feature(feature_db, point):
+def get_feature(feature_db, point): # point가 feature_db에 존재한다면 해당 feature 반환
     """Returns Feature at given location or None."""
     for feature in feature_db:
         if feature.location == point:
@@ -32,17 +32,22 @@ def get_feature(feature_db, point):
     return None
 
 
-class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
+class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer): # pb2_grpc.RouteGuideServicer 서브클래스화
     """Provides methods that implement functionality of route guide server."""
 
     def __init__(self):
         self.db = route_guide_resources.read_route_guide_database()
 
-    def GetFeature(self, request, context):
+    def GetFeature(self, request, context): # rpc에 대한 Point 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달.
         """Codelab Hint: implement GetFeature using get_feature() here."""
+        feature = get_feature(self.db, request)
+        if feature is None:
+            return route_guide_pb2.Feature(name="", location=request)
+        else:
+            return feature
 
 
-def serve():
+def serve(): # grpc 서버 시작하는 부분
     """
     Codelab Hint: Logic for starting up a gRPC Server will be added here.
     Steps include:
@@ -50,6 +55,16 @@ def serve():
      2. register RouteGuideServicer to the server.
      3. start the server.
     """
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    route_guide_pb2_grpc.add_RouteGuideServicer_to_server(
+        RouteGuideServicer(),
+        server,
+    )
+    listen_addr = "localhost:50051"
+    server.add_insecure_port(listen_addr)
+    print(f"Starting server on {listen_addr}")
+    server.start()
+    server.wait_for_termination()
 
 
 if __name__ == "__main__":
