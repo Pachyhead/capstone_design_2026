@@ -60,7 +60,7 @@ def serve(): # grpc 서버 시작하는 부분
         RouteGuideServicer(),
         server,
     )
-    listen_addr = "localhost:50051"
+    listen_addr = "0.0.0.0:" + os.environ.get('SERV_PORT') # get request from anywhere
     server.add_insecure_port(listen_addr)
     print(f"Starting server on {listen_addr}")
     server.start()
