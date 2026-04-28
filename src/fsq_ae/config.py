@@ -6,7 +6,8 @@ from typing import List
 class FSQAEConfig:
     # 모델 구조
     input_dim: int = 1024                                                   # emotion2vec 출력
-    hidden_dims: List[int] = field(default_factory=lambda: [512, 256])      #
+    hidden_dims: List[int] = field(default_factory=lambda: [512, 256])      # MLP
+    hidden_dims_skip: List[int] = field(default_factory=lambda: [512, 512, 512, 512])
 
     # FSQ
     levels: List[int] = field(default_factory=lambda: [5, 5, 5, 5, 5, 5, 5, 5])
@@ -21,6 +22,9 @@ class FSQAEConfig:
     num_epochs: int = 200
     grad_clip: float = 1.0
     num_workers: int = 2
+    
+    # Loss
+    emotion_kl_weight: float = 0.1
  
     # 환경
     seed: int = 66

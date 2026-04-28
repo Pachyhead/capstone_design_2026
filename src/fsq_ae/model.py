@@ -4,6 +4,21 @@ from .config import FSQAEConfig
 from .quantizer import FSQ
  
  
+class MLPBlock(nn.Module):
+    def __init__(self, dim: int, expansion: int = 2):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
+        self.fc1 = nn.Linear(dim, dim * expansion)
+        self.act = nn.GELU()
+        self.fc2 = nn.Linear(dim * expansion, dim)
+        
+    def forward(self, x):
+        h = self.norm(x)
+        h = self.fc1(h)
+        h = self.act(h)
+        h = self.fc2(h)
+        return x + h
+ 
 class FSQAutoEncoder(nn.Module):
     """
     학습/추론 양쪽에서 사용하는 메인 모델
@@ -16,18 +31,16 @@ class FSQAutoEncoder(nn.Module):
         super().__init__()
         self.config = config
         bottleneck_dim = len(config.levels)
-        h1, h2 = config.hidden_dims
         in_dim = config.input_dim
+        h = config.hidden_dims_skip[0]
+        n_blocks = len(config.hidden_dims_skip)
  
         # 인코더
         self.encoder = nn.Sequential(
-            nn.Linear(in_dim, h1),
-            nn.LayerNorm(h1),
-            nn.GELU(),
-            nn.Linear(h1, h2),
-            nn.LayerNorm(h2),
-            nn.GELU(),
-            nn.Linear(h2, bottleneck_dim),
+            nn.Linear(in_dim, h),
+            *[MLPBlock(h) for _ in range(n_blocks)],
+            nn.LayerNorm(h),
+            nn.Linear(h, bottleneck_dim),
         )
  
         # FSQ
@@ -35,13 +48,10 @@ class FSQAutoEncoder(nn.Module):
  
         # 디코더
         self.decoder = nn.Sequential(
-            nn.Linear(bottleneck_dim, h2),
-            nn.LayerNorm(h2),
-            nn.GELU(),
-            nn.Linear(h2, h1),
-            nn.LayerNorm(h1),
-            nn.GELU(),
-            nn.Linear(h1, in_dim),
+            nn.Linear(bottleneck_dim, h),
+            *[MLPBlock(h) for _ in range(n_blocks)],
+            nn.LayerNorm(h),
+            nn.Linear(h, in_dim),
         )
  
     def forward(self, x):
