@@ -23,6 +23,8 @@ import route_guide_pb2_grpc
 
 import route_guide_resources
 
+import os
+from dotenv import load_dotenv
 
 def get_feature(feature_db, point): # point가 feature_db에 존재한다면 해당 feature 반환
     """Returns Feature at given location or None."""
@@ -60,7 +62,10 @@ def serve(): # grpc 서버 시작하는 부분
         RouteGuideServicer(),
         server,
     )
-    listen_addr = "0.0.0.0:" + os.environ.get('SERV_PORT') # get request from anywhere
+
+    load_dotenv() # load .env file's variables to os.environ
+    serv_port = os.environ.get('SERV_PORT', '')
+    listen_addr = f"0.0.0.0:{serv_port}" # get request from anywhere
     server.add_insecure_port(listen_addr)
     print(f"Starting server on {listen_addr}")
     server.start()

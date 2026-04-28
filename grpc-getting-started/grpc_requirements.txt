@@ -1,2 +1,6 @@
-pip install grpcio-tools
-
+grpcio==1.80.0
+grpcio-tools==1.80.0
+protobuf==6.33.6
+setuptools==82.0.1
+typing-extensions==4.15.0
+python-dotenv==1.2.2

@@ -8,7 +8,7 @@ import route_guide_pb2
 import route_guide_pb2_grpc
 
 import os
-
+from dotenv import load_dotenv
 
 def format_point(point):
     # Not delegating in point.__str__ because it is an empty string when its
@@ -23,7 +23,8 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
-    server_addr = os.environ.get('SERV_IP') + ":" + os.environ.get('SERV_PORT')
+    load_dotenv() # load .env file's variables to os.environ
+    server_addr = "{os.environ.get('SERV_IP', '')}:{os.environ.get('SERV_PORT', '')}"
     channel = grpc.insecure_channel(server_addr) # RouteGuideStub 인스턴스화
     stub = route_guide_pb2_grpc.RouteGuideStub(channel)
     
