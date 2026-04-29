@@ -14,19 +14,19 @@ import use_e2v_text_data
 
 def get_sender_response(request): # request 받으면 doSomething을 하고, uploadStatus(True) 반환
     try:
-        use_e2v_text_data.doSomething() # 이후 서버단 동작으로 교체(autoencoder / tts)
+        use_e2v_text_data.doSomething(request) # 이후 서버단 동작으로 교체(autoencoder / tts)
     except OSError as e:
         printf(f"Response error: {e}")
         return None
     
-    return server_communicate_pb2.UploadStatus(accepted=True, task_id="1") # 반환값으로 UploadStatus 리턴
+    return server_communicate_pb2.UploadStatus(accepted=True) # 반환값으로 UploadStatus 리턴
 
 def get_receiver_response(request): # request 받으면 get_pending_message를 호출해 audio_content 담은 AudioFrame 반환
-    audio_content = use_e2v_text_data.get_pending_message() # 이후 서버단 동작으로 교체(sqlite)
+    audio_content = use_e2v_text_data.get_pending_message(request.user_id) # 이후 서버단 동작으로 교체(sqlite)
     if audio_content is None:
         return None
     
-    return server_communicate_pb2.AudioFrame(audio_content, "sender_id", True) # 반환값으로 AudioFrame 리턴
+    return server_communicate_pb2.AudioFrame(audio_content, "sender_id", "message_id", True) # 반환값으로 AudioFrame 리턴
 
 
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
@@ -37,7 +37,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
         
         response = get_sender_response(request)
         if response is None:
-            return server_communicate_pb2.UploadStatus(accepted=False, task_id="")
+            return server_communicate_pb2.UploadStatus(accepted=False)
         else:
             return response
     
