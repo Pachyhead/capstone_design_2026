@@ -1,19 +1,14 @@
-"""The Python implementation of the gRPC route guide client."""
+"""The Python implementation of the gRPC server communicate client."""
 
 import logging
 
 import grpc
 
-import route_guide_pb2
-import route_guide_pb2_grpc
+import server_communicate_pb2
+import server_communicate_pb2_grpc
 
 import os
 from dotenv import load_dotenv
-
-def format_point(point):
-    # Not delegating in point.__str__ because it is an empty string when its
-    # values are zero. In addition, it puts a newline between the fields.
-    return f"latitude: {point.latitude}, longitude: {point.longitude}"
 
 
 def run():
@@ -25,17 +20,17 @@ def run():
     """
     load_dotenv() # load .env file's variables to os.environ
     server_addr = f"{os.environ.get('SERV_IP', '')}:{os.environ.get('SERV_PORT', '')}"
-    channel = grpc.insecure_channel(server_addr) # RouteGuideStub 인스턴스화
-    stub = route_guide_pb2_grpc.RouteGuideStub(channel)
+    channel = grpc.insecure_channel(server_addr) # SpeechRelayStub 인스턴스화
+    stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
     
-    point = route_guide_pb2.Point(latitude=412346009, longitude=-744026814) # 서비스를 호출할 Point 정의
-    feature = stub.GetFeature(point) # 서버 메서드 호출(rpc 호출)
-    print(feature)
+    uploadRequest = server_communicate_pb2.SpeechUploadRequest(server_id="servR", receiver_id="receiveR", text="anonymous text", emotion_vector=[0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.72]) # 서비스를 호출할 SpeechUploadRequest 정의
+    status = stub.UploadSpeechTask(uploadRequest) # 서버 메서드 호출(rpc 호출)
+    print(status)
 
-    if feature.name:
-        print(f"Feature called '{feature.name}' at {format_point(feature.location)}")
+    if status.accepted:
+        print(f"Upload success '{status.task_id}'")
     else:
-        printf(f"Found no feature at {format_point(feature.location)}")    
+        printf(f"Upload faild")    
 
 
 if __name__ == "__main__":
