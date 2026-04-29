@@ -23,7 +23,7 @@ def run():
     channel = grpc.insecure_channel(server_addr) # SpeechRelayStub 인스턴스화
     stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
     
-    user_identifier = server_communicate_pb2.userIdentifier(user_id="sendR") # 서비스를 호출할 userIdentifier 정의
+    user_identifier = server_communicate_pb2.userIdentifier(user_id="receiveR") # 서비스를 호출할 userIdentifier 정의
     audio_frame = stub.SubscribeSpeechStream(UserIdentifier) # 서버 메서드 호출(rpc 호출)
     print(audio_frame)
 
