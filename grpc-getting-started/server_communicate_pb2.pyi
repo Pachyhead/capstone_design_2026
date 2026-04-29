@@ -19,12 +19,10 @@ class SpeechUploadRequest(_message.Message):
     def __init__(self, sender_id: _Optional[str] = ..., receiver_id: _Optional[str] = ..., text: _Optional[str] = ..., emotion_vector: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class UploadStatus(_message.Message):
-    __slots__ = ("accepted", "task_id")
+    __slots__ = ("accepted",)
     ACCEPTED_FIELD_NUMBER: _ClassVar[int]
-    TASK_ID_FIELD_NUMBER: _ClassVar[int]
     accepted: bool
-    task_id: str
-    def __init__(self, accepted: bool = ..., task_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, accepted: bool = ...) -> None: ...
 
 class UserIdentifier(_message.Message):
     __slots__ = ("user_id",)
@@ -33,11 +31,13 @@ class UserIdentifier(_message.Message):
     def __init__(self, user_id: _Optional[str] = ...) -> None: ...
 
 class AudioFrame(_message.Message):
-    __slots__ = ("audio_content", "sender_id", "is_final")
+    __slots__ = ("audio_content", "sender_id", "message_id", "is_final")
     AUDIO_CONTENT_FIELD_NUMBER: _ClassVar[int]
     SENDER_ID_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
     IS_FINAL_FIELD_NUMBER: _ClassVar[int]
     audio_content: bytes
     sender_id: str
+    message_id: str
     is_final: bool
-    def __init__(self, audio_content: _Optional[bytes] = ..., sender_id: _Optional[str] = ..., is_final: bool = ...) -> None: ...
+    def __init__(self, audio_content: _Optional[bytes] = ..., sender_id: _Optional[str] = ..., message_id: _Optional[str] = ..., is_final: bool = ...) -> None: ...

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x18server_communicate.proto\"c\n\x13SpeechUploadRequest\x12\x11\n\tsender_id\x18\x01 \x01(\t\x12\x13\n\x0breceiver_id\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x16\n\x0e\x65motion_vector\x18\x04 \x03(\x02\"1\n\x0cUploadStatus\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\x12\x0f\n\x07task_id\x18\x02 \x01(\t\"!\n\x0eUserIdentifier\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"H\n\nAudioFrame\x12\x15\n\raudio_content\x18\x01 \x01(\x0c\x12\x11\n\tsender_id\x18\x02 \x01(\t\x12\x10\n\x08is_final\x18\x03 \x01(\x08\x32\x83\x01\n\x0bSpeechRelay\x12\x39\n\x10UploadSpeechTask\x12\x14.SpeechUploadRequest\x1a\r.UploadStatus\"\x00\x12\x39\n\x15SubscribeSpeechStream\x12\x0f.UserIdentifier\x1a\x0b.AudioFrame\"\x00\x30\x01\x42\x36\n\x1bio.grpc.examples.routeguideB\x0fRouteGuideProtoP\x01\xa2\x02\x03RTGb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x18server_communicate.proto\"c\n\x13SpeechUploadRequest\x12\x11\n\tsender_id\x18\x01 \x01(\t\x12\x13\n\x0breceiver_id\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x16\n\x0e\x65motion_vector\x18\x04 \x03(\x02\" \n\x0cUploadStatus\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\"!\n\x0eUserIdentifier\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"\\\n\nAudioFrame\x12\x15\n\raudio_content\x18\x01 \x01(\x0c\x12\x11\n\tsender_id\x18\x02 \x01(\t\x12\x12\n\nmessage_id\x18\x03 \x01(\t\x12\x10\n\x08is_final\x18\x04 \x01(\x08\x32\x83\x01\n\x0bSpeechRelay\x12\x39\n\x10UploadSpeechTask\x12\x14.SpeechUploadRequest\x1a\r.UploadStatus\"\x00\x12\x39\n\x15SubscribeSpeechStream\x12\x0f.UserIdentifier\x1a\x0b.AudioFrame\"\x00\x30\x01\x42\x36\n\x1bio.grpc.examples.routeguideB\x0fRouteGuideProtoP\x01\xa2\x02\x03RTGb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,11 +35,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SPEECHUPLOADREQUEST']._serialized_start=28
   _globals['_SPEECHUPLOADREQUEST']._serialized_end=127
   _globals['_UPLOADSTATUS']._serialized_start=129
-  _globals['_UPLOADSTATUS']._serialized_end=178
-  _globals['_USERIDENTIFIER']._serialized_start=180
-  _globals['_USERIDENTIFIER']._serialized_end=213
-  _globals['_AUDIOFRAME']._serialized_start=215
-  _globals['_AUDIOFRAME']._serialized_end=287
-  _globals['_SPEECHRELAY']._serialized_start=290
-  _globals['_SPEECHRELAY']._serialized_end=421
+  _globals['_UPLOADSTATUS']._serialized_end=161
+  _globals['_USERIDENTIFIER']._serialized_start=163
+  _globals['_USERIDENTIFIER']._serialized_end=196
+  _globals['_AUDIOFRAME']._serialized_start=198
+  _globals['_AUDIOFRAME']._serialized_end=290
+  _globals['_SPEECHRELAY']._serialized_start=293
+  _globals['_SPEECHRELAY']._serialized_end=424
 # @@protoc_insertion_point(module_scope)
