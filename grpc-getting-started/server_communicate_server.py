@@ -12,25 +12,41 @@ import os
 from dotenv import load_dotenv
 import use_e2v_text_data
 
-def get_response(request): # request 받으면 doSomething을 하고, uploadStatus(True) 반환
+def get_sender_response(request): # request 받으면 doSomething을 하고, uploadStatus(True) 반환
     try:
-        use_e2v_text_data.doSomething() # 이후 서버단 동작으로 교체
+        use_e2v_text_data.doSomething() # 이후 서버단 동작으로 교체(autoencoder / tts)
     except OSError as e:
         printf(f"Response error: {e}")
         return None
     
-    return server_communicate_pb2.UploadStatus(accepted=True, task_id="1")
+    return server_communicate_pb2.UploadStatus(accepted=True, task_id="1") # 반환값으로 UploadStatus 리턴
+
+def get_receiver_response(request): # request 받으면 get_pending_message를 호출해 audio_content 담은 AudioFrame 반환
+    audio_content = use_e2v_text_data.get_pending_message() # 이후 서버단 동작으로 교체(sqlite)
+    if audio_content is None:
+        return None
+    
+    return server_communicate_pb2.AudioFrame(audio_content, "sender_id", True) # 반환값으로 AudioFrame 리턴
 
 
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
     """Provides methods that implement functionality of server_communicate server."""
 
-    def GetCommResultResponse(self, request, context): # rpc에 대한 Point 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달.
-        """Codelab Hint: implement GetCommResultResponse using get_response() here."""
+    def UploadSpeechTask(self, request, context): # rpc에 대한 SpeechUploadRequest 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달.
+        """Codelab Hint: implement UploadSpeechTask using get_sender_response() here."""
         
-        response = get_response(request)
+        response = get_sender_response(request)
         if response is None:
             return server_communicate_pb2.UploadStatus(accepted=False, task_id="")
+        else:
+            return response
+    
+    def SubscribeSpeechStream(self, request, context): # rpc에 대한 UserIdentifier 요청 전달.
+        """ implement SubscribeSpeechStream using get_receiver_response() here."""
+
+        response = get_receiver_response(request)
+        if response is None:
+            return server_communicate_pb2.AudioFrame([], "", False)
         else:
             return response
         
