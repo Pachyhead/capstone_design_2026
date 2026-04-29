@@ -31,7 +31,6 @@ message SpeechUploadRequest {
 // message type: data structure that send_clients receive from server
 message UploadStatus {
   bool accepted = 1;
-  string task_id = 2; // 작업 추적용 id
 }
 
 // message type: data structure that recv_clients send to server
@@ -43,5 +42,6 @@ message UserIdentifier {
 message AudioFrame {
   bytes audio_content = 1;
   string sender_id = 2;
-  bool is_final = 3; // 마지막 조각인지
+  string message_id = 3;
+  bool is_final = 4; // 마지막 조각인지
 }
