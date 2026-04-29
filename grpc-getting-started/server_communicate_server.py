@@ -26,7 +26,7 @@ def get_receiver_response(request): # request 받으면 get_pending_message를 �
     if audio_content is None:
         return None
     
-    return server_communicate_pb2.AudioFrame(audio_content, "sender_id", "message_id", True) # 반환값으로 AudioFrame 리턴
+    return server_communicate_pb2.AudioFrame(audio_content=audio_content, sender_id="sender_id", message_id="message_id", is_final=True) # 반환값으로 AudioFrame 리턴
 
 
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
@@ -46,7 +46,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
 
         response = get_receiver_response(request)
         if response is None:
-            return server_communicate_pb2.AudioFrame([], "", False)
+            return server_communicate_pb2.AudioFrame(audio_content=[], sender_id="", message_id=False)
         else:
             return response
         
