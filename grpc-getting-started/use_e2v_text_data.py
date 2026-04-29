@@ -12,3 +12,6 @@ def doSomething():
     except OSError as e:
         print(f"File write error: {e}")
         return False
+
+def get_pending_message():
+    return "pended message"
