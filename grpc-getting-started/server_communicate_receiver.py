@@ -32,8 +32,8 @@ def run():
         if audio_frame.sender_id:
             print(f"receive success '{audio_frame.sender_id}'")
         else:
-            printf(f"receive failed")
-            
+            print(f"receive failed")
+
 
 if __name__ == "__main__":
     logging.basicConfig()

@@ -46,9 +46,14 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
 
         response = get_receiver_response(request)
         if response is None:
-            return server_communicate_pb2.AudioFrame(audio_content=[], sender_id="", message_id=False)
+            audio_frame = server_communicate_pb2.AudioFrame(audio_content=[], sender_id="", message_id="", is_final=True)
+            yield audio_frame
+            if audio_frame.is_final:
+                return
         else:
-            return response
+            yield response
+            if response.is_final:
+                return
         
 
 def serve(): # grpc 서버 시작하는 부분
