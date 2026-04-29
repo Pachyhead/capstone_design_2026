@@ -22,4 +22,4 @@ def get_pending_message(user_id):
     with open(fname, "r") as f:
         json_data = json.load(f)
 
-    return json_data['text']
+    return bytes(json_data['text'], "utf-8")
