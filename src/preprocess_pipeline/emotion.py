@@ -37,8 +37,8 @@ class EmotionExtractor:
         labels = result[0]["labels"]  # 감정 레이블
         scores = result[0]["scores"]  # 각 감정에 대한 확률 점수
         
-        # 768d embedding 추출
-        embedding = result[0]["feats"]  # shape: (768,)
+        # 1024d embedding 추출
+        embedding = result[0]["feats"]  # shape: (1024,)
         if isinstance(embedding, torch.Tensor):
             embedding = embedding.cpu().numpy()
 
