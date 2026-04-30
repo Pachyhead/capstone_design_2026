@@ -9,7 +9,18 @@ import server_communicate_pb2_grpc
 
 import os
 from dotenv import load_dotenv
+import io
+from pydub import AudioSegment
 
+def merge_wav_byte(wav_bytes_list, output_filename="combined.wav"):
+    combined = AudioSegment.empty()
+
+    for wav_bytes in wav_bytes_list:
+        audio_segment = AudioSegment.from_file(io.BytesIO(wav_bytes), format="wav")
+        combined += audio_segment
+
+    combined.export(output_filename, format="wav") # 합쳐진 오디오 파일로 내보냄
+    print(f"file saved: {output_filename}")
 
 def run():
     """
@@ -23,16 +34,19 @@ def run():
     channel = grpc.insecure_channel(server_addr) # SpeechRelayStub 인스턴스화
     stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
     
-    user_identifier = server_communicate_pb2.UserIdentifier(user_id="receiveR") # 서비스를 호출할 userIdentifier 정의
+    user_identifier = server_communicate_pb2.UserIdentifier(user_id="000001") # 서비스를 호출할 userIdentifier 정의
     audio_frames = stub.SubscribeSpeechStream(user_identifier) # 서버 메서드 호출(rpc 호출)
     
+    wav_bytes_list = []
     for audio_frame in audio_frames:
-        print(audio_frame)
+        wav_bytes_list.append(audio_frame.audio_content)
 
         if audio_frame.sender_id:
             print(f"receive success '{audio_frame.sender_id}'")
         else:
             print(f"receive failed")
+    
+    merge_wav_byte(wav_bytes_list, "000001.wav")
 
 
 if __name__ == "__main__":

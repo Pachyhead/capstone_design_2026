@@ -9,7 +9,17 @@ import server_communicate_pb2_grpc
 
 import os
 from dotenv import load_dotenv
+import numpy as np
+import json
 
+def load_vector():
+    data = np.load('../000001.npy')
+    return data
+
+def load_text():
+    with open('../000001_metadata.jsonl', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        return data['text']
 
 def run():
     """
@@ -23,7 +33,8 @@ def run():
     channel = grpc.insecure_channel(server_addr) # SpeechRelayStub 인스턴스화
     stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
     
-    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="receiveR", text="anonymous text", emotion_vector=[0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.72]) # 서비스를 호출할 SpeechUploadRequest 정의
+
+    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", text=load_text(), emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
     status = stub.UploadSpeechTask(uploadRequest) # 서버 메서드 호출(rpc 호출)
     
     if status.accepted:
