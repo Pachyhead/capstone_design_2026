@@ -1,0 +1,1 @@
+{"id": "000001", "source_file": "2517G2A2_person_L", "wav": "chunks/000001.wav", "text": "우리가 지금 코코를 키우고 있잖아.", "non_verbal": false, "emo_vec": "embeddings/000001.npy", "emo_label": "surprised", "emo_scores": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0], "start_sec": 8.7, "end_sec": 11.748, "duration_sec": 3.048}

@@ -17,9 +17,9 @@ def doSomething(request):
         return False
 
 def get_pending_message(user_id):
-    fname = f"{user_id}.json"
+    fname = f"../{user_id}.wav"
 
-    with open(fname, "r") as f:
-        json_data = json.load(f)
+    with open(fname, "rb") as f:
+        wav_bytes = f.read()
 
-    return bytes(json_data['text'], "utf-8")
+    return wav_bytes
