@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from transformers import AutoConfig
 
 from qwen_tts.core.models.emotion_projector import EmotionProjector
-from qwen_tts.finetuning.dataset_emotion import TTSEmotionDataset
+from qwen_tts.finetuning.dataset_emotion import EmotionTTSDataset
 from qwen_tts.inference.qwen3_tts_model import Qwen3TTSModel
 
 
@@ -57,11 +57,15 @@ def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("--init_model_path", type=str, default="Qwen/Qwen3-TTS-12Hz-1.7B-Base")
     parser.add_argument("--output_model_path", type=str, default="output_emotion")
-    parser.add_argument("--train_jsonl", type=str, required=True)
+    parser.add_argument("--manifest_path", type=str, required=True,
+                        help="Train manifest jsonl produced by build_manifest.py + add_audio_codes.py")
+    parser.add_argument("--data_root", type=str, required=True,
+                        help="Directory the manifest's relative wav/emo_vec paths resolve against")
     parser.add_argument("--batch_size", type=int, default=2)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--num_epochs", type=int, default=3)
-    parser.add_argument("--emotion_dim", type=int, default=1024)
+    parser.add_argument("--emotion_dim", type=int, default=1024,
+                        help="Verified Emotion2Vec dim (run scripts/verify_emotion_dim.py first)")
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--grad_accum", type=int, default=4)
     args = parser.parse_args()
@@ -87,8 +91,13 @@ def train():
     accelerator.print(f"Trainable params: {n_trainable:,} (EmotionProjector only)")
 
     # Data
-    train_data = [json.loads(line) for line in open(args.train_jsonl)]
-    dataset = TTSEmotionDataset(train_data, qwen3tts.processor, config, emotion_dim=args.emotion_dim)
+    dataset = EmotionTTSDataset(
+        manifest_path=args.manifest_path,
+        data_root=args.data_root,
+        processor=qwen3tts.processor,
+        config=config,
+        expected_emotion_dim=args.emotion_dim,
+    )
     train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, collate_fn=dataset.collate_fn)
 
     # Optimizer over emotion_projector only
