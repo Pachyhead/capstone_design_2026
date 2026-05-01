@@ -145,7 +145,14 @@ def main():
     parser.add_argument("--max_duration", type=float, default=20.0)
     parser.add_argument("--min_neutral_duration", type=float, default=2.0,
                         help="Minimum duration for a sample to qualify as a reference (voice identity needs enough audio)")
+    parser.add_argument("--min_neutral_pool_size", type=int, default=2,
+                        help="Drop speakers whose usable neutral pool has fewer than this many samples. "
+                             "With min=2 the dataset can always pick a non-self reference for a neutral target. "
+                             "Set to 1 to keep singleton-neutral speakers (which will always force self-reference for that one neutral sample).")
     parser.add_argument("--val_speaker_ratio", type=float, default=0.05)
+    parser.add_argument("--test_speaker_ratio", type=float, default=0.0,
+                        help="Fraction of speakers to hold out as a test split (speaker-level disjoint from train and val). "
+                             "Default 0.0 = no test split. Typical: 0.05.")
     parser.add_argument("--allow_neutral_fallback", action="store_true",
                         help="If set, use the highest-neutral-score sample as a fallback for speakers without a labeled-neutral utterance")
     parser.add_argument("--seed", type=int, default=42)
@@ -177,53 +184,82 @@ def main():
 
     spk_samples, spk_neutral = _build_pools(filtered, args)
     n_speakers = len(spk_samples)
-    speakers_with_neutral = [s for s in spk_samples if spk_neutral.get(s)]
+    speakers_any_neutral = [s for s in spk_samples if spk_neutral.get(s)]
+    speakers_with_neutral = [s for s in spk_samples if len(spk_neutral.get(s, [])) >= args.min_neutral_pool_size]
+    n_any = len(speakers_any_neutral)
     n_with_neutral = len(speakers_with_neutral)
-    excluded_no_neutral = n_speakers - n_with_neutral
-    pct = 100 * excluded_no_neutral / n_speakers if n_speakers else 0.0
-    print(f"\nSpeakers total                                  : {n_speakers}")
-    print(f"  with usable neutral pool (>= {args.min_neutral_duration}s)        : {n_with_neutral}")
-    print(f"  excluded (no neutral; fallback={args.allow_neutral_fallback}): {excluded_no_neutral} ({pct:.1f}%)")
+    excluded_no_neutral = n_speakers - n_any
+    excluded_singleton = n_any - n_with_neutral  # had neutral, but pool < min_neutral_pool_size
+    pct_no = 100 * excluded_no_neutral / n_speakers if n_speakers else 0.0
+    pct_singleton = 100 * excluded_singleton / n_speakers if n_speakers else 0.0
+    pct_total = 100 * (n_speakers - n_with_neutral) / n_speakers if n_speakers else 0.0
+    print(f"\nSpeakers total                                                         : {n_speakers}")
+    print(f"  with neutral pool >= {args.min_neutral_pool_size} entries (>= {args.min_neutral_duration}s each): {n_with_neutral}")
+    print(f"  excluded -- no neutral at all (fallback={args.allow_neutral_fallback})           : {excluded_no_neutral} ({pct_no:.1f}%)")
+    if args.min_neutral_pool_size > 1:
+        print(f"  excluded -- neutral pool < {args.min_neutral_pool_size}                                          : {excluded_singleton} ({pct_singleton:.1f}%)")
+    print(f"  total excluded                                                       : {n_speakers - n_with_neutral} ({pct_total:.1f}%)")
 
-    if pct > 20.0 and not args.allow_neutral_fallback:
-        print(f"  WARNING: >20% of speakers excluded. Consider --allow_neutral_fallback or revisit data policy.")
+    if pct_total > 20.0 and not args.allow_neutral_fallback:
+        print(f"  WARNING: >20% of speakers excluded. Consider --allow_neutral_fallback or lower --min_neutral_pool_size.")
 
-    # Speaker split
+    # Speaker-level 3-way split: val and test are sliced off the front of the
+    # shuffled speaker list, the rest is train. All three are speaker-disjoint.
     speakers_with_neutral_sorted = sorted(speakers_with_neutral)  # deterministic
     random.shuffle(speakers_with_neutral_sorted)
-    n_val = max(1, int(round(len(speakers_with_neutral_sorted) * args.val_speaker_ratio))) if speakers_with_neutral_sorted else 0
+    total_kept = len(speakers_with_neutral_sorted)
+    n_val = max(1, int(round(total_kept * args.val_speaker_ratio))) if (total_kept and args.val_speaker_ratio > 0) else 0
+    n_test = max(1, int(round(total_kept * args.test_speaker_ratio))) if (total_kept and args.test_speaker_ratio > 0) else 0
+    if n_val + n_test >= total_kept:
+        raise ValueError(
+            f"val ({n_val}) + test ({n_test}) >= total speakers ({total_kept}); "
+            "lower --val_speaker_ratio / --test_speaker_ratio."
+        )
     val_speakers = set(speakers_with_neutral_sorted[:n_val])
-    train_speakers = set(speakers_with_neutral_sorted[n_val:])
-    print(f"\nTrain speakers: {len(train_speakers)} | Val speakers: {len(val_speakers)}")
+    test_speakers = set(speakers_with_neutral_sorted[n_val:n_val + n_test])
+    train_speakers = set(speakers_with_neutral_sorted[n_val + n_test:])
+    print(f"\nTrain speakers: {len(train_speakers)} | Val speakers: {len(val_speakers)} | Test speakers: {len(test_speakers)}")
 
     # Build entries (drop excluded speakers)
-    train_entries, val_entries = [], []
+    train_entries, val_entries, test_entries = [], [], []
     for spk in train_speakers:
         for item in spk_samples[spk]:
             train_entries.append(_build_entry(item, spk_neutral[spk]))
     for spk in val_speakers:
         for item in spk_samples[spk]:
             val_entries.append(_build_entry(item, spk_neutral[spk]))
+    for spk in test_speakers:
+        for item in spk_samples[spk]:
+            test_entries.append(_build_entry(item, spk_neutral[spk]))
 
     train_path = output_dir / "manifest_train.jsonl"
     val_path = output_dir / "manifest_val.jsonl"
+    test_path = output_dir / "manifest_test.jsonl"
     with open(train_path, "w", encoding="utf-8") as f:
         for e in train_entries:
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     with open(val_path, "w", encoding="utf-8") as f:
         for e in val_entries:
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
+    if test_entries:
+        with open(test_path, "w", encoding="utf-8") as f:
+            for e in test_entries:
+                f.write(json.dumps(e, ensure_ascii=False) + "\n")
 
     # Stats
     print(f"\n--- Manifest Statistics ---")
-    print(f"Train samples: {len(train_entries)} | Val samples: {len(val_entries)}")
+    print(f"Train samples: {len(train_entries)} | Val samples: {len(val_entries)} | Test samples: {len(test_entries)}")
 
     train_spk_counts = Counter(e["speaker_id"] for e in train_entries)
     val_spk_counts = Counter(e["speaker_id"] for e in val_entries)
+    test_spk_counts = Counter(e["speaker_id"] for e in test_entries)
     train_per_spk = _summarize(list(train_spk_counts.values()))
     val_per_spk = _summarize(list(val_spk_counts.values()))
+    test_per_spk = _summarize(list(test_spk_counts.values()))
     print(f"Train: samples per speaker -- {train_per_spk}")
     print(f"Val  : samples per speaker -- {val_per_spk}")
+    if test_entries:
+        print(f"Test : samples per speaker -- {test_per_spk}")
 
     pool_sizes = [len(e["neutral_pool"]) for e in train_entries]
     pool_sum = _summarize(pool_sizes)
@@ -234,13 +270,16 @@ def main():
 
     train_dist = Counter(e["emo_label"] for e in train_entries)
     val_dist = Counter(e["emo_label"] for e in val_entries)
+    test_dist = Counter(e["emo_label"] for e in test_entries)
     _print_dist("train", train_dist, len(train_entries))
     _print_dist("val",   val_dist,   len(val_entries))
+    if test_entries:
+        _print_dist("test", test_dist, len(test_entries))
 
     # Neutral pool duration distribution (informative for reference quality)
     neutral_durs = []
     for spk, pool in spk_neutral.items():
-        if spk in train_speakers or spk in val_speakers:
+        if spk in train_speakers or spk in val_speakers or spk in test_speakers:
             neutral_durs.extend(p["duration_sec"] for p in pool)
     print(f"\nNeutral pool duration_sec across kept speakers -- {_summarize(neutral_durs)}")
 
@@ -249,21 +288,30 @@ def main():
         "after_filter": counts["after_filter"],
         "filter_breakdown": {k: v for k, v in counts.items() if k.startswith("filter_")},
         "speakers_total": n_speakers,
+        "speakers_with_any_neutral": n_any,
         "speakers_with_neutral": n_with_neutral,
         "speakers_excluded_no_neutral": excluded_no_neutral,
-        "speakers_excluded_pct": round(pct, 2),
+        "speakers_excluded_singleton_neutral": excluded_singleton,
+        "speakers_excluded_pct_no_neutral": round(pct_no, 2),
+        "speakers_excluded_pct_singleton": round(pct_singleton, 2),
+        "speakers_excluded_pct_total": round(pct_total, 2),
+        "min_neutral_pool_size": args.min_neutral_pool_size,
         "allow_neutral_fallback": args.allow_neutral_fallback,
         "train_speakers": len(train_speakers),
         "val_speakers": len(val_speakers),
+        "test_speakers": len(test_speakers),
         "train_samples": len(train_entries),
         "val_samples": len(val_entries),
+        "test_samples": len(test_entries),
         "train_per_speaker": train_per_spk,
         "val_per_speaker": val_per_spk,
+        "test_per_speaker": test_per_spk if test_entries else None,
         "train_neutral_pool_size": pool_sum,
         "train_duration_summary": _summarize(train_durs),
         "neutral_pool_duration_summary": _summarize(neutral_durs),
         "emotion_distribution_train": dict(train_dist),
         "emotion_distribution_val": dict(val_dist),
+        "emotion_distribution_test": dict(test_dist) if test_entries else None,
         "args": vars(args),
     }
     with open(output_dir / "manifest_stats.json", "w", encoding="utf-8") as f:
@@ -271,6 +319,8 @@ def main():
 
     print(f"\nWrote: {train_path}")
     print(f"Wrote: {val_path}")
+    if test_entries:
+        print(f"Wrote: {test_path}")
     print(f"Wrote: {output_dir / 'manifest_stats.json'}")
 
 
