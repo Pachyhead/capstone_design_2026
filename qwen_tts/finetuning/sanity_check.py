@@ -167,14 +167,27 @@ def check_d2_emotion_dim_consistency(manifest_path: str, data_root: str, expecte
     print(f"[D2] OK: {n} sampled emo_vec all collapse to ({expected_emotion_dim},)")
 
 
-def check_d3_speaker_split(train_manifest: str, val_manifest: str):
-    train_items = _read_manifest(train_manifest)
-    val_items = _read_manifest(val_manifest)
-    train_speakers = {it["speaker_id"] for it in train_items}
-    val_speakers = {it["speaker_id"] for it in val_items}
-    overlap = train_speakers & val_speakers
-    assert not overlap, f"[D3] speaker leakage: {len(overlap)} speakers appear in both splits (e.g. {list(overlap)[:5]})"
-    print(f"[D3] OK: train={len(train_speakers)} speakers, val={len(val_speakers)} speakers, overlap=0")
+def check_d3_speaker_split(train_manifest: str, val_manifest: str, test_manifest: str = None):
+    train_speakers = {it["speaker_id"] for it in _read_manifest(train_manifest)}
+    val_speakers = {it["speaker_id"] for it in _read_manifest(val_manifest)}
+    test_speakers = {it["speaker_id"] for it in _read_manifest(test_manifest)} if test_manifest else set()
+
+    overlaps = []
+    if train_speakers & val_speakers:
+        overlaps.append(("train", "val", train_speakers & val_speakers))
+    if test_manifest:
+        if train_speakers & test_speakers:
+            overlaps.append(("train", "test", train_speakers & test_speakers))
+        if val_speakers & test_speakers:
+            overlaps.append(("val", "test", val_speakers & test_speakers))
+    assert not overlaps, "[D3] speaker leakage: " + "; ".join(
+        f"{a}∩{b}={len(s)} (e.g. {list(s)[:3]})" for a, b, s in overlaps
+    )
+
+    summary = f"train={len(train_speakers)} val={len(val_speakers)}"
+    if test_manifest:
+        summary += f" test={len(test_speakers)}"
+    print(f"[D3] OK: {summary}, all pairwise overlaps = 0")
 
 
 # ---------- Entry ----------
@@ -191,6 +204,8 @@ def main():
                         help="Optional manifest path; enables dataset-side checks D1/D2/D3")
     parser.add_argument("--val_manifest", type=str, default=None,
                         help="Optional val manifest; required for D3")
+    parser.add_argument("--test_manifest", type=str, default=None,
+                        help="Optional test manifest; if given, D3 also verifies train/test and val/test are disjoint")
     parser.add_argument("--data_root", type=str, default=None,
                         help="Required when --train_manifest is given")
     parser.add_argument("--n_dataset_samples", type=int, default=100)
@@ -228,7 +243,7 @@ def main():
         check_d1_no_self_reference(qwen3tts.processor, config, args.train_manifest, args.data_root, args.emotion_dim, args.n_dataset_samples)
         check_d2_emotion_dim_consistency(args.train_manifest, args.data_root, args.emotion_dim, args.n_dataset_samples)
         if args.val_manifest:
-            check_d3_speaker_split(args.train_manifest, args.val_manifest)
+            check_d3_speaker_split(args.train_manifest, args.val_manifest, args.test_manifest)
         else:
             print("[D3] skipped (no --val_manifest)")
 
