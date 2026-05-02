@@ -225,7 +225,16 @@ class EmotionTTSDataset(Dataset):
             codec_mask[i, 8 + text_ids_len - 1:8 + text_ids_len - 1 + codec_ids_len] = True
             attention_mask[i, :8 + text_ids_len + codec_ids_len] = True
 
-        ref_mels = torch.cat([data["ref_mel"] for data in batch], dim=0)
+        # ref_mel shape per item: [1, T_i, mel_dim]. Time dimension varies, so pad to max-T
+        # with zeros and stack into [B, T_max, mel_dim]. The frozen ECAPA-TDNN's attentive
+        # pooling absorbs padded frames; their slight bias is tolerable for a frozen encoder
+        # in this 1-stage fine-tune.
+        mels_list = [data["ref_mel"] for data in batch]
+        max_t = max(m.shape[1] for m in mels_list)
+        mel_dim = mels_list[0].shape[2]
+        ref_mels = mels_list[0].new_zeros(len(mels_list), max_t, mel_dim)
+        for i, m in enumerate(mels_list):
+            ref_mels[i, :m.shape[1], :] = m[0]
         emotion_vec = torch.stack([data["emotion_vec"] for data in batch], dim=0)  # [B, expected_emotion_dim]
 
         return {
