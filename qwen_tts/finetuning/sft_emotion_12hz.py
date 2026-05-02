@@ -11,6 +11,7 @@ import os
 
 import torch
 from accelerate import Accelerator
+from accelerate.utils import ProjectConfiguration
 from safetensors.torch import save_file
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
@@ -68,14 +69,30 @@ def train():
                         help="Verified Emotion2Vec dim (run scripts/verify_emotion_dim.py first)")
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--grad_accum", type=int, default=4)
+    parser.add_argument("--log_every", type=int, default=10,
+                        help="Log scalar metrics to tensorboard every N optimizer steps")
+    parser.add_argument("--no_tensorboard", action="store_true", help="Disable tensorboard logging")
+    parser.add_argument("--attn_impl", type=str, default="sdpa",
+                        choices=["sdpa", "flash_attention_2", "eager"],
+                        help="Attention implementation. sdpa = PyTorch built-in (no extra install). "
+                             "flash_attention_2 requires `pip install flash-attn` and CUDA-matched build.")
     args = parser.parse_args()
 
-    accelerator = Accelerator(gradient_accumulation_steps=args.grad_accum, mixed_precision="bf16", log_with="tensorboard")
+    accel_kwargs = dict(gradient_accumulation_steps=args.grad_accum, mixed_precision="bf16")
+    if not args.no_tensorboard:
+        project_config = ProjectConfiguration(
+            project_dir=args.output_model_path,
+            logging_dir=os.path.join(args.output_model_path, "tb_logs"),
+        )
+        accel_kwargs.update(log_with="tensorboard", project_config=project_config)
+    accelerator = Accelerator(**accel_kwargs)
+    if not args.no_tensorboard:
+        accelerator.init_trackers("emotion_projector", config=vars(args))
 
     qwen3tts = Qwen3TTSModel.from_pretrained(
         args.init_model_path,
-        torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
+        dtype=torch.bfloat16,
+        attn_implementation=args.attn_impl,
     )
     config = AutoConfig.from_pretrained(args.init_model_path)
 
@@ -106,6 +123,7 @@ def train():
     model, optimizer, train_dataloader = accelerator.prepare(base_model, optimizer, train_dataloader)
     model.train()
 
+    global_step = 0
     for epoch in range(args.num_epochs):
         for step, batch in enumerate(train_dataloader):
             with accelerator.accumulate(model):
@@ -165,8 +183,23 @@ def train():
                 optimizer.step()
                 optimizer.zero_grad()
 
-            if step % 10 == 0:
-                accelerator.print(f"Epoch {epoch} | Step {step} | Loss: {loss.item():.4f}")
+            if accelerator.sync_gradients:
+                global_step += 1
+                if not args.no_tensorboard and global_step % args.log_every == 0:
+                    proj_w = accelerator.unwrap_model(model).emotion_projector.proj.weight
+                    accelerator.log(
+                        {
+                            "train/loss": loss.item(),
+                            "train/talker_loss": outputs.loss.item(),
+                            "train/subtalker_loss": sub_talker_loss.item(),
+                            "train/emo_proj_w_norm": proj_w.detach().float().norm().item(),
+                            "train/epoch": epoch,
+                        },
+                        step=global_step,
+                    )
+
+            if step % 100 == 0:
+                accelerator.print(f"Epoch {epoch} | Step {step} (global {global_step}) | Loss: {loss.item():.4f}")
 
         if accelerator.is_main_process:
             output_dir = os.path.join(args.output_model_path, f"checkpoint-epoch-{epoch}")
@@ -188,6 +221,9 @@ def train():
                     indent=2,
                 )
             accelerator.print(f"Saved EmotionProjector checkpoint -> {output_dir}")
+
+    if not args.no_tensorboard:
+        accelerator.end_training()
 
 
 if __name__ == "__main__":
