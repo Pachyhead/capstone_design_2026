@@ -212,3 +212,4 @@ __marimo__/
 
 .claude/
 qwen_tts/model/
+qwen_tts/infer_file
