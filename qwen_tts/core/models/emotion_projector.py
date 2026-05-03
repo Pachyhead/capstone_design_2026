@@ -12,8 +12,10 @@ class EmotionProjector(nn.Module):
     so speaker_emb + projector(emotion_vec) == speaker_emb (bit-exact w.r.t. baseline).
     """
 
-    def __init__(self, emotion_dim: int = 1024, target_dim: int = 2048):
+    def __init__(self, emotion_dim: int, target_dim: int):
         super().__init__()
+        assert isinstance(emotion_dim, int) and emotion_dim > 0, f"emotion_dim must be a positive int, got {emotion_dim!r}"
+        assert isinstance(target_dim, int) and target_dim > 0, f"target_dim must be a positive int, got {target_dim!r}"
         self.emotion_dim = emotion_dim
         self.target_dim = target_dim
         self.proj = nn.Linear(emotion_dim, target_dim, bias=True)
@@ -22,4 +24,8 @@ class EmotionProjector(nn.Module):
 
     def forward(self, emotion_vec: torch.Tensor) -> torch.Tensor:
         # emotion_vec: [B, emotion_dim] -> [B, target_dim]
+        if emotion_vec.dim() != 2 or emotion_vec.shape[-1] != self.emotion_dim:
+            raise ValueError(
+                f"EmotionProjector expects [B, {self.emotion_dim}], got shape {tuple(emotion_vec.shape)}"
+            )
         return self.proj(emotion_vec)
