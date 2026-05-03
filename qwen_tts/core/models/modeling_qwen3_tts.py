@@ -2040,6 +2040,7 @@ class Qwen3TTSForConditionalGeneration(Qwen3TTSPreTrainedModel, GenerationMixin)
         voice_clone_prompt: list[dict] = None,
         languages: list[str] = None,
         speakers: list[str] = None,
+        emotion_vec: Optional[list[torch.Tensor]] = None,
         non_streaming_mode = False,
         max_new_tokens: int = 4096,
         do_sample: bool = True,
@@ -2054,6 +2055,15 @@ class Qwen3TTSForConditionalGeneration(Qwen3TTSPreTrainedModel, GenerationMixin)
         repetition_penalty: float = 1.05,
         **kwargs,
     ):
+        # emotion_vec: list of [emotion_dim] tensors, one per item in input_ids.
+        # When self.emotion_projector is set (loaded from checkpoint via load_emotion_projector
+        # or instantiated via use_emotion_projector=True), each item's emotion is projected to
+        # speaker_emb dim and ELEMENT-WISE ADDED to the speaker_embed inserted at the codec
+        # speaker slot. emotion_vec=None or emotion_projector=None falls back to baseline.
+        if emotion_vec is not None and len(emotion_vec) != len(input_ids):
+            raise ValueError(
+                f"emotion_vec length ({len(emotion_vec)}) must match input_ids length ({len(input_ids)})"
+            )
         talker_kwargs = {
             "max_new_tokens": max_new_tokens,
             "min_new_tokens": 2,
@@ -2117,6 +2127,20 @@ class Qwen3TTSForConditionalGeneration(Qwen3TTSPreTrainedModel, GenerationMixin)
                     speaker_embed = voice_clone_spk_embeds[index]
                 else:
                     speaker_embed = None
+
+            # Inject emotion conditioning: same path used at training time
+            # (sft_emotion_12hz.py adds projector(emo) onto the speaker_embed slot).
+            if (
+                emotion_vec is not None
+                and emotion_vec[index] is not None
+                and getattr(self, "emotion_projector", None) is not None
+                and speaker_embed is not None
+            ):
+                emo = emotion_vec[index].to(self.talker.device).to(self.talker.dtype)
+                if emo.dim() == 1:
+                    emo = emo.unsqueeze(0)  # [1, emotion_dim]
+                emo_proj = self.emotion_projector(emo).squeeze(0)  # [target_dim]
+                speaker_embed = speaker_embed + emo_proj.to(speaker_embed.dtype)
 
             assert language is not None
 
