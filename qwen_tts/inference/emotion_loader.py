@@ -1,5 +1,10 @@
 # coding=utf-8
-"""Helpers to attach a trained EmotionProjector checkpoint to a loaded Qwen3TTS model."""
+"""Helpers to attach a trained EmotionProjector checkpoint to a loaded Qwen3TTS model.
+
+Supports two checkpoint shapes produced by the project's training scripts:
+  - Stage-1 (sft_emotion_12hz.py): emotion_projector.safetensors + emotion_projector_config.json
+  - Stage-2 (sft_emotion_lora_12hz.py): the above PLUS lora_adapter.safetensors + lora_config.json
+"""
 import json
 import os
 from pathlib import Path
@@ -8,6 +13,7 @@ import torch
 from safetensors.torch import load_file
 
 from qwen_tts.core.models.emotion_projector import EmotionProjector
+from qwen_tts.core.models.lora import apply_lora_to_talker, load_lora_state
 
 
 def load_emotion_projector(model, checkpoint_dir: str, device: torch.device = None, dtype: torch.dtype = None):
@@ -53,5 +59,34 @@ def load_emotion_projector(model, checkpoint_dir: str, device: torch.device = No
     if hasattr(model, "config"):
         model.config.use_emotion_projector = True
         model.config.emotion_dim = cfg["emotion_dim"]
+
+    # Stage-2 checkpoints additionally contain a LoRA adapter -- inject it now
+    # so the talker forward includes the trained low-rank deltas.
+    lora_weight = ckpt_dir / "lora_adapter.safetensors"
+    lora_config = ckpt_dir / "lora_config.json"
+    if lora_weight.exists() and lora_config.exists():
+        with open(lora_config) as f:
+            lcfg = json.load(f)
+        replaced = apply_lora_to_talker(
+            model,
+            r=lcfg["rank"],
+            alpha=lcfg["alpha"],
+            dropout=0.0,                       # disable dropout at inference
+            include_mlp=lcfg.get("include_mlp", False),
+        )
+        lora_state = load_file(str(lora_weight))
+        loaded, missing = load_lora_state(model, lora_state)
+        if missing:
+            raise RuntimeError(
+                f"LoRA load: {len(missing)} keys in checkpoint not found on model "
+                f"(first few: {missing[:3]}). Did model architecture or rank change?"
+            )
+        # Sanity: every saved key must have landed
+        if len(loaded) != len(lora_state):
+            raise RuntimeError(
+                f"LoRA load count mismatch: loaded={len(loaded)} state_keys={len(lora_state)}"
+            )
+        print(f"[load_emotion_projector] also loaded LoRA: {len(replaced)} layers wrapped, "
+              f"{len(loaded)} adapter params restored")
 
     return projector
