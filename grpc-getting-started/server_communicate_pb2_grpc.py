@@ -5,7 +5,7 @@ import warnings
 
 import server_communicate_pb2 as server__communicate__pb2
 
-GRPC_GENERATED_VERSION = '1.80.0'
+GRPC_GENERATED_VERSION = '1.70.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in server_communicate_pb2_grpc.py depends on'
+        + f' but the generated code in server_communicate_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,14 +36,19 @@ class SpeechRelayStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.UploadSpeechTask = channel.unary_unary(
-                '/SpeechRelay/UploadSpeechTask',
+        self.Send = channel.unary_unary(
+                '/SpeechRelay/Send',
                 request_serializer=server__communicate__pb2.SpeechUploadRequest.SerializeToString,
                 response_deserializer=server__communicate__pb2.UploadStatus.FromString,
                 _registered_method=True)
-        self.SubscribeSpeechStream = channel.unary_stream(
-                '/SpeechRelay/SubscribeSpeechStream',
+        self.GetPendingMessages = channel.unary_stream(
+                '/SpeechRelay/GetPendingMessages',
                 request_serializer=server__communicate__pb2.UserIdentifier.SerializeToString,
+                response_deserializer=server__communicate__pb2.MessageMetadata.FromString,
+                _registered_method=True)
+        self.GetVoice = channel.unary_stream(
+                '/SpeechRelay/GetVoice',
+                request_serializer=server__communicate__pb2.MessageIdentifier.SerializeToString,
                 response_deserializer=server__communicate__pb2.AudioFrame.FromString,
                 _registered_method=True)
 
@@ -53,17 +58,24 @@ class SpeechRelayServicer(object):
     definition of service
     """
 
-    def UploadSpeechTask(self, request, context):
+    def Send(self, request, context):
         """Codelab Hint: Define RPC methods here
 
-        송신측 -> 서버: 텍스트, 감정 데이터
+        송신측 -> 서버: 텍스트, 감정 데이터(전송 로직)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def SubscribeSpeechStream(self, request, context):
-        """서버 -> 수신측: 합성된 음성 데이터
+    def GetPendingMessages(self, request, context):
+        """서버 -> 수신측: 메타데이터(접속 로직)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetVoice(self, request, context):
+        """서버 -> 수신측: 합성된 음성 데이터(재생 로직)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -72,14 +84,19 @@ class SpeechRelayServicer(object):
 
 def add_SpeechRelayServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'UploadSpeechTask': grpc.unary_unary_rpc_method_handler(
-                    servicer.UploadSpeechTask,
+            'Send': grpc.unary_unary_rpc_method_handler(
+                    servicer.Send,
                     request_deserializer=server__communicate__pb2.SpeechUploadRequest.FromString,
                     response_serializer=server__communicate__pb2.UploadStatus.SerializeToString,
             ),
-            'SubscribeSpeechStream': grpc.unary_stream_rpc_method_handler(
-                    servicer.SubscribeSpeechStream,
+            'GetPendingMessages': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetPendingMessages,
                     request_deserializer=server__communicate__pb2.UserIdentifier.FromString,
+                    response_serializer=server__communicate__pb2.MessageMetadata.SerializeToString,
+            ),
+            'GetVoice': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetVoice,
+                    request_deserializer=server__communicate__pb2.MessageIdentifier.FromString,
                     response_serializer=server__communicate__pb2.AudioFrame.SerializeToString,
             ),
     }
@@ -96,7 +113,7 @@ class SpeechRelay(object):
     """
 
     @staticmethod
-    def UploadSpeechTask(request,
+    def Send(request,
             target,
             options=(),
             channel_credentials=None,
@@ -109,7 +126,7 @@ class SpeechRelay(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/SpeechRelay/UploadSpeechTask',
+            '/SpeechRelay/Send',
             server__communicate__pb2.SpeechUploadRequest.SerializeToString,
             server__communicate__pb2.UploadStatus.FromString,
             options,
@@ -123,7 +140,7 @@ class SpeechRelay(object):
             _registered_method=True)
 
     @staticmethod
-    def SubscribeSpeechStream(request,
+    def GetPendingMessages(request,
             target,
             options=(),
             channel_credentials=None,
@@ -136,8 +153,35 @@ class SpeechRelay(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/SpeechRelay/SubscribeSpeechStream',
+            '/SpeechRelay/GetPendingMessages',
             server__communicate__pb2.UserIdentifier.SerializeToString,
+            server__communicate__pb2.MessageMetadata.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetVoice(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/SpeechRelay/GetVoice',
+            server__communicate__pb2.MessageIdentifier.SerializeToString,
             server__communicate__pb2.AudioFrame.FromString,
             options,
             channel_credentials,

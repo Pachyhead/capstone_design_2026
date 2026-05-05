@@ -1,22 +1,23 @@
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable
-from typing import ClassVar as _ClassVar, Optional as _Optional
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Optional as _Optional
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SpeechUploadRequest(_message.Message):
-    __slots__ = ("sender_id", "receiver_id", "text", "emotion_vector")
+    __slots__ = ("sender_id", "receiver_id", "msg_id", "text", "emotion_vector")
     SENDER_ID_FIELD_NUMBER: _ClassVar[int]
     RECEIVER_ID_FIELD_NUMBER: _ClassVar[int]
+    MSG_ID_FIELD_NUMBER: _ClassVar[int]
     TEXT_FIELD_NUMBER: _ClassVar[int]
     EMOTION_VECTOR_FIELD_NUMBER: _ClassVar[int]
     sender_id: str
     receiver_id: str
+    msg_id: str
     text: str
     emotion_vector: _containers.RepeatedScalarFieldContainer[float]
-    def __init__(self, sender_id: _Optional[str] = ..., receiver_id: _Optional[str] = ..., text: _Optional[str] = ..., emotion_vector: _Optional[_Iterable[float]] = ...) -> None: ...
+    def __init__(self, sender_id: _Optional[str] = ..., receiver_id: _Optional[str] = ..., msg_id: _Optional[str] = ..., text: _Optional[str] = ..., emotion_vector: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class UploadStatus(_message.Message):
     __slots__ = ("accepted",)
@@ -29,6 +30,26 @@ class UserIdentifier(_message.Message):
     USER_ID_FIELD_NUMBER: _ClassVar[int]
     user_id: str
     def __init__(self, user_id: _Optional[str] = ...) -> None: ...
+
+class MessageIdentifier(_message.Message):
+    __slots__ = ("message_id", "sender_id", "receiver_id")
+    MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
+    SENDER_ID_FIELD_NUMBER: _ClassVar[int]
+    RECEIVER_ID_FIELD_NUMBER: _ClassVar[int]
+    message_id: str
+    sender_id: str
+    receiver_id: str
+    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., receiver_id: _Optional[str] = ...) -> None: ...
+
+class MessageMetadata(_message.Message):
+    __slots__ = ("message_id", "sender_id", "text")
+    MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
+    SENDER_ID_FIELD_NUMBER: _ClassVar[int]
+    TEXT_FIELD_NUMBER: _ClassVar[int]
+    message_id: str
+    sender_id: str
+    text: str
+    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., text: _Optional[str] = ...) -> None: ...
 
 class AudioFrame(_message.Message):
     __slots__ = ("audio_content", "sender_id", "message_id", "is_final")
