@@ -21,19 +21,25 @@ def get_sender_response(request): # request 받으면 doSomething을 하고, upl
     
     return server_communicate_pb2.UploadStatus(accepted=True) # 반환값으로 UploadStatus 리턴
 
-def get_receiver_response(request): # request 받으면 get_pending_message를 호출해 audio_content 담은 AudioFrame 반환
-    audio_content = use_e2v_text_data.get_pending_message(request.user_id) # 이후 서버단 동작으로 교체(sqlite)
+def get_voice_response(request): # request 받으면 get_voice를 호출해 audio_content 담은 AudioFrame 반환
+    audio_content = use_e2v_text_data.getVoice(request) # 이후 서버단 동작으로 교체(sqlite)
     if audio_content is None:
         return None
     
     return server_communicate_pb2.AudioFrame(audio_content=audio_content, sender_id="sendR", message_id="message_id", is_final=True) # 반환값으로 AudioFrame 리턴
 
+def get_metadata_response(request): # request 받으면 get_metadata를 호출해 MessageMetadata 반환
+    metadata = use_e2v_text_data.getMetadata(request.user_id) # 이후 서버단 동작으로 교체(sqlite)
+    if metadata is None:
+        return None
+
+    return server_communicate_pb2.MessageMetadata(message_id=metadata[0], sender_id=metadata[1], text=metadata[2]) # 반환값으로 MessageMetadata 리턴
 
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
     """Provides methods that implement functionality of server_communicate server."""
 
-    def UploadSpeechTask(self, request, context): # rpc에 대한 SpeechUploadRequest 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달.
-        """Codelab Hint: implement UploadSpeechTask using get_sender_response() here."""
+    def Send(self, request, context): # rpc에 대한 SpeechUploadRequest 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달.
+        """Codelab Hint: implement Send using get_sender_response() here."""
         
         response = get_sender_response(request)
         if response is None:
@@ -41,10 +47,10 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
         else:
             return response
     
-    def SubscribeSpeechStream(self, request, context): # rpc에 대한 UserIdentifier 요청 전달.
-        """ implement SubscribeSpeechStream using get_receiver_response() here."""
+    def GetVoice(self, request, context): # rpc에 대한 MessageIdentifier 요청 전달.
+        """ implement GetVoice using get_voice_response() here."""
 
-        response = get_receiver_response(request)
+        response = get_voice_response(request)
         if response is None:
             audio_frame = server_communicate_pb2.AudioFrame(audio_content=[], sender_id="", message_id="", is_final=True)
             yield audio_frame
@@ -54,7 +60,15 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
             yield response
             if response.is_final:
                 return
-        
+    
+    def GetPendingMessages(self, request, context): # rpc에 대한 UserIdentifier 요청 전달
+        """ implement GetPendingMessages here."""
+
+        response = get_metadata_response(request)
+        if response is None:
+            return server_communicate_pb2.MessageMetadata(message_id="", sender_id="", text="")
+        else:
+            return response
 
 def serve(): # grpc 서버 시작하는 부분
     """
