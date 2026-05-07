@@ -1,9 +1,11 @@
 from argparse import ArgumentParser
 
-from sender.config import SERVER_IP, SERVER_PORT
+from sender.config import SERVER_IP, SERVER_PORT, SENDER_ROOT
 from sender.inference import speech2emovec, speech2text
 
 import torch
+
+audio_storage = SENDER_ROOT / "storage"
 
 def _parse_args():
     parser = ArgumentParser()
