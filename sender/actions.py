@@ -1,16 +1,19 @@
 from argparse import ArgumentParser
+from datetime import datetime
 
 from sender.config import SERVER_IP, SERVER_PORT, SENDER_ROOT, MESSEGE_ID, USER_ID
-from sender.inference import speech2emovec, speech2text
+# from sender.inference import speech2emovec, speech2text
 
-import requests
-import torch
+import sounddevice as sd
+from scipy.io.wavfile import write
+# import requests
+# import torch
 
-audio_storage = SENDER_ROOT / "temp_storage"
+audio_storage = SENDER_ROOT / "storage"
+audio_storage.mkdir(parents=True, exist_ok=True)
 
 def _parse_args():
     parser = ArgumentParser()
-
     parser.add_argument()
 
     return parser.parse_args
@@ -26,24 +29,48 @@ def _make_packet(user_id: str, message_id: str, message: str, emo_embed: str) ->
 
     return packet
 
+def record_audio(save_dir=audio_storage, duration=5, sample_rate=44100, channels=1):
+    # 파일 이름 생성
+    filename = datetime.now().strftime("recording_%Y%m%d_%H%M%S.wav")
+    file_path = save_dir / filename
+
+    print("Recording started...")
+
+    # 녹음
+    audio_data = sd.rec(
+        int(duration * sample_rate),
+        samplerate=sample_rate,
+        channels=channels,
+        dtype="int16"
+    )
+
+    # 녹음이 끝날 때까지 대기
+    sd.wait()
+
+    # WAV 파일로 저장
+    write(file_path, sample_rate, audio_data)
+    print(f"Recording saved: {file_path}")
+
+    return file_path
+
 def _record():
     text = speech2text()
     emovec = speech2emovec()
     return text, emovec
 
-def send():
-    text, emovec = _record()
-    print("successfully recorded")
-    packet = _make_packet(USER_ID, MESSEGE_ID, text, emovec)
+# def send():
+#     text, emovec = _record()
+#     print("successfully recorded")
+#     packet = _make_packet(USER_ID, MESSEGE_ID, text, emovec)
     
-    response = requests.post(
-    f"{SERVER_IP}:{SERVER_PORT}/send",
-    json=packet
-    )
-    print(response.status_code)
-    print(response.text)
+#     response = requests.post(
+#     f"{SERVER_IP}:{SERVER_PORT}/send",
+#     json=packet
+#     )
+#     print(response.status_code)
+#     print(response.text)
 
 if __name__ == "__main__":
-    args = _parse_args()
-
-    send()
+    record_audio(duration=10)
+    # args = _parse_args()
+    # send()
