@@ -1,7 +1,7 @@
 from faster_whisper import WhisperModel
 
-def speech2emovec():
-    pass
+def speech2emovec(audio_path: str = "") -> str | None:
+    return "test"
 
 def speech2text(audio_path: str = "") -> str | None:
     if audio_path == "":
