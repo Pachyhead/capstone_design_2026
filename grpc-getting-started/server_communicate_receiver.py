@@ -35,7 +35,12 @@ def run():
     stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
     
     user_identifier = server_communicate_pb2.UserIdentifier(user_id="000001") # 서비스를 호출할 userIdentifier 정의
-    audio_frames = stub.SubscribeSpeechStream(user_identifier) # 서버 메서드 호출(rpc 호출)
+    metadata_list = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴)
+    
+    metadata = metadata_list[0]
+    
+    message_identifier = server_communicate_pb2.MessageIdentifier(message_id=metadata['message_id'], sender_id=metadata['sender_id'], receiver_id=metadata['receiver_id'])
+    audio_frames = stub.SubscribeSpeechStream(message_identifier) # 서버 메서드 호출(음성 가져옴)
     
     wav_bytes_list = []
     for audio_frame in audio_frames:
