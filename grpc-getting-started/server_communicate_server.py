@@ -14,26 +14,19 @@ import use_e2v_text_data
 
 def get_sender_response(request): # request 받으면 doSomething을 하고, uploadStatus(True) 반환
     try:
-        use_e2v_text_data.doSomething(request) # 이후 서버단 동작으로 교체(autoencoder / tts)
+        use_e2v_text_data.doSomething(request) # 이후 서버단 동작으로 교체(autoencoder / stt)
     except OSError as e:
         printf(f"Response error: {e}")
         return None
     
     return server_communicate_pb2.UploadStatus(accepted=True) # 반환값으로 UploadStatus 리턴
 
-def get_voice_response(request): # request 받으면 get_voice를 호출해 audio_content 담은 AudioFrame 반환
-    audio_content = use_e2v_text_data.getVoice(request) # 이후 서버단 동작으로 교체(sqlite)
-    if audio_content is None:
-        return None
-    
-    return server_communicate_pb2.AudioFrame(audio_content=audio_content, sender_id="sendR", message_id="message_id", is_final=True) # 반환값으로 AudioFrame 리턴
-
-def get_metadata_response(request): # request 받으면 get_metadata를 호출해 MessageMetadata 반환
-    metadata = use_e2v_text_data.getMetadata(request.user_id) # 이후 서버단 동작으로 교체(sqlite)
-    if metadata is None:
+def get_metadata_response(request): # request 받으면 get_metadata를 호출해 MetadataResponse 반환
+    metadata_list = use_e2v_text_data.getMetadataList(request.user_id) # 이후 서버단 동작으로 교체(sqlite)
+    if metadata_list is None:
         return None
 
-    return server_communicate_pb2.MessageMetadata(message_id=metadata[0], sender_id=metadata[1], text=metadata[2]) # 반환값으로 MessageMetadata 리턴
+    return server_communicate_pb2.MetadataResponse(lists=metadata_list) # 반환값으로 MetadataResponse 리턴
 
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
     """Provides methods that implement functionality of server_communicate server."""
@@ -48,25 +41,34 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
             return response
     
     def GetVoice(self, request, context): # rpc에 대한 MessageIdentifier 요청 전달.
-        """ implement GetVoice using get_voice_response() here."""
-
-        response = get_voice_response(request)
-        if response is None:
-            audio_frame = server_communicate_pb2.AudioFrame(audio_content=[], sender_id="", message_id="", is_final=True)
+        """ implement GetVoice here."""
+        audio_contents = use_e2v_text_data.getVoice(request) # 이후 서버단 동작으로 교체(tts)
+        
+        if audio_contents is None:
+            audio_frame = server_communicate_pb2.AudioFrame(audio_content=[], sender_id=request.sender_id, message_id=request.message_id, is_final=True)
             yield audio_frame
-            if audio_frame.is_final:
-                return
-        else:
-            yield response
-            if response.is_final:
-                return
+        
+        for audio_content in audio_contents:
+            yield server_communicate_pb2.AudioFrame(
+                audio_content=audio_content,
+                sender_id=request.sender_id,
+                message_id=request.message_id,
+                is_final=False
+            ) # 반환값으로 AudioFrame 리턴
+        
+        yield server_communicate_pb2.AudioFrame(
+            audio_content=[],
+            sender_id=request.sender_id,
+            message_id=request.message_id,
+            is_final=True
+        ) # 마지막 조각임을 표시
     
     def GetPendingMessages(self, request, context): # rpc에 대한 UserIdentifier 요청 전달
         """ implement GetPendingMessages here."""
 
         response = get_metadata_response(request)
         if response is None:
-            return server_communicate_pb2.MessageMetadata(message_id="", sender_id="", text="")
+            return server_communicate_pb2.MetadataResponse(lists=[])
         else:
             return response
 
