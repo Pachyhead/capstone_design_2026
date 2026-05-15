@@ -37,7 +37,7 @@ import torch
 
 from qwen_tts.inference.emotion_loader import load_emotion_projector
 from qwen_tts.inference.qwen3_tts_model import Qwen3TTSModel
-
+from qwen_tts.core.models.lora import set_lora_enabled
 
 def _load_emotion_npy(path: str) -> torch.Tensor:
     arr = np.load(path)
@@ -113,6 +113,7 @@ def main():
 
     # ----- Generate -----
     def _run_one(emo_tensor, out_path):
+        set_lora_enabled(qwen3tts.model, False)
         emotion_kwarg = None if emo_tensor is None else emo_tensor.unsqueeze(0)
         wavs, sr = qwen3tts.generate_voice_clone(
             text=args.text,
