@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
  
 from .config import FSQAEConfig
@@ -59,3 +60,17 @@ class FSQAutoEncoder(nn.Module):
         z_q = self.quantizer(z)
         x_recon = self.decoder(z_q)
         return x_recon, z, z_q
+    
+    @torch.no_grad()
+    def encode_to_indices(self, x):
+        self.eval()
+        z = self.encoder(x)
+        z_q = self.quantizer(z)
+        return self.quantizer.code_to_indices(z_q)
+    
+    @torch.no_grad()
+    def decode_from_indices(self, indices):
+        self.eval()
+        z_q = self.quantizer.indices_to_codes(indices)
+        x_recon = self.decoder(z_q)
+        return x_recon
