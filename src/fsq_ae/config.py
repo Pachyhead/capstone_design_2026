@@ -11,7 +11,7 @@ class FSQAEConfig:
 
     # FSQ
     levels: List[int] = field(default_factory=lambda: [8, 8, 8, 8, 8, 8, 8, 8])
- 
+      
     # 데이터
     data_path: str = "../data/processed/emotion2vec_dataset.pt"
     val_speaker_ratio: float = 0.1                         
