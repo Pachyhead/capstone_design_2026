@@ -13,5 +13,5 @@ class SenderConfig:
 @dataclass
 class ReceiverConfig:
     fsq_ckpt: str
-    fsq_cfg: FSQConfig
+    # fsq_cfg: FSQConfig
     device: str = "cuda"
