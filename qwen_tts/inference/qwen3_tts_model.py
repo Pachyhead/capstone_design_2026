@@ -476,6 +476,7 @@ class Qwen3TTSModel:
         x_vector_only_mode: Union[bool, List[bool]] = False,
         voice_clone_prompt: Optional[Union[Dict[str, Any], List[VoiceClonePromptItem]]] = None,
         non_streaming_mode: bool = False,
+        emotion_vec: Optional[Union[torch.Tensor, np.ndarray, List]] = None,
         **kwargs,
     ) -> Tuple[List[np.ndarray], int]:
         """
@@ -600,11 +601,51 @@ class Qwen3TTSModel:
 
         gen_kwargs = self._merge_generate_kwargs(**kwargs)
 
+        # Normalize emotion_vec to a list[torch.Tensor] of length == len(texts).
+        # Accept a single vector (broadcast to batch), or a list (per-item).
+        emotion_vec_list = None
+        if emotion_vec is not None:
+            if isinstance(emotion_vec, np.ndarray):
+                emotion_vec = torch.from_numpy(emotion_vec).float()
+            if isinstance(emotion_vec, torch.Tensor):
+                if emotion_vec.dim() == 1:
+                    emotion_vec_list = [emotion_vec] * len(texts)
+                elif emotion_vec.dim() == 2:
+                    emotion_vec_list = [emotion_vec[i] for i in range(emotion_vec.shape[0])]
+                else:
+                    raise ValueError(f"emotion_vec tensor must be 1D or 2D, got shape {tuple(emotion_vec.shape)}")
+            elif isinstance(emotion_vec, list):
+                emotion_vec_list = []
+                for e in emotion_vec:
+                    if e is None:
+                        emotion_vec_list.append(None)
+                    elif isinstance(e, np.ndarray):
+                        emotion_vec_list.append(torch.from_numpy(e).float())
+                    elif isinstance(e, torch.Tensor):
+                        emotion_vec_list.append(e.float())
+                    else:
+                        raise TypeError(f"Unsupported emotion_vec entry type: {type(e)}")
+            else:
+                raise TypeError(f"Unsupported emotion_vec type: {type(emotion_vec)}")
+
+            if len(emotion_vec_list) == 1 and len(texts) > 1:
+                emotion_vec_list = emotion_vec_list * len(texts)
+            if len(emotion_vec_list) != len(texts):
+                raise ValueError(
+                    f"emotion_vec length ({len(emotion_vec_list)}) must match text batch size ({len(texts)})"
+                )
+            if getattr(self.model, "emotion_projector", None) is None:
+                raise RuntimeError(
+                    "emotion_vec was supplied but model has no emotion_projector. "
+                    "Load the trained projector first via load_emotion_projector(...)."
+                )
+
         talker_codes_list, _ = self.model.generate(
             input_ids=input_ids,
             ref_ids=ref_ids,
             voice_clone_prompt=voice_clone_prompt_dict,
             languages=languages,
+            emotion_vec=emotion_vec_list,
             non_streaming_mode=non_streaming_mode,
             **gen_kwargs,
         )
