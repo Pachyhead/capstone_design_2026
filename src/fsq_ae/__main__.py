@@ -4,7 +4,6 @@ from .config import FSQAEConfig
 from .prepare_data import prepare
 from .train import train
  
- 
 def main():
     parser = argparse.ArgumentParser("fsq_ae")
     sub = parser.add_subparsers(dest="cmd", required=True)
