@@ -7,10 +7,12 @@ __all__ = [
     # 메인 클래스
     "SenderEncode", 
     "ReceiverDecode",
+    
     # 설정
     "SenderConfig", 
     "ReceiverConfig",
-    # 
+    
+    # 타입
     "EncodeResult", 
     "EmotionLabel",
 ]
