@@ -27,7 +27,7 @@ class SenderEncode:
     @torch.inference_mode()
     def encode(self, audio: np.ndarray[np.float32], sample_rate = 16000) -> EncodeResult:
         text = self.stt.transcribe(audio)
-        emo_vec_1024d, el, es = self.emotion.extract(audio, sample_rate)
+        emo_vec_1024d, _, es = self.emotion.extract(audio, sample_rate)
         
         x = torch.as_tensor(emo_vec_1024d, dtype=torch.float32, device=self.device)
         x = (x - self.norm["mean"]) / self.norm["std"]
@@ -45,6 +45,15 @@ class SenderEncode:
             emotion_label_idx=idx,
             emotion_score=emo_score,
         )
+
+# 예시
+'''
+    Input:
+    audio: np.ndarray[np.float32]
+    Return:
+    EncodeResult(text='감사합니다.', emotion_indices=(4, 4, 4, 6, 7, 1, 7, 0), emotion_label=<EmotionLabel.NEUTRAL: 4>, emotion_label_idx=4, emotion_score=0.8566851019859314)
+
+'''
 
 def main():
     sample_rate = 16000

@@ -20,7 +20,7 @@ class Config:
     # Whisper 설정
     whisper_model_size: str = "large-v3"    # "tiny", "base", "small", "medium", "large-v2", "large-v3" 중 가장 정확한 모델 default
     whisper_language: str = "ko"
-    whisper_beam_size: int = 5              # 우선 5가 적절해 보임, 정확도 확인해서 나중에 1로 바꾸면 될거 같음
+    whisper_beam_size: int = 2              # 우선 5가 적절해 보임, 정확도 확인해서 나중에 1로 바꾸면 될거 같음
     whisper_compute_type: str = "float16"   
 
     # emotion2vec 감정 라벨 순서
