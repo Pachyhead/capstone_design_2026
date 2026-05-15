@@ -24,7 +24,7 @@ class FSQAEConfig:
     num_workers: int = 2
     
     # Loss
-    emotion_kl_weight: float = 0.1
+    emotion_kl_weight: float = 0.5
  
     # 환경
     seed: int = 66

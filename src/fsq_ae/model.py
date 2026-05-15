@@ -66,7 +66,7 @@ class FSQAutoEncoder(nn.Module):
         self.eval()
         z = self.encoder(x)
         z_q = self.quantizer(z)
-        return self.quantizer.code_to_indices(z_q)
+        return self.quantizer.codes_to_indices(z_q)
     
     @torch.no_grad()
     def decode_from_indices(self, indices):
@@ -74,3 +74,4 @@ class FSQAutoEncoder(nn.Module):
         z_q = self.quantizer.indices_to_codes(indices)
         x_recon = self.decoder(z_q)
         return x_recon
+        # 받고 정규화 풀어야 됨

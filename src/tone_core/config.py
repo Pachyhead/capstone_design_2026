@@ -1,13 +1,13 @@
 from dataclasses import dataclass
-from preprocess_pipeline import config as PreprocessConfig
-from fsq_ae import config as FSQConfig
+from preprocess_pipeline.config import Config as PreprocessConfig
+from fsq_ae.config import FSQAEConfig as FSQConfig
 
 @dataclass
 class SenderConfig:
     fsq_ckpt: str 
     whisper_model: str = "large-v3"
     emotion2vec_model: str = "iic/emotion2vec_plus_large"
-    preprocess_cfg: PreprocessConfig
+    preprocess_cfg: PreprocessConfig = PreprocessConfig
     device: str = "cuda"
     
 @dataclass
