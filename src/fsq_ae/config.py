@@ -10,8 +10,8 @@ class FSQAEConfig:
     hidden_dims_skip: List[int] = field(default_factory=lambda: [512, 512, 512, 512])
 
     # FSQ
-    levels: List[int] = field(default_factory=lambda: [5, 5, 5, 5, 5, 5, 5, 5, 5])
- 
+    levels: List[int] = field(default_factory=lambda: [8, 8, 8, 8, 8, 8, 8, 8])
+      
     # 데이터
     data_path: str = "../data/processed/emotion2vec_dataset.pt"
     val_speaker_ratio: float = 0.1                         
@@ -24,7 +24,7 @@ class FSQAEConfig:
     num_workers: int = 2
     
     # Loss
-    emotion_kl_weight: float = 0.1
+    emotion_kl_weight: float = 0.5
  
     # 환경
     seed: int = 66

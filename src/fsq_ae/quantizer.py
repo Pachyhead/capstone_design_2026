@@ -45,6 +45,17 @@ class FSQ(nn.Module):
         z_bounded = self._bound(z)
         z_quantized = round_with_ste(z_bounded)
         return z_quantized / self.half_width
+    
+    @torch.no_grad()
+    def codes_to_indices(self, z_quantized_normalized):
+        z_quantized = z_quantized_normalized * self.half_width
+        indices = (z_quantized + self.half_width).long()
+        return indices
+    
+    @torch.no_grad()
+    def indices_to_codes(self, indices):
+        z_quantized = indices.float() - self.half_width
+        return z_quantized / self.half_width
  
     def _bound(self, z, eps=1e-3):
         """
