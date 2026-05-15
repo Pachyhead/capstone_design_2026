@@ -19,6 +19,9 @@ class SenderEncode:
         
     @classmethod
     def from_config(cls, cfg: SenderConfig) -> "SenderEncode":
+        cfg.preprocess_cfg.emotion_device = cfg.device
+        cfg.preprocess_cfg.whisper_device = cfg.device
+        
         fsq_model, _, fsq_norm = load_fsq_ae(cfg.fsq_ckpt, cfg.device)
         stt = WhisperSTT(cfg.preprocess_cfg)
         emotion_encoder = EmotionExtractor(cfg.preprocess_cfg)
@@ -35,7 +38,6 @@ class SenderEncode:
         idx = int(np.argmax(es))
         emo_label = EmotionLabel(idx)
         emo_score = float(es[idx])
-        breakpoint()
         emo_vec_8d = tuple(self.fsq.encode_to_indices(x).cpu().tolist())
         
         return EncodeResult(
@@ -45,25 +47,3 @@ class SenderEncode:
             emotion_label_idx=idx,
             emotion_score=emo_score,
         )
-
-# 예시
-'''
-    Input:
-    audio: np.ndarray[np.float32]
-    Return:
-    EncodeResult(text='감사합니다.', emotion_indices=(4, 4, 4, 6, 7, 1, 7, 0), emotion_label=<EmotionLabel.NEUTRAL: 4>, emotion_label_idx=4, emotion_score=0.8566851019859314)
-
-'''
-
-def main():
-    sample_rate = 16000
-    duration = 1.0
-    arr = np.random.randn(int(sample_rate * duration)).astype(np.float32) * 0.1
-    cfg = SenderConfig(fsq_ckpt = "/home/cap/data/models/skip_kl_8d_8L_kl05_1e-4.pt")
-    
-    sender = SenderEncode.from_config(cfg)
-    result = sender.encode(arr)
-    print(result)
-
-if __name__ == "__main__":
-    main()
