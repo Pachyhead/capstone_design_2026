@@ -1,0 +1,10 @@
+services:
+  qwen_api:
+    build:
+      context: .
+      dockerfile: qwen_tts_api/Dockerfile
+    container_name: qwen_api
+    volumes:
+     - .:/app
+    ports:
+      - "8080:8080"
