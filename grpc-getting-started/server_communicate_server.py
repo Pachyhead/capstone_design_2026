@@ -10,55 +10,37 @@ import server_communicate_pb2_grpc
 
 import os
 from dotenv import load_dotenv
-import use_e2v_text_data
 
 from datetime import datetime
 from google.protobuf.timestamp_pb2 import Timestamp
 
-def get_sender_response(request): # request 받으면 doSomething을 하고, uploadStatus(True) 반환
-    try:
-        use_e2v_text_data.doSomething(request) # 이후 서버단 동작으로 교체(autoencoder / stt)
-    except OSError as e:
-        printf(f"Response error: {e}")
-        return None
-    
-    return server_communicate_pb2.UploadStatus(accepted=True) # 반환값으로 UploadStatus 리턴
-
-def get_metadata_response(request): # request 받으면 get_metadata를 호출해 MetadataResponse 반환
-    metadata_list = use_e2v_text_data.getMetadataList(request.user_id) # 이후 서버단 동작으로 교체(sqlite)
-    if metadata_list is None:
-        return None
-
-    dt = datetime.strptime(metadata_list[0]['send_time'], "%Y-%m-%d %H:%M:%S.%f")
-    timestamp = Timestamp()
-    timestamp.FromDatetime(dt)
-    metadata_list[0]['send_time'] = timestamp
-
-    return server_communicate_pb2.MetadataResponse(items=metadata_list) # 반환값으로 MetadataResponse 리턴
-
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
     """Provides methods that implement functionality of server_communicate server."""
+    def __init__(self, handler):
+        self.handler = handler
 
     def Send(self, request, context): # rpc에 대한 SpeechUploadRequest 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달.
-        """Codelab Hint: implement Send using get_sender_response() here."""
-        
-        response = get_sender_response(request)
-        if response is None:
-            return server_communicate_pb2.UploadStatus(accepted=False)
-        else:
-            return response
+        """Codelab Hint: implement Send here."""
+        success = self.handler.save_incoming_speech(
+            sender_id = request.sender_id,
+            receiver_id = request.receiver_id,
+            message = request.message,
+            emo_type = request.emo_type,
+            emotion_vector = list(request.emotion_vector)
+        )
+        return server_communicate_pb2.UploadStatus(accepted=success)
     
     def GetVoice(self, request, context): # rpc에 대한 MessageIdentifier 요청 전달.
         """ implement GetVoice here."""
-        audio_contents = use_e2v_text_data.getVoice(request) # 이후 서버단 동작으로 교체(tts)
+        audio_chunks = self.handler.generate_voice_stream(request.message_id)
+
+        if audio_chunks is None:
+            yield server_communicate_pb2.AudioFrame(audio_content=[], sender_id=request.sender_id, message_id=request.message_id, is_final=True)
+            return
         
-        if audio_contents is None:
-            audio_frame = server_communicate_pb2.AudioFrame(audio_content=[], sender_id=request.sender_id, message_id=request.message_id, is_final=True)
-            yield audio_frame
-        
-        for audio_content in audio_contents:
+        for chunk in audio_chunks:
             yield server_communicate_pb2.AudioFrame(
-                audio_content=audio_content,
+                audio_content=chunk,
                 sender_id=request.sender_id,
                 message_id=request.message_id,
                 is_final=False
@@ -73,12 +55,24 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
     
     def GetPendingMessages(self, request, context): # rpc에 대한 UserIdentifier 요청 전달
         """ implement GetPendingMessages here."""
+        raw_metadata_list = self.handler.get_pending_metadata(request.user_id)
 
-        response = get_metadata_response(request)
-        if response is None:
-            return server_communicate_pb2.MetadataResponse(lists=[])
-        else:
-            return response
+        proto_items = []
+        for metadata in raw_metadata_list:
+            dt = datetime.strptime(metadata['send_time'], "%Y-%m-%d %H:%M:%S.%f")
+            timestamp = Timestamp()
+            timestamp.FromDatetime(dt)
+
+            proto_item = server_communicate_pb2.MetadataItem(
+                message_id = metadata['message_id'],
+                sender_id = metadata['sender_id'],
+                message = metadata['message'],
+                emo_type = metadata['emo_type'],
+                send_time = timestamp
+            )
+            proto_items.append(proto_item)
+        
+        return server_communicate_pb2.MetadataResponse(items = proto_items)
 
 def serve(): # grpc 서버 시작하는 부분
     """
@@ -88,9 +82,14 @@ def serve(): # grpc 서버 시작하는 부분
      2. register SpeechRelayServicer to the server.
      3. start the server.
     """
+
+    # TODO: AI_TTS_Handler() 클래스로 변경해야 함!!
+    from file_speech_handler import FileSpeechHandler
+    current_handler = FileSpeechHandler()
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     server_communicate_pb2_grpc.add_SpeechRelayServicer_to_server(
-        SpeechRelayServicer(),
+        SpeechRelayServicer(current_handler),
         server,
     )
 

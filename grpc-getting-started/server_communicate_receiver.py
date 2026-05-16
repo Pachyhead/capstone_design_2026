@@ -10,34 +10,27 @@ import server_communicate_pb2_grpc
 import os
 from dotenv import load_dotenv
 import io
-import wave
 import json
 
 def merge_wav_byte(wav_bytes_list, output_filename="combined.wav"):
-    # b''를 건너뛰고 유효한 첫 데이터를 찾음
-    first_wav_bytes = None
-    for b in wav_bytes_list:
-        if b and b != b"":
-            first_wav_bytes = b
-            break
-    
-    if first_wav_bytes is None:
-        print("Audio do not exist")
-        return
+    try:
+        # b''를 건너뛰고 유효한 데이터를 찾음
+        valid_chunks = [b for b in wav_bytes_list if b and b != b""]
+        
+        if not valid_chunks:
+            print("Audio do not exist")
+            return
 
-    with wave.open(io.BytesIO(first_wav_bytes), "rb") as first_wav:
-        params = first_wav.getparams() # 첫 wav 데이터에서 오디오 설정 읽어옴
+        # 모든 바이너리 청크를 하나로 병합
+        complete_wav_bytes = b"".join(valid_chunks)
 
-    with wave.open(output_filename, "wb") as output_wav: # 새로운 wav 파일 생성
-        output_wav.setparams(params) # 오디어 설정 그대로 적용
+        # 바이너리 스트림 전체를 그대로 .wav 파일로 씀
+        with open(output_filename, "wb") as f:
+            f.write(complete_wav_bytes)
 
-        # 리스트의 모든 바이너리 데이터를 순서대로 이어붙임
-        for wav_bytes in wav_bytes_list:
-            if not wav_bytes or wav_bytes == b"": # b''이거나 빈 데이터는 패스
-                continue
-            with wave.open(io.BytesIO(wav_bytes), "rb") as input_wav:
-                output_wav.writeframes(input_wav.readframes(input_wav.getnframes())) # 오디오의 실제 데이터만 읽어 결과 파일 맨 뒤에 씀
-    print(f"file saved: {output_filename}")
+        print(f"file saved successfully: {output_filename}")
+    except OSError as e:
+        print(f"File save error: {e}")
 
 def save_message_to_json(metadata_list):
     try:
@@ -102,12 +95,11 @@ def run():
     
     wav_bytes_list = []
     for audio_frame in audio_frames:
-        wav_bytes_list.append(audio_frame.audio_content)
+        if audio_frame.audio_content:
+            wav_bytes_list.append(audio_frame.audio_content)
 
-        if audio_frame.sender_id:
-            print(f"receive success '{audio_frame.sender_id}'")
-        else:
-            print(f"receive failed")
+        if audio_frame.is_final:
+            print("Received final chunk from server.")
 
     merge_wav_byte(wav_bytes_list, f"{metadata.message_id}.wav")
 

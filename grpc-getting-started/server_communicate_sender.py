@@ -40,7 +40,7 @@ def run():
     if status.accepted:
         print(f"Upload success!")
     else:
-        printf(f"Upload failed!")    
+        print(f"Upload failed!")    
 
 
 if __name__ == "__main__":
