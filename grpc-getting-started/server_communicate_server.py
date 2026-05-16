@@ -12,6 +12,9 @@ import os
 from dotenv import load_dotenv
 import use_e2v_text_data
 
+from datetime import datetime
+from google.protobuf.timestamp_pb2 import Timestamp
+
 def get_sender_response(request): # request 받으면 doSomething을 하고, uploadStatus(True) 반환
     try:
         use_e2v_text_data.doSomething(request) # 이후 서버단 동작으로 교체(autoencoder / stt)
@@ -26,7 +29,12 @@ def get_metadata_response(request): # request 받으면 get_metadata를 호출�
     if metadata_list is None:
         return None
 
-    return server_communicate_pb2.MetadataResponse(lists=metadata_list) # 반환값으로 MetadataResponse 리턴
+    dt = datetime.strptime(metadata_list[0]['send_time'], "%Y-%m-%d %H:%M:%S.%f")
+    timestamp = Timestamp()
+    timestamp.FromDatetime(dt)
+    metadata_list[0]['send_time'] = timestamp
+
+    return server_communicate_pb2.MetadataResponse(items=metadata_list) # 반환값으로 MetadataResponse 리턴
 
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
     """Provides methods that implement functionality of server_communicate server."""
@@ -57,7 +65,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
             ) # 반환값으로 AudioFrame 리턴
         
         yield server_communicate_pb2.AudioFrame(
-            audio_content=[],
+            audio_content=b'',
             sender_id=request.sender_id,
             message_id=request.message_id,
             is_final=True
