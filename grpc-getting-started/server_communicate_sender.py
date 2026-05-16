@@ -35,7 +35,7 @@ def run():
     
 
     uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
-    status = stub.UploadSpeechTask(uploadRequest) # 서버 메서드 호출(rpc 호출)
+    status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
     
     if status.accepted:
         print(f"Upload success!")
