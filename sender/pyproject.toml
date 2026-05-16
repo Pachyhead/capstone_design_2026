@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "capstone_sender"
+version = "0.1.0"
+
+dependencies = [
+    "torch",
+    "torchaudio",
+    "ipykernel",
+    "sounddevice>=0.5.5",
+    "scipy>=1.17.1",
+    "requests>=2.33.1",
+]
+
+# src 폴더 아래에 있는 패키지들을 찾으라고 알려줍니다.
+[tool.setuptools.packages.find]
+where = ["src"]
