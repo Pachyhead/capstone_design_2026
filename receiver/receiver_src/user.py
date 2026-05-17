@@ -33,7 +33,7 @@ class User:
             raise ValueError(f"User_id must be in [1..10]: {value}")
         self._user_id = value
 
-    # target_id 등록(수신자 id)
+    # target_id 등록(송신자 id)
     @property
     def peer_id(self):
         return self._peer_id
