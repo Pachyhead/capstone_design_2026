@@ -7,6 +7,8 @@ option java_package = "io.grpc.examples.routeguide";
 option java_outer_classname = "RouteGuideProto";
 option objc_class_prefix = "RTG";
 
+import "google/protobuf/timestamp.proto";
+
 
 // Interface exported by the server.
 service SpeechRelay { // definition of service
@@ -16,7 +18,7 @@ service SpeechRelay { // definition of service
   rpc Send(SpeechUploadRequest) returns (UploadStatus) {} // 성공 여부 반환
   
   // 서버 -> 수신측: 메타데이터(접속 로직)
-  rpc GetPendingMessages(UserIdentifier) returns (stream MessageMetadata) {}
+  rpc GetPendingMessages(UserIdentifier) returns (MetadataResponse) {}
 
   // 서버 -> 수신측: 합성된 음성 데이터(재생 로직)
   rpc GetVoice(MessageIdentifier) returns (stream AudioFrame) {}
@@ -28,8 +30,8 @@ message SpeechUploadRequest {
   
   string sender_id = 1; // 1, 2, 3, 4, 5: unique id for each field of message type
   string receiver_id = 2;	
-  string msg_id = 3;
-  string text = 4;
+  string message = 3;
+  int32 emo_type = 4;
   repeated float emotion_vector = 5;
 }
 // message type: data structure that send_clients receive from server
@@ -42,17 +44,26 @@ message UserIdentifier {
   // Codelab Hint: Define the UserIdentifier messages here
   string user_id = 1; // 수신측 id
 }
+// message type: data structure that recv_clients receive from server(접속로직)
+// single return
+message MetadataItem {
+  string message_id = 1;
+  string sender_id = 2;
+  string message = 3;
+  int32 emo_type = 4;
+  google.protobuf.Timestamp send_time = 5; // Datetime
+}
+// message type: data structure that recv_clients receive from server
+// multiple return
+message MetadataResponse {
+  repeated MetadataItem items = 1; // 여러 MetadataItem 담는 리스트
+}
+
 // message type: data structure that recv_clients send to server to get audio(재생로직)
 message MessageIdentifier {
   string message_id = 1;
   string sender_id = 2;
   string receiver_id = 3;
-}
-// message type: data structure that recv_clients receive from server(접속로직)
-message MessageMetadata {
-  string message_id = 1;
-  string sender_id = 2;
-  string text = 3;
 }
 // message type: data structure that recv_clients receive from server(재생로직)
 message AudioFrame {

@@ -34,13 +34,13 @@ def run():
     stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
     
 
-    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", text=load_text(), emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
-    status = stub.UploadSpeechTask(uploadRequest) # 서버 메서드 호출(rpc 호출)
+    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
+    status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
     
     if status.accepted:
         print(f"Upload success!")
     else:
-        printf(f"Upload failed!")    
+        print(f"Upload failed!")    
 
 
 if __name__ == "__main__":
