@@ -216,4 +216,6 @@ qwen_tts/infer_file
 
 # sender
 sender/storage/
-
+sender/sender_models
+sender/uv.lock
+.vscode 

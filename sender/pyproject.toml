@@ -13,8 +13,11 @@ dependencies = [
     "sounddevice>=0.5.5",
     "scipy>=1.17.1",
     "requests>=2.33.1",
+    "numpy>=2.4.5",
+    "mlx-whisper>=0.4.3",
+    "funasr>=1.3.1",
 ]
 
 # src 폴더 아래에 있는 패키지들을 찾으라고 알려줍니다.
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["sender_src"]
