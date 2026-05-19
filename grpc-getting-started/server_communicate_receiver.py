@@ -69,7 +69,24 @@ def save_message_to_json(metadata_list):
         return True
     except (OSError, Exception) as e:
         print(f"Error occurred: {e}")
-        return False
+        return False    
+
+def GetPendingMessages(user_id):
+    stub = set_connection()
+
+    user_identifier = server_communicate_pb2.UserIdentifier(user_id="000001") # 서비스를 호출할 userIdentifier 정의
+    metadata_list = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴)   
+
+    return metadata_list
+
+def GetVoice(message_id, sender_id, receiver_id):
+    stub = set_connection()
+    
+    message_identifier = server_communicate_pb2.MessageIdentifier(message_id=metadata.message_id, sender_id=metadata.sender_id, receiver_id="000001")
+    audio_frames = stub.GetVoice(message_identifier) # 서버 메서드 호출(음성 가져옴)
+
+    return audio_frames
+
 
 def run():
     """
@@ -78,11 +95,8 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
-    load_dotenv() # load .env file's variables to os.environ
-    server_addr = f"{os.environ.get('SERV_IP', '')}:{os.environ.get('SERV_PORT', '')}"
-    channel = grpc.insecure_channel(server_addr) # SpeechRelayStub 인스턴스화
-    stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
-    
+    stub = set_connection()
+
     user_identifier = server_communicate_pb2.UserIdentifier(user_id="000001") # 서비스를 호출할 userIdentifier 정의
     metadata_list = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴)
 
@@ -104,6 +118,6 @@ def run():
     merge_wav_byte(wav_bytes_list, f"{metadata.message_id}.wav")
 
 
-if __name__ == "__main__":
-    logging.basicConfig()
-    run()
+# if __name__ == "__main__":
+#     logging.basicConfig()
+#     run()
