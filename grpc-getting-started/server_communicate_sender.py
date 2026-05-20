@@ -39,7 +39,7 @@ def SendVoice(sender_id, audio_path):
 def Send(sender_id, receiver_id, message, emo_type, emotion_vector):
     stub = set_connection()
 
-    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id=sender_id, receiver_id=receiver_id, message=message, emo_type=emo_type, emotion_vector=emotion_vector) # 서비스를 호출할 SpeechUploadRequest 정의
+    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id=sender_id, receiver_id=receiver_id, message=message, emo_type=emo_type, emotion_vector=list(emotion_vector)) # 서비스를 호출할 SpeechUploadRequest 정의
     status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
 
     return status.accepted
