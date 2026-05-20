@@ -57,7 +57,7 @@ def run():
     else:
         print(f"Reference upload failed!")
 
-    speech_accepted = Send(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector())
+    speech_accepted = Send(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=[0,1,2,1,3,5])
     
     if speech_accepted:
         print(f"Speech upload success!")
