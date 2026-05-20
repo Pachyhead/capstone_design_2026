@@ -4,6 +4,16 @@ from datetime import datetime
 from grpc_interfaces import AbstractSpeechHandler
 
 class FileSpeechHandler(AbstractSpeechHandler):
+    # wav로 저장
+    def save_incoming_reference(self, sender_id, audio_content) -> bool:
+        try:
+            fname = f"{sender_id}_ref.wav"
+
+            with open(fname, "wb") as f:
+                f.write(audio_content)
+        except OSError as e:
+            print(f"File save error: {e}")
+
     # 송신측이 보낸 데이터를 수신자id.json으로 서버에 저장
     def save_incoming_speech(self, sender_id, receiver_id, message, emo_type, emotion_vector) -> bool:
         try:
@@ -19,7 +29,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
                 data = [] # 빈 리스트로 시작
             
             new_message = { # 받은 내용 message로 만듦
-                "message_id": "000001",
+                "message_id": "000001", # 구현 시에는 message_id를 서버가 정하도록 해야겠지(DB에 저장할 때)
                 "sender_id": sender_id,
                 "message": message,
                 "emo_type": emo_type,

@@ -3,6 +3,11 @@ from abc import ABC, abstractmethod
 
 class AbstractSpeechHandler(ABC):
     @abstractmethod
+    def save_incoming_reference(self, sender_id: str, audio_content: bytes) -> bool:
+        """송신측의 레퍼런스 음성 처리"""
+        pass
+
+    @abstractmethod
     def save_incoming_speech(self, sender_id: str, receiver_id: str, message: str, emo_type: int, emotion_vector: list) -> bool:
         """송신측의 데이터 처리 (현재는 json으로 저장 -> 추후 AudoEncoder/DB 연동)"""
         pass

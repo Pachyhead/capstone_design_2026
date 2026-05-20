@@ -22,10 +22,18 @@ def load_text():
         data = json.load(f)
         return data['text']
 
+def SendVoice(sender_id, audio_content):
+    stub = set_connection()
+
+    uploadRequest = server_communicate_pb2.SpeechReferenceRequest(sender_id=sender_id, audio_content=audio_content) # 서비스를 호출할 SpeechReferenceRequest 정의
+    status = stub.SendVoice(uploadRequest) # 서버 메서드 호출(rpc 호출)
+
+    return status.accepted
+
 def Send(sender_id, receiver_id, message, emo_type, emotion_vector):
     stub = set_connection()
 
-    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
+    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id=sender_id, receiver_id=receiver_id, message=message, emo_type=emo_type, emotion_vector=emotion_vector) # 서비스를 호출할 SpeechUploadRequest 정의
     status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
 
     return status.accepted
@@ -37,10 +45,6 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
-    # load_dotenv() # load .env file's variables to os.environ
-    # server_addr = f"{os.environ.get('SERV_IP', '')}:{os.environ.get('SERV_PORT', '')}"
-    # channel = grpc.insecure_channel(server_addr) # SpeechRelayStub 인스턴스화
-    # stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
     stub = set_connection()
 
     uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
@@ -52,6 +56,6 @@ def run():
         print(f"Upload failed!")    
 
 
-# if __name__ == "__main__":
-#     logging.basicConfig()
-#     run()
+if __name__ == "__main__":
+    logging.basicConfig()
+    run()

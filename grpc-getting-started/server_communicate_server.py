@@ -19,6 +19,14 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
     def __init__(self, handler):
         self.handler = handler
 
+    def SendVoice(self, request, context): # rpc에 대한 SpeechReferenceRequest 요청 전달
+        """ implement SendVoice here."""
+        success = self.handler.save_incoming_reference(
+            sender_id = request.sender_id,
+            audio_content = request.audio_content
+        )
+        return server_communicate_pb2.UploadStatus(accepted=success)
+
     def Send(self, request, context): # rpc에 대한 SpeechUploadRequest 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달.
         """Codelab Hint: implement Send here."""
         success = self.handler.save_incoming_speech(
@@ -29,7 +37,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
             emotion_vector = list(request.emotion_vector)
         )
         return server_communicate_pb2.UploadStatus(accepted=success)
-    
+
     def GetVoice(self, request, context): # rpc에 대한 MessageIdentifier 요청 전달.
         """ implement GetVoice here."""
         audio_chunks = self.handler.generate_voice_stream(request.message_id)
