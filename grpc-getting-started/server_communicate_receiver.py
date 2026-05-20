@@ -77,7 +77,7 @@ def GetPendingMessages(user_id):
     user_identifier = server_communicate_pb2.UserIdentifier(user_id=user_id) # 서비스를 호출할 userIdentifier 정의
     metadata_list = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴)   
 
-    return metadata_list
+    return metadata_list.items
 
 def GetVoice(message_id, sender_id, receiver_id):
     stub = set_connection()
@@ -85,7 +85,14 @@ def GetVoice(message_id, sender_id, receiver_id):
     message_identifier = server_communicate_pb2.MessageIdentifier(message_id=metadata.message_id, sender_id=metadata.sender_id, receiver_id=receiver_id)
     audio_frames = stub.GetVoice(message_identifier) # 서버 메서드 호출(음성 가져옴)
 
-    return audio_frames
+    wav_bytes_list = []
+    for audio_frame in audio_frames:
+        if audio_frame.audio_content:
+            wav_bytes_list.append(audio_frame.audio_content)
+
+        if audio_frame.is_final:
+            print("Received final chunk from server.")
+    return wav_bytes_list
 
 
 def run():
@@ -95,28 +102,21 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
+    # 수신한 메시지 .json으로 저장할 때
     stub = set_connection()
 
-    user_identifier = server_communicate_pb2.UserIdentifier(user_id="000001") # 서비스를 호출할 userIdentifier 정의
-    metadata_list = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴)
+    metadata_list = GetPendingMessages(user_id="000001")
+    save_message_to_json(metadata_list) # json으로 저장
 
-    save_message_to_json(metadata_list.items) # json으로 저장
-    
     # 첫번째 metadata에 대해서 바로 음성파일을 받는다고 가정
     metadata = metadata_list.items[0]
-    message_identifier = server_communicate_pb2.MessageIdentifier(message_id=metadata.message_id, sender_id=metadata.sender_id, receiver_id="000001")
-    audio_frames = stub.GetVoice(message_identifier) # 서버 메서드 호출(음성 가져옴)
-    
-    wav_bytes_list = []
-    for audio_frame in audio_frames:
-        if audio_frame.audio_content:
-            wav_bytes_list.append(audio_frame.audio_content)
+    message_id = metadata.message_id
+    sender_id = metadata.sender_id
+    receiver_id = metadata.receiver_id
 
-        if audio_frame.is_final:
-            print("Received final chunk from server.")
-
-    merge_wav_byte(wav_bytes_list, f"{metadata.message_id}.wav")
-
+    # 수신한 음성 wav로 저장할 때
+    wav_bytes_list = GetVoice(message_id=message_id, sender_id=sender_id, receiver_id=receiver_id)
+    merge_wav_byte(wav_bytes_list, f"{message_id}.wav")
 
 if __name__ == "__main__":
     logging.basicConfig()
