@@ -22,8 +22,14 @@ def load_text():
         data = json.load(f)
         return data['text']
 
-def SendVoice(sender_id, audio_content):
+def SendVoice(sender_id, audio_path):
     stub = set_connection()
+
+    if not os.path.exists(fname):
+        return False
+
+    with open(fname, "rb") as f:
+        audio_content = f.read()
 
     uploadRequest = server_communicate_pb2.SpeechReferenceRequest(sender_id=sender_id, audio_content=audio_content) # 서비스를 호출할 SpeechReferenceRequest 정의
     status = stub.SendVoice(uploadRequest) # 서버 메서드 호출(rpc 호출)
@@ -45,12 +51,9 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
-    stub = set_connection()
-
-    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
-    status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
+    accepted = Send(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector())
     
-    if status.accepted:
+    if accepted:
         print(f"Upload success!")
     else:
         print(f"Upload failed!")    
