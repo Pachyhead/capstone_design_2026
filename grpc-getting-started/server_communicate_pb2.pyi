@@ -1,13 +1,18 @@
-import datetime
-
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
-from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class SpeechReferenceRequest(_message.Message):
+    __slots__ = ("sender_id", "audio_content")
+    SENDER_ID_FIELD_NUMBER: _ClassVar[int]
+    AUDIO_CONTENT_FIELD_NUMBER: _ClassVar[int]
+    sender_id: str
+    audio_content: bytes
+    def __init__(self, sender_id: _Optional[str] = ..., audio_content: _Optional[bytes] = ...) -> None: ...
 
 class SpeechUploadRequest(_message.Message):
     __slots__ = ("sender_id", "receiver_id", "message", "emo_type", "emotion_vector")
@@ -20,8 +25,8 @@ class SpeechUploadRequest(_message.Message):
     receiver_id: str
     message: str
     emo_type: int
-    emotion_vector: _containers.RepeatedScalarFieldContainer[float]
-    def __init__(self, sender_id: _Optional[str] = ..., receiver_id: _Optional[str] = ..., message: _Optional[str] = ..., emo_type: _Optional[int] = ..., emotion_vector: _Optional[_Iterable[float]] = ...) -> None: ...
+    emotion_vector: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, sender_id: _Optional[str] = ..., receiver_id: _Optional[str] = ..., message: _Optional[str] = ..., emo_type: _Optional[int] = ..., emotion_vector: _Optional[_Iterable[int]] = ...) -> None: ...
 
 class UploadStatus(_message.Message):
     __slots__ = ("accepted",)
@@ -47,7 +52,7 @@ class MetadataItem(_message.Message):
     message: str
     emo_type: int
     send_time: _timestamp_pb2.Timestamp
-    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., message: _Optional[str] = ..., emo_type: _Optional[int] = ..., send_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., message: _Optional[str] = ..., emo_type: _Optional[int] = ..., send_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class MetadataResponse(_message.Message):
     __slots__ = ("items",)

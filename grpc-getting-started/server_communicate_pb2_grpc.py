@@ -5,7 +5,7 @@ import warnings
 
 import server_communicate_pb2 as server__communicate__pb2
 
-GRPC_GENERATED_VERSION = '1.80.0'
+GRPC_GENERATED_VERSION = '1.70.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in server_communicate_pb2_grpc.py depends on'
+        + f' but the generated code in server_communicate_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,6 +36,11 @@ class SpeechRelayStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.SendVoice = channel.unary_unary(
+                '/SpeechRelay/SendVoice',
+                request_serializer=server__communicate__pb2.SpeechReferenceRequest.SerializeToString,
+                response_deserializer=server__communicate__pb2.UploadStatus.FromString,
+                _registered_method=True)
         self.Send = channel.unary_unary(
                 '/SpeechRelay/Send',
                 request_serializer=server__communicate__pb2.SpeechUploadRequest.SerializeToString,
@@ -58,10 +63,17 @@ class SpeechRelayServicer(object):
     definition of service
     """
 
-    def Send(self, request, context):
+    def SendVoice(self, request, context):
         """Codelab Hint: Define RPC methods here
 
-        송신측 -> 서버: 텍스트, 감정 데이터(전송 로직)
+        송신측 -> 서버: 송신자 wav(전송 로직에 추가)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Send(self, request, context):
+        """송신측 -> 서버: 텍스트, 감정 데이터(전송 로직)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -84,6 +96,11 @@ class SpeechRelayServicer(object):
 
 def add_SpeechRelayServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'SendVoice': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendVoice,
+                    request_deserializer=server__communicate__pb2.SpeechReferenceRequest.FromString,
+                    response_serializer=server__communicate__pb2.UploadStatus.SerializeToString,
+            ),
             'Send': grpc.unary_unary_rpc_method_handler(
                     servicer.Send,
                     request_deserializer=server__communicate__pb2.SpeechUploadRequest.FromString,
@@ -111,6 +128,33 @@ class SpeechRelay(object):
     """Interface exported by the server.
     definition of service
     """
+
+    @staticmethod
+    def SendVoice(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/SpeechRelay/SendVoice',
+            server__communicate__pb2.SpeechReferenceRequest.SerializeToString,
+            server__communicate__pb2.UploadStatus.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def Send(request,

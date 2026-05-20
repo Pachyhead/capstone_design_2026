@@ -14,14 +14,23 @@ import "google/protobuf/timestamp.proto";
 service SpeechRelay { // definition of service
   // Codelab Hint: Define RPC methods here
 
+  // 송신측 -> 서버: 송신자 wav(전송 로직에 추가)
+  rpc SendVoice(SpeechReferenceRequest) returns (UploadStatus) {} // 성공 여부 반환
+
   // 송신측 -> 서버: 텍스트, 감정 데이터(전송 로직)
   rpc Send(SpeechUploadRequest) returns (UploadStatus) {} // 성공 여부 반환
-  
+
   // 서버 -> 수신측: 메타데이터(접속 로직)
   rpc GetPendingMessages(UserIdentifier) returns (MetadataResponse) {}
 
   // 서버 -> 수신측: 합성된 음성 데이터(재생 로직)
   rpc GetVoice(MessageIdentifier) returns (stream AudioFrame) {}
+}
+
+// message type: 송신측이 서버에 보내는 레퍼런스 음성
+message SpeechReferenceRequest {
+  string sender_id = 1;
+  bytes audio_content = 2;
 }
 
 // message type: data structure that send_clients send to server
@@ -32,7 +41,7 @@ message SpeechUploadRequest {
   string receiver_id = 2;	
   string message = 3;
   int32 emo_type = 4;
-  repeated float emotion_vector = 5;
+  repeated int32 emotion_vector = 5;
 }
 // message type: data structure that send_clients receive from server
 message UploadStatus {
