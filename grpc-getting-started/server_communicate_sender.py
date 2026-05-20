@@ -25,10 +25,10 @@ def load_text():
 def SendVoice(sender_id, audio_path):
     stub = set_connection()
 
-    if not os.path.exists(fname):
+    if not os.path.exists(audio_path):
         return False
 
-    with open(fname, "rb") as f:
+    with open(audio_path, "rb") as f:
         audio_content = f.read()
 
     uploadRequest = server_communicate_pb2.SpeechReferenceRequest(sender_id=sender_id, audio_content=audio_content) # 서비스를 호출할 SpeechReferenceRequest 정의
@@ -51,12 +51,18 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
-    accepted = Send(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector())
-    
-    if accepted:
-        print(f"Upload success!")
+    voice_accepted = SendVoice(sender_id="sendR", audio_path="./000001.wav")
+    if voice_accepted:
+        print(f"Reference upload success!")
     else:
-        print(f"Upload failed!")    
+        print(f"Reference upload failed!")
+
+    speech_accepted = Send(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector())
+    
+    if speech_accepted:
+        print(f"Speech upload success!")
+    else:
+        print(f"Speech upload failed!")    
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 from grpc_interfaces import AbstractSpeechHandler
+from collections.abc import Generator
 
 class FileSpeechHandler(AbstractSpeechHandler):
     # wav로 저장
@@ -11,8 +12,10 @@ class FileSpeechHandler(AbstractSpeechHandler):
 
             with open(fname, "wb") as f:
                 f.write(audio_content)
+            return True
         except OSError as e:
             print(f"File save error: {e}")
+            return False
 
     # 송신측이 보낸 데이터를 수신자id.json으로 서버에 저장
     def save_incoming_speech(self, sender_id, receiver_id, message, emo_type, emotion_vector) -> bool:
@@ -56,7 +59,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
             return json.load(f)
             
     # message_id에 해당하는 wav를 찾아 바이트 형태로 반환
-    def generate_voice_stream(self, message_id: str):
+    def generate_voice_stream(self, message_id: str) -> Generator[bytes, None, None]:
         fname = f"../{message_id}.wav"
 
         if not os.path.exists(fname):
