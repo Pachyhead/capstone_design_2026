@@ -29,7 +29,7 @@ class User:
     
     @user_id.setter
     def user_id(self, value: int):
-        if value not in range(1, 11): 
+        if value not in range(0, 3): 
             raise ValueError(f"User_id must be in [1..10]: {value}")
         self._user_id = value
 
@@ -40,7 +40,7 @@ class User:
     
     @peer_id.setter
     def peer_id(self, value: int):
-        if value not in range(1, 11): 
+        if value not in range(0, 3): 
             raise ValueError(f"Peer_id must be in [1..10]: {value}")
         self._peer_id = value
     
