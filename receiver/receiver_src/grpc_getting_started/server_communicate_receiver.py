@@ -6,6 +6,7 @@ import grpc
 
 from .  import server_communicate_pb2
 from . import server_communicate_pb2_grpc
+from config import PROJECT_ROOT
 
 import os
 from dotenv import load_dotenv
@@ -13,6 +14,8 @@ import io
 import json
 from .server_communicate_connect import set_connection
 import datetime
+
+storage = PROJECT_ROOT / "storage"
 
 def merge_wav_byte(wav_bytes_list, output_filename="combined.wav"):
     try:
@@ -27,7 +30,7 @@ def merge_wav_byte(wav_bytes_list, output_filename="combined.wav"):
         complete_wav_bytes = b"".join(valid_chunks)
 
         # 바이너리 스트림 전체를 그대로 .wav 파일로 씀
-        with open(output_filename, "wb") as f:
+        with open(storage / output_filename, "wb") as f:
             f.write(complete_wav_bytes)
 
         print(f"file saved successfully: {output_filename}")
@@ -49,7 +52,7 @@ def save_message_to_json(metadata_list):
             }
 
             fname = f"{mid}.json"
-            with open(fname, "w", encoding="utf-8") as f: # JSON으로 저장
+            with open(storage / fname, "w", encoding="utf-8") as f: # JSON으로 저장
                 json.dump(new_message, f, ensure_ascii=False, indent=4)
         return True
     except (OSError, Exception) as e:

@@ -9,6 +9,8 @@ version = "0.1.0"
 dependencies = [
     "dotenv>=0.9.9",
     "fastapi>=0.136.1",
+    "grpcio>=1.80.0",
+    "grpcio-tools>=1.80.0",
     "requests>=2.33.1",
     "uvicorn>=0.47.0",
 ]

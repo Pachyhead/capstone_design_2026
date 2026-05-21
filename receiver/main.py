@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from threading import Lock
 from pathlib import Path
+import json
 
 from receiver import Receiver
 from config import PROJECT_ROOT
@@ -31,12 +32,13 @@ app.add_middleware(
 )
 
 @app.post("/set_my_id")
-def set_user_id(my_id: int | None = None):
+def set_my_id(my_id: int | None = None):
     if my_id is None: raise HTTPException(status_code=400, detail="your id is required. range is [0, 3]")
     receiver: Receiver = app.state.receiver
     receiver.user_id = my_id
 
     result = receiver.get_pending_messages()
+    print(result)
 
     return {
         "message": "user_id updated",
@@ -64,3 +66,18 @@ def play_voice(message_id: int | None = None):
     
     receiver.play_voice(message_id)
     return f"successfully play voice"
+
+@app.post("/get_message")
+def get_message(message_id: int):
+    receiver: Receiver = app.state.receiver
+
+    with open(receiver.storage / "000001.json", "r", encoding="utf-8") as f:
+        result = json.load(f)
+
+    return {
+        "message_id": result["message_id"],
+        "sender_id": result["sender_id"],
+        "message": result["message"],
+        "emo_type": result["emo_type"],
+        "send_time": result["send_time"]
+    },
