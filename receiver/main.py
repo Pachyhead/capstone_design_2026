@@ -6,6 +6,7 @@ from receiver import Receiver
 from config import PROJECT_ROOT
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,18 +23,25 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.post("/set_my_id")
 def set_user_id(my_id: int | None = None):
     if my_id is None: raise HTTPException(status_code=400, detail="your id is required. range is [0, 3]")
     receiver: Receiver = app.state.receiver
     receiver.user_id = my_id
-    
+
     result = receiver.get_pending_messages()
 
     return {
         "message": "user_id updated",
         "user_id": my_id,
-        "get_pending_messages": {result}
+        "get_pending_messages": result,
     }
 
 @app.post("/set_sender_id")

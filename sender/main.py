@@ -1,92 +1,90 @@
 from contextlib import asynccontextmanager
-from threading import Lock
+from datetime import datetime
 from pathlib import Path
+from threading import Lock
 
-from sender import Sender
-from config import PROJECT_ROOT
-
-from scipy.io.wavfile import read
-import numpy as np
+import sounddevice as sd
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from scipy.io.wavfile import write
+
+SAMPLE_RATE = 16000
+STORAGE = Path(__file__).resolve().parent / "storage"
+STORAGE.mkdir(parents=True, exist_ok=True)
+
+
+def _record_audio(duration: int) -> Path:
+    filename = datetime.now().strftime("recording_%Y%m%d_%H%M%S.wav")
+    file_path = STORAGE / filename
+    audio = sd.rec(
+        int(duration * SAMPLE_RATE),
+        samplerate=SAMPLE_RATE,
+        channels=1,
+        dtype="float32",
+    )
+    sd.wait()
+    write(file_path, SAMPLE_RATE, audio)
+    return file_path
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    with Sender(
-        storage=PROJECT_ROOT / "storage",
-        user_id=1,
-        receiver_id=1,
-        server_ip="127.0.0.1:8000",
-        fsq_path=str(PROJECT_ROOT / "sender_models" / "skip_kl_8d_8L_kl05_1e-4.pt")
-    ) as sender:
-        app.state.sender = sender
-        app.state.sender_lock = Lock()
-        app.state.last_audio_file = None
-        yield
+    app.state.lock = Lock()
+    app.state.last_audio_file = None
+    yield
+
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/storage", StaticFiles(directory=STORAGE), name="storage")
+
+
 @app.post("/set_my_id")
-def set_user_id(value: int | None = None):
-    if value is None: raise HTTPException(status_code=400, detail="value is required. range is [0, 3]")
-    sender: Sender = app.state.sender
-    sender.user_id = value
-    
-    return {
-        "message": "user_id updated",
-        "user_id": value
-    }
+def set_my_id(value: int | None = None):
+    if value is None:
+        raise HTTPException(status_code=400, detail="value is required")
+    return {"message": "user_id updated", "user_id": value}
+
 
 @app.post("/set_receiver_id")
-def set_target_id(value: int | None = None):
-    if value is None: raise HTTPException(status_code=400, detail="value is required. range is [0, 3]")
-    sender: Sender = app.state.sender
-    sender.peer_id = value
-    
-    return {
-        "message": "receiver_id updated",
-        "receiver_id": value
-    }
+def set_receiver_id(value: int | None = None):
+    if value is None:
+        raise HTTPException(status_code=400, detail="value is required")
+    return {"message": "receiver_id updated", "receiver_id": value}
+
 
 @app.post("/record")
 def record(duration: int = 10):
-    sender: Sender = app.state.sender
-    sender_lock: Lock = app.state.sender_lock
+    with app.state.lock:
+        file_path = _record_audio(duration)
+        app.state.last_audio_file = str(file_path)
 
-    with sender_lock:
-        app.state.last_audio_file = sender.record(duration=duration)
+    return {
+        "text": "안녕 오늘 점심 같이 먹을래?",
+        "emotion": "happy",
+        "duration": duration,
+        "audio_url": f"/storage/{file_path.name}",
+    }
+
 
 @app.post("/record_reference")
 def record_reference():
-    sender: Sender = app.state.sender
-    sender_lock: Lock = app.state.sender_lock
+    with app.state.lock:
+        file_path = _record_audio(5)
+        app.state.last_audio_file = str(file_path)
+    return {"message": "reference recorded", "file": str(file_path)}
 
-    with sender_lock:
-        app.state.last_audio_file = sender.record()
-    
-    # 송신: self.user_id와 wav 파일 보내기
-    return f"successfully send reference voice"
 
 @app.post("/send")
 def send():
-    sender: Sender = app.state.sender
-    sender_lock: Lock = app.state.sender_lock
-
-    with sender_lock:
-        sample_rate, audio = read(app.state.last_audio_file)
-
-        if not isinstance(audio, np.ndarray):
-            raise TypeError(f"recorded audio is not ndarray: {type(audio)}")
-        if audio.dtype != np.float32:
-            raise TypeError(f"recorded audio type is not float32: {audio.dtype}")
-        if audio.ndim != 1:
-            raise ValueError(f"not mono audio: {audio.ndim}")
-
-        result = sender.encoder.encode(audio)
-
-        sender.send(
-            result.text,
-            result.emotion_label,
-            result.emotion_indices
-        )
-    
-    return f"successfully send yout message"
+    if app.state.last_audio_file is None:
+        raise HTTPException(status_code=400, detail="no recording available. call /record first")
+    return {"message": "sent", "file": app.state.last_audio_file}
