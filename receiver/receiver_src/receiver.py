@@ -18,7 +18,7 @@ class Receiver(User):
         return f"Get Pending Message Success"
 
     def _get_voice(self, message_id: int) -> str:
-        stream = GetVoice(str(message_id), str(self.peer_id), str(self.user_id))
+        stream = GetVoice(f"{message_id:06d}", str(self.peer_id), str(self.user_id))
         merge_wav_byte(stream)
 
         return f"successfully received wav file"

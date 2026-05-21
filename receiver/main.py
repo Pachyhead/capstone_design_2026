@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from threading import Lock
 from pathlib import Path
+import json
 
 from receiver import Receiver
 from config import PROJECT_ROOT
@@ -57,3 +58,18 @@ def play_voice(message_id: int | None = None):
     
     receiver.play_voice(message_id)
     return f"successfully play voice"
+
+@app.post("/get_message")
+def get_message(message_id: int):
+    receiver: Receiver = app.state.receiver
+
+    with open(receiver.storage / "000001.json", "r", encoding="utf-8") as f:
+        result = json.load(f)
+
+    return {
+        "message_id": result["message_id"],
+        "sender_id": result["sender_id"],
+        "message": result["message"],
+        "emo_type": result["emo_type"],
+        "send_time": result["send_time"]
+    },
