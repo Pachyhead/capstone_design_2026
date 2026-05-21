@@ -29,8 +29,8 @@ class User:
     
     @user_id.setter
     def user_id(self, value: int):
-        if value not in range(0, 3): 
-            raise ValueError(f"User_id must be in [1..10]: {value}")
+        if value not in range(0, 4): 
+            raise ValueError(f"User_id must be in [0..3]: {value}")
         self._user_id = value
 
     # target_id 등록(수신자 id)
@@ -40,8 +40,8 @@ class User:
     
     @peer_id.setter
     def peer_id(self, value: int):
-        if value not in range(0, 3): 
-            raise ValueError(f"Peer_id must be in [1..10]: {value}")
+        if value not in range(0, 4): 
+            raise ValueError(f"Peer_id must be in [0..3]: {value}")
         self._peer_id = value
     
     # 서버 ip 연결

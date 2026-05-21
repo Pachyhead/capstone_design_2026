@@ -23,12 +23,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 @app.post("/set_my_id")
-def set_user_id(my_id: int | None = None):
+def set_my_id(my_id: int | None = None):
     if my_id is None: raise HTTPException(status_code=400, detail="your id is required. range is [0, 3]")
     receiver: Receiver = app.state.receiver
     receiver.user_id = my_id
     
     result = receiver.get_pending_messages()
+    print(result)
 
     return {
         "message": "user_id updated",

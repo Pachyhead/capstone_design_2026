@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException
 async def lifespan(app: FastAPI):
     with Sender(
         storage=PROJECT_ROOT / "storage",
-        user_id=1,
+        user_id=2,
         receiver_id=1,
         server_ip="127.0.0.1:8000",
         fsq_path=str(PROJECT_ROOT / "sender_models" / "skip_kl_8d_8L_kl05_1e-4.pt")
@@ -55,16 +55,7 @@ def record(duration: int = 10):
     with sender_lock:
         app.state.last_audio_file = sender.record(duration=duration)
 
-@app.post("/record_reference")
-def record_reference():
-    sender: Sender = app.state.sender
-    sender_lock: Lock = app.state.sender_lock
-
-    with sender_lock:
-        app.state.last_audio_file = sender.record()
-    
-    # 송신: self.user_id와 wav 파일 보내기
-    return f"successfully send reference voice"
+    print(f"successfully record audio: {app.state.last_audio_file}")
 
 @app.post("/send")
 def send():
@@ -83,10 +74,20 @@ def send():
 
         result = sender.encoder.encode(audio)
 
-        sender.send(
+        message = sender.send(
             result.text,
             result.emotion_label,
             result.emotion_indices
         )
     
-    return f"successfully send yout message"
+    print(f"successfully send yout message: {message}")
+
+@app.post("/send_ref")
+def send_voice(duration: int =5):
+    sender: Sender = app.state.sender
+    sender_lock: Lock = app.state.sender_lock
+    
+    with sender_lock:
+        filepath = sender.send_voice(duration)
+
+    print(f"successfully sent wav file: {filepath}")

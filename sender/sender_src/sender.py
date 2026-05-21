@@ -6,7 +6,7 @@ from config import PROJECT_ROOT
 from tone_core.sender import SenderEncode
 from tone_core.config import SenderConfig
 
-from grpc_getting_started.server_communicate_sender import Send
+from grpc_getting_started.server_communicate_sender import Send, SendVoice
 
 import sounddevice as sd
 import numpy as np
@@ -45,9 +45,15 @@ class Sender(User):
 
     def send(self, message: str, emotion_type, emotion_vector: tuple[int, ...]):
         Send(str(self.user_id), str(self.peer_id), message, int(emotion_type), emotion_vector)
-        print(message, emotion_vector)
+        self.message_id = self.message_id + 1
+        return message
         # response = requests.post(f"http://{self.server_ip}/send", json=packet)
         # self.logger.info(f"response status: {response.status_code}")
         # self.logger.info(f"response text: {response.text}")
         # self.logger.info(f"Message Sent. Message_id: {self.message_id}")
-        # self.message_id = self.message_id + 1
+
+    def send_voice(self, duration: int):
+        filepath = self.record(duration=duration)
+        SendVoice(str(self.user_id), filepath)
+
+        return filepath
