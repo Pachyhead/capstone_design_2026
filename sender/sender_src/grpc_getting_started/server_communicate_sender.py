@@ -22,10 +22,24 @@ def load_text():
         data = json.load(f)
         return data['text']
 
+def SendVoice(sender_id, audio_path):
+    stub = set_connection()
+
+    if not os.path.exists(audio_path):
+        return False
+
+    with open(audio_path, "rb") as f:
+        audio_content = f.read()
+
+    uploadRequest = server_communicate_pb2.SpeechReferenceRequest(sender_id=sender_id, audio_content=audio_content) # 서비스를 호출할 SpeechReferenceRequest 정의
+    status = stub.SendVoice(uploadRequest) # 서버 메서드 호출(rpc 호출)
+
+    return status.accepted
+
 def Send(sender_id, receiver_id, message, emo_type, emotion_vector):
     stub = set_connection()
 
-    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
+    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id=sender_id, receiver_id=receiver_id, message=message, emo_type=emo_type, emotion_vector=list(emotion_vector)) # 서비스를 호출할 SpeechUploadRequest 정의
     status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
 
     return status.accepted
@@ -37,21 +51,20 @@ def run():
      1. Create a connection to the gRPC server using grpc.insecure_channel()
      2. Call service methods on the client to interact with the server.
     """
-    # load_dotenv() # load .env file's variables to os.environ
-    # server_addr = f"{os.environ.get('SERV_IP', '')}:{os.environ.get('SERV_PORT', '')}"
-    # channel = grpc.insecure_channel(server_addr) # SpeechRelayStub 인스턴스화
-    # stub = server_communicate_pb2_grpc.SpeechRelayStub(channel)
-    stub = set_connection()
-
-    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=load_vector()) # 서비스를 호출할 SpeechUploadRequest 정의
-    status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
-    
-    if status.accepted:
-        print(f"Upload success!")
+    voice_accepted = SendVoice(sender_id="sendR", audio_path="./000001.wav")
+    if voice_accepted:
+        print(f"Reference upload success!")
     else:
-        print(f"Upload failed!")    
+        print(f"Reference upload failed!")
+
+    speech_accepted = Send(sender_id="sendR", receiver_id="000001", message=load_text(), emo_type=0, emotion_vector=[0,1,2,1,3,5])
+    
+    if speech_accepted:
+        print(f"Speech upload success!")
+    else:
+        print(f"Speech upload failed!")    
 
 
-# if __name__ == "__main__":
-#     logging.basicConfig()
-#     run()
+if __name__ == "__main__":
+    logging.basicConfig()
+    run()
