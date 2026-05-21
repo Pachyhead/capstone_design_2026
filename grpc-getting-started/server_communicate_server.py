@@ -5,8 +5,8 @@ from concurrent import futures
 
 import grpc
 
-import server_communicate_pb2
-import server_communicate_pb2_grpc
+from . import server_communicate_pb2
+from . import server_communicate_pb2_grpc
 
 import os
 from dotenv import load_dotenv
@@ -92,7 +92,7 @@ def serve(): # grpc 서버 시작하는 부분
     """
 
     # TODO: AI_TTS_Handler() 클래스로 변경해야 함!!
-    from file_speech_handler import FileSpeechHandler
+    from .file_speech_handler import FileSpeechHandler
     current_handler = FileSpeechHandler()
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

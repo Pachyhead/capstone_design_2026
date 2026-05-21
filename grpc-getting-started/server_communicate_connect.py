@@ -1,7 +1,7 @@
 import grpc
 from dotenv import load_dotenv
 import os
-import server_communicate_pb2_grpc
+from . import server_communicate_pb2_grpc
 
 def set_connection(): # set connection to server
     load_dotenv() # load .env file's variables to os.environ

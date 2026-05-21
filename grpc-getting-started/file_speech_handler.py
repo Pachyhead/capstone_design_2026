@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from grpc_interfaces import AbstractSpeechHandler
+from .grpc_interfaces import AbstractSpeechHandler
 from collections.abc import Generator
 
 class FileSpeechHandler(AbstractSpeechHandler):

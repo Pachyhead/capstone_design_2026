@@ -4,14 +4,14 @@ import logging
 
 import grpc
 
-import server_communicate_pb2
-import server_communicate_pb2_grpc
+from . import server_communicate_pb2
+from . import server_communicate_pb2_grpc
 
 import os
 from dotenv import load_dotenv
 import numpy as np
 import json
-from server_communicate_connect import set_connection
+from .server_communicate_connect import set_connection
 
 def load_vector():
     data = np.load('../000001.npy')
