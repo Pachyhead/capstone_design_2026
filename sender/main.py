@@ -1,19 +1,16 @@
 from contextlib import asynccontextmanager
 from threading import Lock
-from pathlib import Path
 
 from sender import Sender
 from config import PROJECT_ROOT
 
-from scipy.io.wavfile import read
-import numpy as np
 from fastapi import FastAPI, HTTPException
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     with Sender(
         storage=PROJECT_ROOT / "storage",
-        user_id=2,
+        user_id=1,
         receiver_id=1,
         server_ip="127.0.0.1:8000",
         fsq_path=str(PROJECT_ROOT / "sender_models" / "skip_kl_8d_8L_kl05_1e-4.pt")
@@ -53,32 +50,23 @@ def record(duration: int = 10):
     sender_lock: Lock = app.state.sender_lock
 
     with sender_lock:
-        app.state.last_audio_file = sender.record(duration=duration)
+        result = sender.record(duration=duration)
 
-    print(f"successfully record audio: {app.state.last_audio_file}")
+    return {
+        "text": result.text,
+        "emotion": result.emotion_label,
+        "duration": duration
+    }
 
 @app.post("/send")
-def send():
+def send(message: str | None = None):
     sender: Sender = app.state.sender
     sender_lock: Lock = app.state.sender_lock
+    if message is None:
+        message = sender.temp_result.text
 
     with sender_lock:
-        sample_rate, audio = read(app.state.last_audio_file)
-
-        if not isinstance(audio, np.ndarray):
-            raise TypeError(f"recorded audio is not ndarray: {type(audio)}")
-        if audio.dtype != np.float32:
-            raise TypeError(f"recorded audio type is not float32: {audio.dtype}")
-        if audio.ndim != 1:
-            raise ValueError(f"not mono audio: {audio.ndim}")
-
-        result = sender.encoder.encode(audio)
-
-        message = sender.send(
-            result.text,
-            result.emotion_label,
-            result.emotion_indices
-        )
+        message = sender.send(message)
     
     print(f"successfully send yout message: {message}")
 
@@ -91,3 +79,14 @@ def send_voice(duration: int =5):
         filepath = sender.send_voice(duration)
 
     print(f"successfully sent wav file: {filepath}")
+
+@app.post("/get_emotion_label")
+def get_emotion_label():
+    sender: Sender = app.state.sender
+    encoded_result = sender.temp_result
+    if not encoded_result: raise ValueError(f"Encoded Result not found")
+
+    return {
+        "emotion_label": encoded_result.emotion_label,
+        "emotion_score": encoded_result.emotion_score
+    }
