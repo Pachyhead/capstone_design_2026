@@ -57,14 +57,27 @@ def set_target_id(value: int | None = None):
     return {"message": "receiver_id updated", "receiver_id": value}
 
 
-@app.post("/record")
-def record(duration: int = 10):
+@app.post("/start_recording")
+def start_recording():
     sender: Sender = app.state.sender
     sender_lock: Lock = app.state.sender_lock
 
     with sender_lock:
-        result = sender.record(duration=duration)
+        sender.recoder.start_recording()
 
+    return {"status": "recording start"}
+
+@app.post("/stop_recording")
+def record_end():
+    sender: Sender = app.state.sender
+    sender_lock: Lock = app.state.sender_lock
+
+    with sender_lock:
+        result, duration, _ = sender.recoder.stop_recording(encording=True)
+        sender.temp_result = result
+
+    if not result:
+        raise ValueError(f"encoding argument must be True")
     return {
         "text": result.text,
         "emotion": result.emotion_label,
@@ -86,6 +99,8 @@ def send(message: str | None = None):
     return {"message": "sent", "text": message}
 
 
+    return {"status": "message sent"}
+
 @app.post("/send_ref")
 def send_voice(duration: int = 5):
     sender: Sender = app.state.sender
@@ -97,6 +112,8 @@ def send_voice(duration: int = 5):
     print(f"successfully sent wav file: {filepath}")
     return {"message": "reference sent", "file": str(filepath)}
 
+
+    return {"status": "reference audio sent"}
 
 @app.post("/get_emotion_label")
 def get_emotion_label():
