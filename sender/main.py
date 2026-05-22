@@ -5,15 +5,7 @@ from sender import Sender
 from config import PROJECT_ROOT
 
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-
-STORAGE = PROJECT_ROOT / "storage"
-STORAGE.mkdir(parents=True, exist_ok=True)
-
-FRONTEND_DIST = PROJECT_ROOT.parent / "tone" / "dist"
-
+from grpc_getting_started.server_communicate_sender import SendVoice
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -131,8 +123,9 @@ def send_ref(duration: int = 5):
     sender_lock: Lock = app.state.sender_lock
 
     with sender_lock:
-        filepath = sender.send_voice(duration)
+        _result, _duration, filepath = sender.recoder.stop_recording(encording=False)
 
+    SendVoice(str(sender.user_id), filepath)
     print(f"successfully sent wav file: {filepath}")
     return {"message": "reference sent", "file": str(filepath)}
 

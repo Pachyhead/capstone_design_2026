@@ -31,11 +31,3 @@ class Sender(User):
         self.temp_result = None
 
         return message
-    
-    def send_voice(self, duration: int = 5):
-        self.recoder.start_recording()
-        time.sleep(duration)
-        _result, _duration, filepath = self.recoder.stop_recording(encording=False)
-        SendVoice(str(self.user_id), filepath)
-
-        return filepath
