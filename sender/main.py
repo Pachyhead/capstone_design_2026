@@ -5,6 +5,7 @@ from sender import Sender
 from config import PROJECT_ROOT
 
 from fastapi import FastAPI, HTTPException
+from grpc_getting_started.server_communicate_sender import SendVoice
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -91,8 +92,9 @@ def send_voice(duration: int =5):
     sender_lock: Lock = app.state.sender_lock
     
     with sender_lock:
-        filepath = sender.send_voice(duration)
+        _result, _duration, filepath = sender.recoder.stop_recording(encording=False)
 
+    SendVoice(str(sender.user_id), filepath)
     print(f"successfully sent wav file: {filepath}")
 
     return {"status": "reference audio sent"}
