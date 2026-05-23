@@ -20,9 +20,9 @@ export function Profiles() {
   const handlePick = (p: Profile) => {
     setUserAvatar(p.avatar);
     selectProfile(p.id);
-    api.setMyId(p.backendId).catch((err) => {
-      console.warn('[api] setMyId failed:', err);
-    });
+    api.setMyId(p.backendId)
+      .then(() => api.getMessage(1))
+      .catch((err) => console.warn('[api] setMyId/getMessage failed:', err));
     navigate('/');
   };
 
