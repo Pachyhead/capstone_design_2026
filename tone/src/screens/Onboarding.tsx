@@ -3,36 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { paletteFor } from '@/tokens/emotions';
 import { EMOTION_LABELS } from '@/types';
 import type { Emotion } from '@/types';
-import { buildProfileFromRecorded, useVoiceProfile } from '@/hooks/useVoiceProfile';
+import { useVoiceProfile } from '@/hooks/useVoiceProfile';
+import { api } from '@/lib/api';
 
-interface Prompt {
-  text: string;
-  emotion: Emotion;
-  nuance?: string;
-}
-
-const PROMPTS: Prompt[] = [
-  { text: '드디어 그 영화를 봤어요! 진짜 감동적이었어요.', emotion: 'happy', nuance: '들뜸' },
-  { text: '아... 오늘은 좀 힘드네요. 잘 안 풀려요.', emotion: 'sad' },
-  { text: '뭐?! 진짜로? 그게 가능해?', emotion: 'surprised' },
-  { text: '음, 그건 좀 고민 되는 부분이긴 해요.', emotion: 'fearful', nuance: '망설임' },
-  { text: '그래, 알겠어. 천천히 해보자.', emotion: 'neutral' },
-  { text: '지금은 그냥 가만히 있고 싶어요.', emotion: 'unk' },
-];
-
-const TOTAL_SENTENCES = PROMPTS.length;
+const REFERENCE_PROMPT =
+  '안녕하세요, 오늘 날씨가 참 좋아서 산책하기 딱 좋은 날인 것 같네요. 주말에는 보통 집에서 책을 읽거나 가까운 카페에 가서 시간을 보냅니다.';
+const REFERENCE_EMOTION: Emotion = 'neutral';
 const LIVE_BARS = 36;
 
 export function Onboarding() {
   const [step, setStep] = useState<'welcome' | 'recording' | 'done'>('welcome');
-  const [progress, setProgress] = useState(0);
-  const [recordedEmotions, setRecordedEmotions] = useState<Emotion[]>([]);
   const navigate = useNavigate();
   const [profile, setProfile] = useVoiceProfile();
 
-  // close button — only available before completion. Completion has its own
-  // "시작하기" exit. If no profile is registered yet, the gate will redirect
-  // them right back, so closing only really helps re-registration flow.
   const showClose = step !== 'done' && profile.registered;
   const handleClose = () => navigate('/');
 
@@ -44,27 +27,22 @@ export function Onboarding() {
     );
 
   if (step === 'recording') {
-    const advance = (recordedEmotion?: Emotion) => {
-      if (recordedEmotion) setRecordedEmotions((prev) => [...prev, recordedEmotion]);
-      if (progress >= TOTAL_SENTENCES - 1) {
-        // commit final profile when entering completion
-        const finalRecorded = recordedEmotion
-          ? [...recordedEmotions, recordedEmotion]
-          : recordedEmotions;
-        setProfile(buildProfileFromRecorded(finalRecorded));
-        setStep('done');
-      } else {
-        setProgress(progress + 1);
-      }
+    const finish = (registered: boolean, durationSec: number) => {
+      setProfile({
+        registered,
+        sentenceCount: registered ? 1 : 0,
+        durationSec,
+        emotionCoverage: registered ? 1 : 0,
+        detectedEmotions: registered ? [REFERENCE_EMOTION] : [],
+      });
+      setStep('done');
     };
 
     return (
       <Page onClose={showClose ? handleClose : undefined}>
         <Recording
-          progress={progress}
-          recordedCount={recordedEmotions.length}
-          onNext={() => advance(PROMPTS[progress].emotion)}
-          onSkip={() => advance(undefined)}
+          onNext={(durationSec) => finish(true, durationSec)}
+          onSkip={() => finish(false, 0)}
         />
       </Page>
     );
@@ -130,7 +108,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
         당신의 목소리로 도착합니다
       </h1>
       <p className="text-[15px] text-muted leading-relaxed max-w-[440px] mb-3">
-        여섯 문장을 녹음하면, 상대방이 받는 메시지가 당신의 목소리로 재구성됩니다.
+        한 문장을 녹음하면, 상대방이 받는 메시지가 당신의 목소리로 재구성됩니다.
       </p>
       <p className="text-[13px] text-hint leading-relaxed max-w-[440px] mb-10">
         음성 데이터는 당신의 기기에서만 사용되며, 서버로 전송되지 않습니다.
@@ -148,31 +126,18 @@ function Welcome({ onStart }: { onStart: () => void }) {
 
 // -----------------------------------------------------------------------------
 function Recording({
-  progress,
-  recordedCount,
   onNext,
   onSkip,
 }: {
-  progress: number;
-  recordedCount: number;
-  onNext: () => void;
+  onNext: (durationSec: number) => void;
   onSkip: () => void;
 }) {
-  const prompt = PROMPTS[progress];
   const [phase, setPhase] = useState<'idle' | 'recording' | 'reviewing'>('idle');
   const [tick, setTick] = useState(0); // tenths of a second
   const [energies, setEnergies] = useState<number[]>(() =>
     Array.from({ length: LIVE_BARS }, () => 0.18),
   );
 
-  // reset when prompt changes
-  useEffect(() => {
-    setPhase('idle');
-    setTick(0);
-    setEnergies(Array.from({ length: LIVE_BARS }, () => 0.18));
-  }, [progress]);
-
-  // live waveform / timer during recording
   useEffect(() => {
     if (phase !== 'recording') return;
     const interval = setInterval(() => {
@@ -182,23 +147,30 @@ function Recording({
     return () => clearInterval(interval);
   }, [phase]);
 
-  const seconds = Math.floor(tick / 10);
-  const tenths = tick % 10;
-  const timerStr = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}.${tenths}`;
+  const elapsedSec = tick / 10;
+  const timerStr = `${elapsedSec.toFixed(1)}s`;
+  const palette = paletteFor(REFERENCE_EMOTION);
 
-  const palette = paletteFor(prompt.emotion);
+  const handleStart = () => {
+    setPhase('recording');
+    api.startRecording().catch((err) => console.warn('[api] startRecording failed:', err));
+  };
+
+  const handleStop = () => {
+    setPhase('reviewing');
+    api.stopRecording().catch((err) => console.warn('[api] stopRecording failed:', err));
+  };
+
+  const handleRetake = () => {
+    setPhase('idle');
+    setTick(0);
+    setEnergies(Array.from({ length: LIVE_BARS }, () => 0.18));
+  };
 
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-baseline gap-3">
-          <span className="text-[13px] text-muted font-medium">
-            {progress + 1} / {TOTAL_SENTENCES}
-          </span>
-          <span className="text-[12px] text-hint">
-            {recordedCount}개 감정 등록됨
-          </span>
-        </div>
+        <p className="text-[12px] text-hint tracking-wider font-medium">읽어주세요</p>
         <button
           onClick={onSkip}
           className="text-[13px] text-hint hover:text-muted transition-colors"
@@ -207,31 +179,14 @@ function Recording({
         </button>
       </div>
 
-      <div className="h-[3px] bg-neutral-light rounded-full mb-8 overflow-hidden">
-        <div
-          className="h-full bg-charcoal transition-all"
-          style={{ width: `${((progress + 1) / TOTAL_SENTENCES) * 100}%` }}
-        />
-      </div>
-
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[12px] text-hint tracking-wider font-medium">읽어주세요</p>
-        <span
-          className="text-[11px] px-[8px] py-[2px] rounded-[8px] font-medium"
-          style={{ background: palette.main, color: palette.deep }}
-        >
-          {prompt.nuance ? `${EMOTION_LABELS[prompt.emotion]} · ${prompt.nuance}` : EMOTION_LABELS[prompt.emotion]}
-        </span>
-      </div>
       <div className="bg-cream rounded-[14px] p-6 mb-6">
-        <p className="text-[20px] text-ink leading-relaxed font-medium">"{prompt.text}"</p>
+        <p className="text-[18px] text-ink leading-relaxed font-medium">"{REFERENCE_PROMPT}"</p>
       </div>
 
-      {/* state-specific body */}
       {phase === 'idle' && (
         <div className="flex flex-col items-center justify-center min-h-[180px] gap-4 mb-6">
           <button
-            onClick={() => setPhase('recording')}
+            onClick={handleStart}
             className="w-20 h-20 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-100"
             style={{ background: '#94402C' }}
             aria-label="녹음 시작"
@@ -297,7 +252,7 @@ function Recording({
               <path d="M8 12 L11 15 L16 9" stroke="#2D6852" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <span className="text-[13px] font-medium" style={{ color: palette.deep }}>
-              {prompt.nuance ? `${EMOTION_LABELS[prompt.emotion]} · ${prompt.nuance}` : EMOTION_LABELS[prompt.emotion]} 톤 등록됨
+              {EMOTION_LABELS[REFERENCE_EMOTION]} 톤 등록됨
             </span>
           </div>
           <div className="font-mono text-[14px] text-hint">{timerStr}</div>
@@ -317,7 +272,7 @@ function Recording({
 
         {phase === 'recording' && (
           <button
-            onClick={() => setPhase('reviewing')}
+            onClick={handleStop}
             className="flex-1 py-[13px] rounded-[14px] text-[14px] font-medium bg-charcoal text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
           >
             <span className="w-3 h-3 rounded-[2px] bg-white" />
@@ -328,21 +283,17 @@ function Recording({
         {phase === 'reviewing' && (
           <>
             <button
-              onClick={() => {
-                setPhase('idle');
-                setTick(0);
-                setEnergies(Array.from({ length: LIVE_BARS }, () => 0.18));
-              }}
+              onClick={handleRetake}
               className="flex-1 py-[13px] rounded-[14px] text-[14px] font-medium text-muted box-border hover:bg-cream transition-colors"
               style={{ border: '0.5px solid rgba(20,19,15,0.12)' }}
             >
               다시 녹음
             </button>
             <button
-              onClick={onNext}
+              onClick={() => onNext(elapsedSec)}
               className="flex-1 py-[13px] rounded-[14px] text-[14px] font-medium bg-charcoal text-white hover:opacity-90 transition-opacity"
             >
-              {progress >= TOTAL_SENTENCES - 1 ? '완료' : '다음'}
+              완료
             </button>
           </>
         )}
@@ -363,13 +314,8 @@ function Completion({
     ? profile.detectedEmotions
     : (['neutral'] as Emotion[]);
 
-  const minutes = Math.floor(profile.durationSec / 60);
-  const seconds = profile.durationSec % 60;
-  const sampleLength =
-    minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
-
-  const emotionsRecorded = profile.sentenceCount;
-  const noneRecorded = emotionsRecorded === 0;
+  const sampleLength = `${profile.durationSec.toFixed(1)}s`;
+  const noneRecorded = profile.sentenceCount === 0;
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -401,46 +347,41 @@ function Completion({
       </h1>
       <p className="text-[14px] text-muted leading-relaxed max-w-[440px] mb-8">
         {noneRecorded
-          ? '문장을 모두 건너뛰셨어요. 메시지를 보내려면 목소리 등록이 필요합니다.'
+          ? '문장을 건너뛰셨어요. 메시지를 보내려면 목소리 등록이 필요합니다.'
           : '이제 당신이 보낸 메시지는 상대방에게 당신의 목소리로 도착합니다.'}
       </p>
 
-      <div className="bg-cream rounded-[14px] p-6 w-full text-left mb-8">
-        <p className="text-[12px] text-hint tracking-wider mb-4 font-medium">Voice ID</p>
+      {!noneRecorded && (
+        <div className="bg-cream rounded-[14px] p-6 w-full text-left mb-8">
+          <p className="text-[12px] text-hint tracking-wider mb-4 font-medium">Voice ID</p>
 
-        <InfoRow label="음높이" value="중간" />
-        <InfoRow label="말 속도" value="보통" divider />
-        <InfoRow
-          label="감정 범위"
-          value={`${profile.emotionCoverage} / 9`}
-          divider
-        />
-        <InfoRow label="샘플 길이" value={sampleLength} divider />
+          <InfoRow label="샘플 길이" value={sampleLength} />
 
-        <div
-          className="flex gap-3 items-center pt-4 mt-4"
-          style={{ borderTop: '0.5px solid rgba(20,19,15,0.06)' }}
-        >
-          <span className="text-[12px] text-hint flex-shrink-0">등록된 톤</span>
-          <div className="flex gap-[6px] flex-1 items-center justify-end flex-wrap">
-            {detected.map((e, i) => {
-              const size = Math.max(16 - i, 9);
-              return (
-                <div
-                  key={e}
-                  className="rounded-full flex-shrink-0"
-                  style={{
-                    width: `${size}px`,
-                    height: `${size}px`,
-                    background: paletteFor(e).main,
-                  }}
-                  title={EMOTION_LABELS[e]}
-                />
-              );
-            })}
+          <div
+            className="flex gap-3 items-center pt-4 mt-4"
+            style={{ borderTop: '0.5px solid rgba(20,19,15,0.06)' }}
+          >
+            <span className="text-[12px] text-hint flex-shrink-0">등록된 톤</span>
+            <div className="flex gap-[6px] flex-1 items-center justify-end flex-wrap">
+              {detected.map((e, i) => {
+                const size = Math.max(16 - i, 9);
+                return (
+                  <div
+                    key={e}
+                    className="rounded-full flex-shrink-0"
+                    style={{
+                      width: `${size}px`,
+                      height: `${size}px`,
+                      background: paletteFor(e).main,
+                    }}
+                    title={EMOTION_LABELS[e]}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <button
         onClick={onFinish}

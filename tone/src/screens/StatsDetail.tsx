@@ -22,7 +22,7 @@ export function StatsDetail() {
   const location = useLocation();
   const fromChat = location.pathname.startsWith('/chat/');
   const conv = conversations.find((c) => c.id === id) ?? conversations[0];
-  const deltas = previousPeriodDelta[conv.id] ?? previousPeriodDelta.minsu;
+  const deltas = previousPeriodDelta[conv.id] ?? [];
   const [period, setPeriod] = useState<Period>('월');
   const [authors, setAuthors] = useState<AuthorFilter>(() => new Set<Author>(['me', 'them']));
 

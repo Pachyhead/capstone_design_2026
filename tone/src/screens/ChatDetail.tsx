@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
-import { conversations, messages } from '@/data/mock';
+import { conversations } from '@/data/mock';
+import { useMessages } from '@/hooks/useMessages';
 import { paletteFor } from '@/tokens/emotions';
 import { EmotionWaveform } from '@/components/EmotionWaveform';
 import { EmotionChip } from '@/components/EmotionChip';
@@ -19,21 +20,25 @@ function nowHHMM(): string {
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+// Synthetic message id until backend exposes real ones in message payloads.
+function messageIdFor(stringId: string): number {
+  let h = 0;
+  for (let i = 0; i < stringId.length; i++) h = (h * 31 + stringId.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
 export function ChatDetail() {
   const { id } = useParams<{ id: string }>();
   const { mode, setMode } = useOutletContext<ShellContext>();
   const conversation = conversations.find((c) => c.id === id) ?? conversations[0];
-  const baseThread = messages.filter((m) => m.conversationId === conversation.id);
+  const { thread, append } = useMessages(conversation.id);
 
-  const [appended, setAppended] = useState<Message[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [draft, setDraft] = useState<{ text: string; emotion: Emotion; durationSec: number; audioUrl?: string } | null>(null);
   const [sending, setSending] = useState(false);
 
-  // reset appended messages and search when switching conversations
   useEffect(() => {
-    setAppended([]);
     setSearchOpen(false);
     setSearchQuery('');
     const peerId = conversation.backendId;
@@ -42,7 +47,6 @@ export function ChatDetail() {
     });
   }, [conversation.id]);
 
-  const thread = [...baseThread, ...appended];
   const trimmedQuery = searchQuery.trim();
   const filteredThread = useMemo(() => {
     if (!searchOpen || !trimmedQuery) return thread;
@@ -51,19 +55,27 @@ export function ChatDetail() {
   }, [thread, searchOpen, trimmedQuery]);
   const matchCount = searchOpen && trimmedQuery ? filteredThread.length : 0;
 
-  const handleRecorded = async (durationSec: number) => {
+  const handlePressStart = async () => {
+    try {
+      await api.startRecording();
+    } catch (err) {
+      console.warn('[api] startRecording failed:', err);
+    }
+  };
+
+  const handlePressEnd = async () => {
     let result;
     try {
-      result = await api.record(durationSec);
+      result = await api.stopRecording();
     } catch (err) {
-      console.warn('[api] record failed:', err);
+      console.warn('[api] stopRecording failed:', err);
       return;
     }
     setDraft({
       text: result.text,
       emotion: result.emotion,
-      durationSec: result.duration ?? durationSec,
-      audioUrl: result.audio_url ? audioUrl(result.audio_url) : undefined,
+      durationSec: result.duration,
+      audioUrl: result.audio_url ? `${audioUrl(result.audio_url)}?t=${Date.now()}` : undefined,
     });
   };
 
@@ -71,7 +83,7 @@ export function ChatDetail() {
     if (!draft) return;
     setSending(true);
     try {
-      await api.send();
+      await api.send(draft.text);
     } catch (err) {
       console.warn('[api] send failed:', err);
       setSending(false);
@@ -87,7 +99,7 @@ export function ChatDetail() {
       energy: Array.from({ length: 10 }, () => Math.random() * 0.5 + 0.4),
       sentAt: nowHHMM(),
     };
-    setAppended((prev) => [...prev, newMessage]);
+    append(newMessage);
     setDraft(null);
     setSending(false);
   };
@@ -118,7 +130,8 @@ export function ChatDetail() {
         onSearchToggle={toggleSearch}
         matchCount={matchCount}
         highlight={trimmedQuery}
-        onRecorded={handleRecorded}
+        onPressStart={handlePressStart}
+        onPressEnd={handlePressEnd}
         draft={draft}
         onDraftTextChange={handleDraftTextChange}
         onConfirmSend={handleConfirmSend}
@@ -137,7 +150,8 @@ export function ChatDetail() {
         onSearchToggle={toggleSearch}
         matchCount={matchCount}
         highlight={trimmedQuery}
-        onRecorded={handleRecorded}
+        onPressStart={handlePressStart}
+        onPressEnd={handlePressEnd}
         draft={draft}
         onDraftTextChange={handleDraftTextChange}
         onConfirmSend={handleConfirmSend}
@@ -160,7 +174,8 @@ interface ModeViewProps {
   onSearchToggle: () => void;
   matchCount: number;
   highlight: string;
-  onRecorded: (durationSec: number) => void;
+  onPressStart: () => void;
+  onPressEnd: () => void;
   draft: { text: string; emotion: Emotion; durationSec: number; audioUrl?: string } | null;
   onDraftTextChange: (text: string) => void;
   onConfirmSend: () => void;
@@ -235,7 +250,8 @@ function TextModeView({
   onSearchToggle,
   matchCount,
   highlight,
-  onRecorded,
+  onPressStart,
+  onPressEnd,
   draft,
   onDraftTextChange,
   onConfirmSend,
@@ -289,7 +305,7 @@ function TextModeView({
                   style={{ background: palette.light }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <PlayButton emotion={m.emotion.primary} size={26} variant="light" />
+                    <PlayButton emotion={m.emotion.primary} size={26} variant="light" messageId={messageIdFor(m.id)} />
                     <EmotionWaveform emotion={m.emotion.primary} energy={m.energy} height={22} />
                     <span
                       className="text-[11px] font-mono flex-shrink-0"
@@ -330,7 +346,8 @@ function TextModeView({
 
       <ChatComposer
         variant="light"
-        onRecorded={onRecorded}
+        onPressStart={onPressStart}
+        onPressEnd={onPressEnd}
         draft={draft}
         onDraftTextChange={onDraftTextChange}
         onConfirmSend={onConfirmSend}
@@ -355,7 +372,8 @@ function VoiceModeView({
   onSearchToggle,
   matchCount,
   highlight,
-  onRecorded,
+  onPressStart,
+  onPressEnd,
   draft,
   onDraftTextChange,
   onConfirmSend,
@@ -409,7 +427,7 @@ function VoiceModeView({
                   style={{ background: isMine ? '#8E6E48' : '#785A38' }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <PlayButton emotion={m.emotion.primary} size={28} variant="dark" />
+                    <PlayButton emotion={m.emotion.primary} size={28} variant="dark" messageId={messageIdFor(m.id)} />
                     <EmotionWaveform
                       emotion={m.emotion.primary}
                       energy={m.energy}
@@ -449,7 +467,8 @@ function VoiceModeView({
 
       <ChatComposer
         variant="dark"
-        onRecorded={onRecorded}
+        onPressStart={onPressStart}
+        onPressEnd={onPressEnd}
         draft={draft}
         onDraftTextChange={onDraftTextChange}
         onConfirmSend={onConfirmSend}
@@ -479,9 +498,10 @@ function ChatHeader({
   const isDark = variant === 'dark';
   const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
+  const { thread: headerThread } = useMessages(conversation.id);
   const distribution = useMemo(
-    () => computeDistribution(messages.filter((m) => m.conversationId === conversation.id)),
-    [conversation.id],
+    () => computeDistribution(headerThread),
+    [headerThread],
   );
 
   return (
@@ -696,7 +716,8 @@ function SearchBar({
 
 function ChatComposer({
   variant,
-  onRecorded,
+  onPressStart,
+  onPressEnd,
   draft,
   onDraftTextChange,
   onConfirmSend,
@@ -704,7 +725,8 @@ function ChatComposer({
   sending,
 }: {
   variant: 'light' | 'dark';
-  onRecorded: (durationSec: number) => void;
+  onPressStart: () => void;
+  onPressEnd: () => void;
   draft: { text: string; emotion: Emotion; durationSec: number; audioUrl?: string } | null;
   onDraftTextChange: (text: string) => void;
   onConfirmSend: () => void;
@@ -715,32 +737,44 @@ function ChatComposer({
   const [isPressing, setIsPressing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const startedAtRef = useRef<number | null>(null);
-  const tickRef = useRef<number | null>(null);
+  const releasingRef = useRef(false);
+
+  const release = () => {
+    if (releasingRef.current) return;
+    releasingRef.current = true;
+    setIsPressing(false);
+    onPressEnd();
+  };
 
   useEffect(() => {
     if (!isPressing) return;
+    releasingRef.current = false;
     startedAtRef.current = Date.now();
     setElapsed(0);
-    tickRef.current = window.setInterval(() => {
-      if (startedAtRef.current !== null) {
-        setElapsed((Date.now() - startedAtRef.current) / 1000);
-      }
+    const id = window.setInterval(() => {
+      if (startedAtRef.current === null) return;
+      const sec = (Date.now() - startedAtRef.current) / 1000;
+      setElapsed(sec);
+      if (sec >= 10) release();
     }, 100);
+    return () => window.clearInterval(id);
+  }, [isPressing]);
+
+  useEffect(() => {
+    if (!isPressing) return;
+    const onUp = () => release();
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
     return () => {
-      if (tickRef.current !== null) window.clearInterval(tickRef.current);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
     };
   }, [isPressing]);
 
-  const handlePressStart = () => {
-    if (draft || sending) return;
+  const handlePointerDown = () => {
+    if (draft || sending || isPressing) return;
     setIsPressing(true);
-  };
-
-  const handlePressEnd = () => {
-    if (!isPressing) return;
-    const durationSec = Math.max(1, Math.round(elapsed));
-    setIsPressing(false);
-    onRecorded(durationSec);
+    onPressStart();
   };
 
   if (draft) {
@@ -768,15 +802,12 @@ function ChatComposer({
           className="text-[12px] font-mono"
           style={{ color: isDark ? '#F2D89E' : '#94402C' }}
         >
-          ● 녹음 중 {elapsed.toFixed(1)}s
+          ● 녹음 중 {elapsed.toFixed(1)}/10.0s
         </div>
       )}
       <button
         type="button"
-        onPointerDown={handlePressStart}
-        onPointerUp={handlePressEnd}
-        onPointerLeave={handlePressEnd}
-        onPointerCancel={handlePressEnd}
+        onPointerDown={handlePointerDown}
         className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-transform select-none"
         style={{
           background: isDark ? '#F2D89E' : '#14130F',
@@ -822,60 +853,69 @@ function DraftReview({
 }) {
   const isDark = variant === 'dark';
   const palette = paletteFor(draft.emotion);
+  const surfaceBg = isDark ? '#3F2E1C' : '#FFFFFF';
+  const subtleBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(20,19,15,0.025)';
+  const textColor = isDark ? '#FFFFFF' : '#14130F';
+  const mutedText = isDark ? 'rgba(255,255,255,0.55)' : '#6B5F4F';
+  const dividerColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(20,19,15,0.06)';
   return (
     <div
-      className="px-10 py-4 flex flex-col gap-3 flex-shrink-0"
+      className="px-10 py-5 flex flex-col gap-4 flex-shrink-0"
       style={{
-        borderTop: `0.5px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(20,19,15,0.06)'}`,
-        background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(20,19,15,0.02)',
+        borderTop: `0.5px solid ${dividerColor}`,
+        background: subtleBg,
       }}
     >
-      <div className="flex items-center gap-2">
-        <span
-          className="px-3 py-[4px] rounded-[8px] text-[12px] font-medium"
-          style={{ background: palette.main, color: palette.deep }}
-        >
-          {EMOTION_LABELS[draft.emotion]}
-        </span>
-        <span
-          className="text-[11px] font-mono"
-          style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#9B8E7B' }}
-        >
-          {draft.durationSec}s
-        </span>
+      <div
+        className="rounded-[16px] flex flex-col gap-3 px-4 py-3"
+        style={{
+          background: surfaceBg,
+          border: `0.5px solid ${dividerColor}`,
+          boxShadow: isDark ? 'none' : '0 1px 4px rgba(20,19,15,0.04)',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="px-[10px] py-[3px] rounded-full text-[11px] font-medium tracking-wide"
+            style={{ background: palette.main, color: palette.deep }}
+          >
+            {EMOTION_LABELS[draft.emotion]}
+          </span>
+          <span className="text-[11px] font-mono" style={{ color: mutedText }}>
+            {draft.durationSec.toFixed(1)}s
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <AudioPlayer src={draft.audioUrl} palette={palette} isDark={isDark} />
+        </div>
       </div>
-      {draft.audioUrl && (
-        <audio
-          src={draft.audioUrl}
-          controls
-          preload="auto"
-          className="w-full"
+
+      <div className="flex flex-col gap-[6px]">
+        <label className="text-[11px] tracking-wider font-medium" style={{ color: mutedText }}>
+          내가 한 말
+        </label>
+        <textarea
+          value={draft.text}
+          onChange={(e) => onTextChange(e.target.value)}
+          rows={2}
+          className="w-full px-4 py-3 rounded-[14px] text-[14px] leading-relaxed resize-none box-border focus:outline-none transition-colors"
           style={{
-            background: isDark ? '#4D3823' : '#FFFFFF',
-            borderRadius: 10,
+            background: surfaceBg,
+            color: textColor,
+            border: `0.5px solid ${dividerColor}`,
           }}
         />
-      )}
-      <textarea
-        value={draft.text}
-        onChange={(e) => onTextChange(e.target.value)}
-        rows={2}
-        className="w-full px-4 py-3 rounded-[12px] text-[14px] resize-none box-border focus:outline-none"
-        style={{
-          background: isDark ? '#4D3823' : '#FFFFFF',
-          color: isDark ? '#FFFFFF' : '#14130F',
-          border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(20,19,15,0.10)'}`,
-        }}
-      />
-      <div className="flex gap-2 justify-end">
+      </div>
+
+      <div className="flex gap-2 justify-center">
         <button
           type="button"
           onClick={onCancel}
           disabled={sending}
-          className="px-4 py-[8px] rounded-[10px] text-[13px] box-border disabled:opacity-50"
+          className="px-4 py-[9px] rounded-[12px] text-[13px] box-border transition-colors disabled:opacity-50"
           style={{
-            color: isDark ? 'rgba(255,255,255,0.65)' : '#6B5F4F',
-            border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(20,19,15,0.12)'}`,
+            color: mutedText,
+            border: `0.5px solid ${isDark ? 'rgba(255,255,255,0.14)' : 'rgba(20,19,15,0.12)'}`,
           }}
         >
           취소
@@ -884,15 +924,137 @@ function DraftReview({
           type="button"
           onClick={onConfirm}
           disabled={!draft.text.trim() || sending}
-          className="px-5 py-[8px] rounded-[10px] text-[13px] font-medium disabled:opacity-50"
+          className="px-5 py-[9px] rounded-[12px] text-[13px] font-medium flex items-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             background: isDark ? '#F2D89E' : '#14130F',
-            color: isDark ? '#3A2A1A' : '#FFFFFF',
+            color: isDark ? '#3A2A1A' : '#FAF6EF',
           }}
         >
           {sending ? '전송 중…' : '전송'}
+          {!sending && <span aria-hidden>→</span>}
         </button>
       </div>
     </div>
+  );
+}
+
+function AudioPlayer({
+  src,
+  palette,
+  isDark,
+}: {
+  src?: string;
+  palette: ReturnType<typeof paletteFor>;
+  isDark: boolean;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    setPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [src]);
+
+  if (!src) {
+    return (
+      <div
+        className="w-[44px] h-[44px] rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(20,19,15,0.06)' }}
+      >
+        <span className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.45)' : '#9B8E7B' }}>
+          —
+        </span>
+      </div>
+    );
+  }
+
+  const toggle = async () => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (el.paused) {
+      try {
+        await el.play();
+      } catch (err) {
+        console.warn('[audio] play failed:', err);
+      }
+    } else {
+      el.pause();
+    }
+  };
+
+  const onSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = audioRef.current;
+    if (!el || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    el.currentTime = ratio * duration;
+    setCurrentTime(el.currentTime);
+  };
+
+  const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
+  const trackBg = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(20,19,15,0.08)';
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={toggle}
+        className="w-[44px] h-[44px] rounded-full flex items-center justify-center flex-shrink-0 transition-transform hover:scale-105 active:scale-100"
+        style={{ background: palette.deep }}
+        aria-label={playing ? '일시정지' : '재생'}
+      >
+        {playing ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="2.5" y="2" width="3" height="10" rx="1" fill="#FFFFFF" />
+            <rect x="8.5" y="2" width="3" height="10" rx="1" fill="#FFFFFF" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M3 2 L12 7 L3 12 Z" fill="#FFFFFF" />
+          </svg>
+        )}
+      </button>
+      <div className="flex-1 flex items-center gap-3 min-w-0">
+        <div
+          onClick={onSeek}
+          className="flex-1 h-[6px] rounded-full cursor-pointer relative"
+          style={{ background: trackBg, minWidth: 80 }}
+          role="slider"
+          aria-valuemin={0}
+          aria-valuemax={duration}
+          aria-valuenow={currentTime}
+        >
+          <div
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{
+              width: `${progress * 100}%`,
+              background: palette.deep,
+              transition: playing ? 'width 0.1s linear' : 'none',
+            }}
+          />
+        </div>
+        <span
+          className="text-[11px] font-mono flex-shrink-0"
+          style={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#6B5F4F' }}
+        >
+          {currentTime.toFixed(1)} / {duration.toFixed(1)}
+        </span>
+      </div>
+      <audio
+        ref={audioRef}
+        key={src}
+        src={src}
+        preload="auto"
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        className="hidden"
+      />
+    </>
   );
 }

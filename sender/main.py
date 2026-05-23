@@ -40,7 +40,7 @@ app.mount("/storage", StaticFiles(directory=STORAGE), name="storage")
 
 
 @app.post("/set_my_id")
-def set_user_id(value: int | None = None):
+def set_my_id(value: int | None = None):
     if value is None:
         raise HTTPException(status_code=400, detail="value is required. range is [0, 3]")
     sender: Sender = app.state.sender
@@ -49,7 +49,7 @@ def set_user_id(value: int | None = None):
 
 
 @app.post("/set_receiver_id")
-def set_target_id(value: int | None = None):
+def set_receiver_id(value: int | None = None):
     if value is None:
         raise HTTPException(status_code=400, detail="value is required. range is [0, 3]")
     sender: Sender = app.state.sender
@@ -67,21 +67,25 @@ def start_recording():
 
     return {"status": "recording start"}
 
+
 @app.post("/stop_recording")
-def record_end():
+def stop_recording():
     sender: Sender = app.state.sender
     sender_lock: Lock = app.state.sender_lock
 
     with sender_lock:
-        result, duration, _ = sender.recoder.stop_recording(encording=True)
+        result, duration, file_path = sender.recoder.stop_recording(encording=True)
         sender.temp_result = result
+        app.state.last_audio_file = str(file_path)
 
     if not result:
-        raise ValueError(f"encoding argument must be True")
+        raise HTTPException(status_code=500, detail="encoding failed")
+
     return {
         "text": result.text,
-        "emotion": result.emotion_label,
-        "duration": duration,
+        "emotion": result.emotion_label.name.lower(),
+        "duration": round(duration, 1),
+        "audio_url": f"/storage/{file_path.name}",
     }
 
 
@@ -89,20 +93,21 @@ def record_end():
 def send(message: str | None = None):
     sender: Sender = app.state.sender
     sender_lock: Lock = app.state.sender_lock
+
     if message is None:
+        if sender.temp_result is None:
+            raise HTTPException(status_code=400, detail="no encoded message available")
         message = sender.temp_result.text
 
     with sender_lock:
-        message = sender.send(message)
+        sent_message = sender.send(message)
 
-    print(f"successfully send yout message: {message}")
-    return {"message": "sent", "text": message}
+    print(f"successfully sent your message: {sent_message}")
+    return {"message": "sent", "text": sent_message}
 
-
-    return {"status": "message sent"}
 
 @app.post("/send_ref")
-def send_voice(duration: int = 5):
+def send_ref(duration: int = 5):
     sender: Sender = app.state.sender
     sender_lock: Lock = app.state.sender_lock
 
@@ -113,16 +118,14 @@ def send_voice(duration: int = 5):
     return {"message": "reference sent", "file": str(filepath)}
 
 
-    return {"status": "reference audio sent"}
-
 @app.post("/get_emotion_label")
 def get_emotion_label():
     sender: Sender = app.state.sender
     encoded_result = sender.temp_result
     if not encoded_result:
-        raise ValueError("Encoded Result not found")
+        raise HTTPException(status_code=400, detail="no encoded result found")
 
     return {
-        "emotion_label": encoded_result.emotion_label,
+        "emotion_label": encoded_result.emotion_label.name.lower(),
         "emotion_score": encoded_result.emotion_score,
     }
