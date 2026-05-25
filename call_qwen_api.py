@@ -3,11 +3,11 @@ import requests
 API_URL = "http://localhost:8080/stream"
 
 payload = {
-    "target_text" : "안녕하세요",
-    "ref_audio" : "./000024.wav",
-    "ref_text" : "참 기쁘고 기특하고 좋아",
+    "target_text" : "어쨌든 우리한테 와서 건강하게 지금도 잘 자라고 있으니까",
+    "ref_audio" : "./000023.wav",
+    "ref_text" : "어쨌든 우리한테 와서 건강하게 지금도 잘 자라고 있으니까",
     "use_emotion" : True,
-    "emotion_npy_path" : "./000001.npy",
+    "emotion_npy_path" : "./000022.npy",
 }
 
 
