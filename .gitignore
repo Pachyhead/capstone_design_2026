@@ -16,6 +16,7 @@ eggs/
 .eggs/
 lib/
 lib64/
+!tone/src/lib/
 parts/
 sdist/
 var/
@@ -219,3 +220,4 @@ sender/storage/
 sender/sender_models
 sender/uv.lock
 .vscode 
+DataBase/data/*
