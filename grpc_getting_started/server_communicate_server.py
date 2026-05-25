@@ -63,24 +63,27 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
     
     def GetPendingMessages(self, request, context): # rpc에 대한 UserIdentifier 요청 전달
         """ implement GetPendingMessages here."""
-        raw_metadata_list = self.handler.get_pending_metadata(request.user_id)
+        raw_chatroom_items = self.handler.get_pending_metadata(request.user_id)
 
-        proto_items = []
-        for metadata in raw_metadata_list:
-            dt = datetime.strptime(metadata['send_time'], "%Y-%m-%d %H:%M:%S.%f")
-            timestamp = Timestamp()
-            timestamp.FromDatetime(dt)
+        chatroom_items = []
+        for raw_chatroom_item in raw_chatroom_items:
+            chatroom_item = []
+            for metadata in raw_chatroom_item:
+                dt = datetime.strptime(metadata['send_time'], "%Y-%m-%d %H:%M:%S.%f")
+                timestamp = Timestamp()
+                timestamp.FromDatetime(dt)
 
-            proto_item = server_communicate_pb2.MetadataItem(
-                message_id = metadata['message_id'],
-                sender_id = metadata['sender_id'],
-                message = metadata['message'],
-                emo_type = metadata['emo_type'],
-                send_time = timestamp
-            )
-            proto_items.append(proto_item)
+                chat_item = server_communicate_pb2.MetadataItem(
+                    message_id = metadata['message_id'],
+                    sender_id = metadata['sender_id'],
+                    message = metadata['message'],
+                    emo_type = metadata['emo_type'],
+                    send_time = timestamp
+                )
+                chatroom_item.append(chat_item)
+            chatroom_items.append(chatroom_item)
         
-        return server_communicate_pb2.MetadataResponse(items = proto_items)
+        return server_communicate_pb2.MetadataResponse(items = chatroom_items)
 
 def serve(): # grpc 서버 시작하는 부분
     """

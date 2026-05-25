@@ -60,9 +60,17 @@ def GetPendingMessages(user_id):
     stub = set_connection()
 
     user_identifier = server_communicate_pb2.UserIdentifier(user_id=user_id) # 서비스를 호출할 userIdentifier 정의
-    metadata_list = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴)   
+    chatroom_items = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)   
 
-    return metadata_list.items
+    # 구조체 부분 제거
+    chatroom_lists = []
+    for chatroom_item in chatroom_items.lists:
+        chatroom_list = []
+        for chat_item in chatroom_item.items:
+            chatroom_list.append(chat_item)
+        chatroom_lists.append(chatroom_list)
+
+    return chatroom_lists # list list dict
 
 def GetVoice(message_id, sender_id, receiver_id):
     stub = set_connection()

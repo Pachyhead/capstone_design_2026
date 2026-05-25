@@ -54,7 +54,7 @@ message UserIdentifier {
   string user_id = 1; // 수신측 id
 }
 // message type: data structure that recv_clients receive from server(접속로직)
-// single return
+// single return(chat data)
 message MetadataItem {
   string message_id = 1;
   string sender_id = 2;
@@ -62,10 +62,13 @@ message MetadataItem {
   int32 emo_type = 4;
   google.protobuf.Timestamp send_time = 5; // Datetime
 }
-// message type: data structure that recv_clients receive from server
-// multiple return
-message MetadataResponse {
+// multiple return(chatroom data)
+message MetadataList {
   repeated MetadataItem items = 1; // 여러 MetadataItem 담는 리스트
+}
+// message type: data structure that recv_clients receive from server
+message MetadataResponse {
+  repeated MetadataList lists = 1; // 여러 MetadataList 담는 리스트
 }
 
 // message type: data structure that recv_clients send to server to get audio(재생로직)

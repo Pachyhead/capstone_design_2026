@@ -1,8 +1,11 @@
+import datetime
+
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -52,13 +55,19 @@ class MetadataItem(_message.Message):
     message: str
     emo_type: int
     send_time: _timestamp_pb2.Timestamp
-    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., message: _Optional[str] = ..., emo_type: _Optional[int] = ..., send_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., message: _Optional[str] = ..., emo_type: _Optional[int] = ..., send_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
-class MetadataResponse(_message.Message):
+class MetadataList(_message.Message):
     __slots__ = ("items",)
     ITEMS_FIELD_NUMBER: _ClassVar[int]
     items: _containers.RepeatedCompositeFieldContainer[MetadataItem]
     def __init__(self, items: _Optional[_Iterable[_Union[MetadataItem, _Mapping]]] = ...) -> None: ...
+
+class MetadataResponse(_message.Message):
+    __slots__ = ("lists",)
+    LISTS_FIELD_NUMBER: _ClassVar[int]
+    lists: _containers.RepeatedCompositeFieldContainer[MetadataList]
+    def __init__(self, lists: _Optional[_Iterable[_Union[MetadataList, _Mapping]]] = ...) -> None: ...
 
 class MessageIdentifier(_message.Message):
     __slots__ = ("message_id", "sender_id", "receiver_id")
