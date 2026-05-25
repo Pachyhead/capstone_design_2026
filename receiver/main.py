@@ -22,7 +22,6 @@ async def lifespan(app: FastAPI):
         storage=STORAGE,
         user_id=1,
         sender_id=1,
-        server_ip="127.0.0.1:8000",
     ) as receiver:
         app.state.receiver = receiver
         app.state.receiver_lock = Lock()

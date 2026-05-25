@@ -13,7 +13,6 @@ async def lifespan(app: FastAPI):
         storage=STORAGE,
         user_id=1,
         receiver_id=1,
-        server_ip="127.0.0.1:8000",
         fsq_path=str(PROJECT_ROOT / "sender_models" / "skip_kl_8d_8L_kl05_1e-4.pt"),
     ) as sender:
         app.state.sender = sender
