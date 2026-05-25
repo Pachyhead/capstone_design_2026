@@ -221,3 +221,4 @@ sender/sender_models
 sender/uv.lock
 .vscode 
 DataBase/data/*
+qwen_tts_api/checkpoint-epoch-1/*
