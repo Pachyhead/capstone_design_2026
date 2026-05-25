@@ -13,7 +13,8 @@ import { computeDistribution } from '@/data/statsCompute';
 import { EMOTION_LABELS } from '@/types';
 import type { Conversation, Emotion, Message } from '@/types';
 import type { ShellContext } from '@/App';
-import { api, audioUrl } from '@/lib/api';
+import { api, audioUrl, emotionFromBackend } from '@/lib/api';
+import { useProfiles } from '@/hooks/useProfiles';
 
 function nowHHMM(): string {
   const d = new Date();
@@ -32,11 +33,48 @@ export function ChatDetail() {
   const { mode, setMode } = useOutletContext<ShellContext>();
   const conversation = conversations.find((c) => c.id === id) ?? conversations[0];
   const { thread, append } = useMessages(conversation.id);
+  const { activeProfile } = useProfiles();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [draft, setDraft] = useState<{ text: string; emotion: Emotion; durationSec: number; audioUrl?: string } | null>(null);
   const [sending, setSending] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const lastSeenMessageIdRef = useRef<number | null>(null);
+
+  const handleRefreshInbox = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      if (activeProfile) {
+        try {
+          await api.setMyId(activeProfile.backendId);
+        } catch (err) {
+          console.warn('[api] setMyId on refresh failed:', err);
+        }
+      }
+      const received = await api.getMessage(1);
+      if (received && received.message_id !== lastSeenMessageIdRef.current) {
+        lastSeenMessageIdRef.current = received.message_id;
+        const newMessage: Message = {
+          id: `recv-${received.message_id}-${Date.now()}`,
+          conversationId: conversation.id,
+          authorId: String(received.sender_id),
+          authorName: conversation.name,
+          text: received.message,
+          emotion: { primary: emotionFromBackend(received.emo_type) },
+          durationSec: 0,
+          energy: Array.from({ length: 10 }, () => Math.random() * 0.5 + 0.4),
+          sentAt: nowHHMM(),
+        };
+        append(newMessage);
+      }
+    } catch (err) {
+      console.warn('[api] refresh inbox failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     setSearchOpen(false);
@@ -137,6 +175,8 @@ export function ChatDetail() {
         onConfirmSend={handleConfirmSend}
         onCancelDraft={handleCancelDraft}
         sending={sending}
+        onRefreshInbox={handleRefreshInbox}
+        refreshing={refreshing}
       />
     ) : (
       <TextModeView
@@ -157,6 +197,8 @@ export function ChatDetail() {
         onConfirmSend={handleConfirmSend}
         onCancelDraft={handleCancelDraft}
         sending={sending}
+        onRefreshInbox={handleRefreshInbox}
+        refreshing={refreshing}
       />
     );
 
@@ -181,6 +223,8 @@ interface ModeViewProps {
   onConfirmSend: () => void;
   onCancelDraft: () => void;
   sending: boolean;
+  onRefreshInbox: () => void;
+  refreshing: boolean;
 }
 
 function HighlightedText({
@@ -257,6 +301,8 @@ function TextModeView({
   onConfirmSend,
   onCancelDraft,
   sending,
+  onRefreshInbox,
+  refreshing,
 }: ModeViewProps) {
   return (
     <div className="flex flex-col h-full w-full bg-cream min-w-0">
@@ -267,6 +313,8 @@ function TextModeView({
         setMode={setMode}
         onSearchToggle={onSearchToggle}
         searchOpen={searchOpen}
+        onRefreshInbox={onRefreshInbox}
+        refreshing={refreshing}
       />
       {searchOpen && (
         <SearchBar
@@ -379,6 +427,8 @@ function VoiceModeView({
   onConfirmSend,
   onCancelDraft,
   sending,
+  onRefreshInbox,
+  refreshing,
 }: ModeViewProps) {
   return (
     <div className="flex flex-col h-full w-full min-w-0" style={{ background: '#3A2A1A' }}>
@@ -389,6 +439,8 @@ function VoiceModeView({
         setMode={setMode}
         onSearchToggle={onSearchToggle}
         searchOpen={searchOpen}
+        onRefreshInbox={onRefreshInbox}
+        refreshing={refreshing}
       />
       {searchOpen && (
         <SearchBar
@@ -487,6 +539,8 @@ function ChatHeader({
   setMode,
   onSearchToggle,
   searchOpen,
+  onRefreshInbox,
+  refreshing,
 }: {
   conversation: Conversation;
   variant: 'light' | 'dark';
@@ -494,6 +548,8 @@ function ChatHeader({
   setMode: (m: 'text' | 'voice') => void;
   onSearchToggle: () => void;
   searchOpen: boolean;
+  onRefreshInbox: () => void;
+  refreshing: boolean;
 }) {
   const isDark = variant === 'dark';
   const [showProfile, setShowProfile] = useState(false);
@@ -560,6 +616,37 @@ function ChatHeader({
         title={`${conversation.name}와의 감정 통계`}
       >
         <BubbleCluster data={distribution} size="mini" showLabels={false} />
+      </button>
+
+      <button
+        type="button"
+        onClick={onRefreshInbox}
+        disabled={refreshing}
+        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40"
+        style={{
+          color: isDark ? '#C8BCAA' : '#6B5F4F',
+        }}
+        aria-label="수신 메시지 새로고침"
+        title="수신 메시지 새로고침"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          style={{
+            transformOrigin: '50% 50%',
+            animation: refreshing ? 'spin 0.8s linear infinite' : undefined,
+          }}
+        >
+          <path
+            d="M4 12a8 8 0 0 1 13.66-5.66L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.66 5.66L4 15.5M4 20v-4.5h4.5"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
 
       <button

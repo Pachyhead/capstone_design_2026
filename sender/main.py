@@ -6,10 +6,13 @@ from config import PROJECT_ROOT
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 STORAGE = PROJECT_ROOT / "storage"
 STORAGE.mkdir(parents=True, exist_ok=True)
+
+FRONTEND_DIST = PROJECT_ROOT.parent / "tone" / "dist"
 
 
 @asynccontextmanager
@@ -37,6 +40,22 @@ app.add_middleware(
 )
 
 app.mount("/storage", StaticFiles(directory=STORAGE), name="storage")
+
+
+@app.get("/")
+def _spa_root():
+    return FileResponse(FRONTEND_DIST / "index.html")
+
+
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    def _spa_fallback(full_path: str):
+        candidate = FRONTEND_DIST / full_path
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_DIST / "index.html")
 
 
 @app.post("/set_my_id")

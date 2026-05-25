@@ -8,11 +8,18 @@ from config import PROJECT_ROOT
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+STORAGE = PROJECT_ROOT / "storage"
+STORAGE.mkdir(parents=True, exist_ok=True)
+
+FRONTEND_DIST = PROJECT_ROOT.parent / "tone" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     with Receiver(
-        storage=PROJECT_ROOT / "storage",
+        storage=STORAGE,
         user_id=1,
         sender_id=1,
         server_ip="127.0.0.1:8000",
@@ -30,6 +37,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/storage", StaticFiles(directory=STORAGE), name="storage")
 
 @app.post("/set_my_id")
 def set_my_id(my_id: int | None = None):
@@ -80,4 +89,20 @@ def get_message(message_id: int):
         "message": result["message"],
         "emo_type": result["emo_type"],
         "send_time": result["send_time"]
-    },
+    }
+
+
+@app.get("/")
+def _spa_root():
+    return FileResponse(FRONTEND_DIST / "index.html")
+
+
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    def _spa_fallback(full_path: str):
+        candidate = FRONTEND_DIST / full_path
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_DIST / "index.html")
