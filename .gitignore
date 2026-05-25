@@ -220,3 +220,4 @@ sender/storage/
 sender/sender_models
 sender/uv.lock
 .vscode 
+DataBase/data/*
