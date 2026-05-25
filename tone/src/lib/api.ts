@@ -94,7 +94,7 @@ export const api = {
   startRecording: () => post<StartRecordingResult>('/start_recording'),
   stopRecording: () => post<RecordResult>('/stop_recording'),
   send: (message: string) => post('/send', { message }),
-  sendRef: (duration: number = 5) => post('/send_ref', { duration }),
+  sendRef: () => post('/send_ref'),
   getEmotionLabel: () => post<EmotionLabelResult>('/get_emotion_label'),
   playVoice: (messageId: number) => post('/play_voice', { message_id: messageId }),
   getMessage: (messageId: number) => post<ReceivedMessage>('/get_message', { message_id: messageId }),
