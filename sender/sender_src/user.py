@@ -4,11 +4,10 @@ from abc import ABC, abstractmethod
 from logger import setup_logger
 
 class User:
-    def __init__(self, storage: Path, user_id: int, peer_id: int, server_ip: str):
+    def __init__(self, storage: Path, user_id: int, peer_id: int):
         self.storage = storage
         self.user_id = user_id
         self.peer_id = peer_id
-        self.server_ip = server_ip
         self.logger = setup_logger(self.__class__.__name__)
 
     # 임시 저장소 경로 등록

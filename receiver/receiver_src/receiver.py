@@ -7,8 +7,8 @@ from config import PROJECT_ROOT
 from grpc_getting_started.server_communicate_receiver import GetPendingMessages, GetVoice, merge_wav_byte, save_message_to_json
 
 class Receiver(User):
-    def __init__(self, storage: Path, user_id: int, sender_id: int, server_ip: str):
-        super().__init__(storage, user_id, sender_id, server_ip)
+    def __init__(self, storage: Path, user_id: int, sender_id: int):
+        super().__init__(storage, user_id, sender_id)
     
     def get_pending_messages(self) -> str:
         messages = GetPendingMessages(str(self.user_id))
