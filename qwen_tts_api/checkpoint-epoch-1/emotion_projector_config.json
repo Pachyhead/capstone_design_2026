@@ -1,0 +1,6 @@
+{
+  "emotion_dim": 1024,
+  "target_dim": 2048,
+  "init_model_path": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+  "epoch": 1
+}
