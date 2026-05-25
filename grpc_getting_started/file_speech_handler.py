@@ -8,9 +8,9 @@ import requests
 
 from src.tone_core.receiver import ReceiverDecode
 from src.tone_core.config import ReceiverConfig
-
 from .grpc_interfaces import AbstractSpeechHandler
 from .dbobjects import Base, UserTable, ChatTable
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from dotenv import load_dotenv
