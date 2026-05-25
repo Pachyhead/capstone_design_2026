@@ -14,16 +14,18 @@ from .dbobjects import Base, UserTable, ChatTable
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from dotenv import load_dotenv
+from sqlalchemy.exc import SQLAlchemyError
+import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 load_dotenv()
 
 users: dict[int, str] = {
-    0: "철수",
-    1: "영희",
-    2: "민수",
-    3: "준호"
+    0: "JC",
+    1: "KT",
+    2: "JW",
+    3: "TW"
 }
 
 class DBManager:
@@ -32,11 +34,11 @@ class DBManager:
         db_password = os.environ.get("DB_PASSWORD")
         if not db_password: raise ValueError(f"db password not found")
         db_host = "localhost"
-        db_port = "8080"
+        db_port = "3306"
         db_name = "db"
         
         db_url = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-        self.engine = create_engine(db_url, pool_pre_ping=True)
+        self.engine = create_engine(db_url, pool_pre_ping=True, echo=True)
         Base.metadata.create_all(self.engine)
         self.session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(self.session_factory)
@@ -50,27 +52,33 @@ class DBManager:
             session.add(new_user)
             session.commit()
 
-    """
-    2. 채팅 메시지를 저장하는 함수
-    """
     def save_chat(self, message_id: str, sender: int, receiver: int, msg: str, emo_path: str, emo_type: int):
         """
-        Generates a unique UUID for the message.
-        Saves the chat data and returns the ID.
+        Saves the chat data and explicitly raises any database errors.
         """
         with self.Session() as session:
-            
-            new_chat = ChatTable(
-                massage_id=message_id,
-                send_user_id=sender, 
-                rec_user_id=receiver,
-                massage=msg, 
-                emotion_path=emo_path, 
-                emotion=emo_type
-            )
-            
-            session.add(new_chat)
-            session.commit()
+            try:
+                new_chat = ChatTable(
+                    massage_id=message_id,
+                    send_user_id=sender, 
+                    rec_user_id=receiver,
+                    massage=msg, 
+                    emotion_path=emo_path, 
+                    emotion=emo_type
+                )
+                
+                session.add(new_chat)
+                session.commit()
+                print("✨ DB commit 성공!")  # 정상 작동 확인용 임시 출력
+                
+            except SQLAlchemyError as e:
+                """
+                Rollback the session to clear the failed transaction
+                and raise the error to see the full trace.
+                """
+                session.rollback()
+                print(f"❌ DB 저장 중 에러 발생: {e}")
+                raise e  # 상위 코드로 에러를 강제로 던져서 프로그램을 멈추고 트레이스백을 띄웁니다.
 
     """
     3. 특정 유저가 보낸 모든 채팅 메시지를 가져오는 함수
@@ -129,12 +137,11 @@ class FileSpeechHandler(AbstractSpeechHandler):
             int_sender_id = int(sender_id)
             int_receiver_id = int(receiver_id)
             unique_msg_id = str(uuid.uuid4())
-            fpath = self.emotion_folder / f"{unique_msg_id}.txt"
+            fpath = self.emotion_folder / f"{unique_msg_id}.npy"
 
             decoded_emotion_vector = self.decoder.decode(emotion_vector)
 
-            with open(fpath, "w", encoding="utf-8") as f:
-                f.write(decoded_emotion_vector)
+            np.save(fpath, decoded_emotion_vector)
 
             self.dbmanager.save_chat(
                 message_id=unique_msg_id,
@@ -146,6 +153,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
             )
             return True
         except (OSError, Exception) as e:
+            print(f"{e}")
             return False
     
     def get_pending_metadata(self, user_id: str) -> list[dict]:

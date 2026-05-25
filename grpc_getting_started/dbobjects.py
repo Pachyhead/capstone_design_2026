@@ -37,10 +37,3 @@ class ChatTable(Base):
     massage = Column(String(255), nullable=False)
     emotion_path = Column(String(255), nullable=False)
     emotion = Column(Integer, nullable=False)
-    
-    # TIMESTAMP 및 자동으로 현재 시간 업데이트 설정
-    updated_at = Column(
-        TIMESTAMP, 
-        server_default=func.now(), 
-        onupdate=func.now()
-    )
