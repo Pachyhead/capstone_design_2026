@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY ./qwen_tts_api/requirements.txt .
 
 RUN pip install -r requirements.txt --no-cache-dir
 

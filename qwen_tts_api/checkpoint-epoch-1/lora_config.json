@@ -1,0 +1,8 @@
+{
+  "rank": 16,
+  "alpha": 32,
+  "dropout": 0.05,
+  "include_mlp": false,
+  "init_model_path": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+  "epoch": 1
+}
