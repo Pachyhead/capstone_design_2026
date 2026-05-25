@@ -15,18 +15,18 @@ from qwen_tts.core.models.lora import set_lora_enabled
 print(f"Loading Model (no emotion projector) ...")
 qwen3tts = Qwen3TTSModel.from_pretrained(
     "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
-    torch_dtype=torch.bfloat16,
+    dtype=torch.bfloat16,
     attn_implementation="sdpa",
     device_map="cuda",
 )
 print(f"Loading Model with projector ...")
 load_emotion_projector(
     qwen3tts.model,
-    "app/qwen_tts_api/chk_1",
+    "/app/qwen_tts_api/checkpoint-epoch-1",
     device=torch.device("cuda"),
     dtype=torch.bfloat16,
 )
-
+set_lora_enabled(qwen3tts.model, True)
 
 def _load_emotion_npy(path: str) -> torch.Tensor:
     arr = np.load(path)
