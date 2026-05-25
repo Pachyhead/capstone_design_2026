@@ -1,10 +1,17 @@
 import json
 import os
+from pathlib import Path
+
 from datetime import datetime
 from .grpc_interfaces import AbstractSpeechHandler
 from collections.abc import Generator
 
 class FileSpeechHandler(AbstractSpeechHandler):
+    def __init__(self):
+        path = Path(__file__).parent / "storage"
+        path.mkdir(exist_ok=True, parents=True)
+        self.storage = path
+
     # wav로 저장
     def save_incoming_reference(self, sender_id, audio_content) -> bool:
         try:
@@ -14,8 +21,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
                 f.write(audio_content)
             return True
         except OSError as e:
-            print(f"File save error: {e}")
-            return False
+            raise OSError(f"File save error: {e}")
 
     # 송신측이 보낸 데이터를 수신자id.json으로 서버에 저장
     def save_incoming_speech(self, sender_id, receiver_id, message, emo_type, emotion_vector) -> bool:
@@ -45,8 +51,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
                 json.dump(data, f, ensure_ascii=False, indent=4)
             return True
         except (OSError, Exception) as e:
-            print(f"Error in file_speech_handler: {e}")
-            return False
+            Exception(f"Error in file_speech_handler: {e}")
     
     # 수신자id.json에서 메시지를 가져옴
     def get_pending_metadata(self, user_id: str) -> list:
