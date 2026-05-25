@@ -7,7 +7,6 @@ from receiver import Receiver
 from config import PROJECT_ROOT
 
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -29,13 +28,6 @@ async def lifespan(app: FastAPI):
         yield
 
 app = FastAPI(lifespan=lifespan)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 app.mount("/storage", StaticFiles(directory=STORAGE), name="storage")
 

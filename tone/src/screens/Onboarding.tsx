@@ -158,9 +158,7 @@ function Recording({
 
   const handleStop = () => {
     setPhase('reviewing');
-    api.sendRef(Math.max(1, Math.round(elapsedSec))).catch((err) =>
-      console.warn('[api] sendRef failed:', err),
-    );
+    api.sendRef().catch((err) => console.warn('[api] sendRef failed:', err));
   };
 
   const handleRetake = () => {

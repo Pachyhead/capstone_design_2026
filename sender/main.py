@@ -5,7 +5,15 @@ from sender import Sender
 from config import PROJECT_ROOT
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from grpc_getting_started.server_communicate_sender import SendVoice
+
+STORAGE = PROJECT_ROOT / "storage"
+STORAGE.mkdir(parents=True, exist_ok=True)
+
+FRONTEND_DIST = PROJECT_ROOT.parent / "tone" / "dist"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,13 +30,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 app.mount("/storage", StaticFiles(directory=STORAGE), name="storage")
 
