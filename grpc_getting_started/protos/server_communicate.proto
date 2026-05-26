@@ -58,9 +58,10 @@ message UserIdentifier {
 message MetadataItem {
   string message_id = 1;
   string sender_id = 2;
-  string message = 3;
-  int32 emo_type = 4;
-  google.protobuf.Timestamp send_time = 5; // Datetime
+  string receiver_id = 3;
+  string message = 4;
+  int32 emo_type = 5;
+  google.protobuf.Timestamp send_time = 6; // Datetime
 }
 // multiple return(chatroom data)
 message MetadataList {

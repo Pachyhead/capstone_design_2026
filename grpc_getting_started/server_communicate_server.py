@@ -78,7 +78,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
                 chatroom_item.append(chat_item)
             chatroom_items.append(chatroom_item)
         
-        return server_communicate_pb2.MetadataResponse(items = chatroom_items)
+        return server_communicate_pb2.MetadataResponse(lists = chatroom_items)
 
 def serve(): # grpc 서버 시작하는 부분
     """

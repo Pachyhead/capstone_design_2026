@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x18server_communicate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"B\n\x16SpeechReferenceRequest\x12\x11\n\tsender_id\x18\x01 \x01(\t\x12\x15\n\raudio_content\x18\x02 \x01(\x0c\"x\n\x13SpeechUploadRequest\x12\x11\n\tsender_id\x18\x01 \x01(\t\x12\x13\n\x0breceiver_id\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x10\n\x08\x65mo_type\x18\x04 \x01(\x05\x12\x16\n\x0e\x65motion_vector\x18\x05 \x03(\x05\" \n\x0cUploadStatus\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\"!\n\x0eUserIdentifier\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"\x87\x01\n\x0cMetadataItem\x12\x12\n\nmessage_id\x18\x01 \x01(\t\x12\x11\n\tsender_id\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x10\n\x08\x65mo_type\x18\x04 \x01(\x05\x12-\n\tsend_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\",\n\x0cMetadataList\x12\x1c\n\x05items\x18\x01 \x03(\x0b\x32\r.MetadataItem\"0\n\x10MetadataResponse\x12\x1c\n\x05lists\x18\x01 \x03(\x0b\x32\r.MetadataList\"\'\n\x11MessageIdentifier\x12\x12\n\nmessage_id\x18\x01 \x01(\t\"I\n\nAudioFrame\x12\x15\n\raudio_content\x18\x01 \x01(\x0c\x12\x12\n\nmessage_id\x18\x02 \x01(\t\x12\x10\n\x08is_final\x18\x03 \x01(\x08\x32\xe0\x01\n\x0bSpeechRelay\x12\x35\n\tSendVoice\x12\x17.SpeechReferenceRequest\x1a\r.UploadStatus\"\x00\x12-\n\x04Send\x12\x14.SpeechUploadRequest\x1a\r.UploadStatus\"\x00\x12:\n\x12GetPendingMessages\x12\x0f.UserIdentifier\x1a\x11.MetadataResponse\"\x00\x12/\n\x08GetVoice\x12\x12.MessageIdentifier\x1a\x0b.AudioFrame\"\x00\x30\x01\x42\x36\n\x1bio.grpc.examples.routeguideB\x0fRouteGuideProtoP\x01\xa2\x02\x03RTGb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x18server_communicate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"B\n\x16SpeechReferenceRequest\x12\x11\n\tsender_id\x18\x01 \x01(\t\x12\x15\n\raudio_content\x18\x02 \x01(\x0c\"x\n\x13SpeechUploadRequest\x12\x11\n\tsender_id\x18\x01 \x01(\t\x12\x13\n\x0breceiver_id\x18\x02 \x01(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x10\n\x08\x65mo_type\x18\x04 \x01(\x05\x12\x16\n\x0e\x65motion_vector\x18\x05 \x03(\x05\" \n\x0cUploadStatus\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\"!\n\x0eUserIdentifier\x12\x0f\n\x07user_id\x18\x01 \x01(\t\"\x9c\x01\n\x0cMetadataItem\x12\x12\n\nmessage_id\x18\x01 \x01(\t\x12\x11\n\tsender_id\x18\x02 \x01(\t\x12\x13\n\x0breceiver_id\x18\x03 \x01(\t\x12\x0f\n\x07message\x18\x04 \x01(\t\x12\x10\n\x08\x65mo_type\x18\x05 \x01(\x05\x12-\n\tsend_time\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\",\n\x0cMetadataList\x12\x1c\n\x05items\x18\x01 \x03(\x0b\x32\r.MetadataItem\"0\n\x10MetadataResponse\x12\x1c\n\x05lists\x18\x01 \x03(\x0b\x32\r.MetadataList\"\'\n\x11MessageIdentifier\x12\x12\n\nmessage_id\x18\x01 \x01(\t\"I\n\nAudioFrame\x12\x15\n\raudio_content\x18\x01 \x01(\x0c\x12\x12\n\nmessage_id\x18\x02 \x01(\t\x12\x10\n\x08is_final\x18\x03 \x01(\x08\x32\xe0\x01\n\x0bSpeechRelay\x12\x35\n\tSendVoice\x12\x17.SpeechReferenceRequest\x1a\r.UploadStatus\"\x00\x12-\n\x04Send\x12\x14.SpeechUploadRequest\x1a\r.UploadStatus\"\x00\x12:\n\x12GetPendingMessages\x12\x0f.UserIdentifier\x1a\x11.MetadataResponse\"\x00\x12/\n\x08GetVoice\x12\x12.MessageIdentifier\x1a\x0b.AudioFrame\"\x00\x30\x01\x42\x36\n\x1bio.grpc.examples.routeguideB\x0fRouteGuideProtoP\x01\xa2\x02\x03RTGb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,15 +42,15 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_USERIDENTIFIER']._serialized_start=285
   _globals['_USERIDENTIFIER']._serialized_end=318
   _globals['_METADATAITEM']._serialized_start=321
-  _globals['_METADATAITEM']._serialized_end=456
-  _globals['_METADATALIST']._serialized_start=458
-  _globals['_METADATALIST']._serialized_end=502
-  _globals['_METADATARESPONSE']._serialized_start=504
-  _globals['_METADATARESPONSE']._serialized_end=552
-  _globals['_MESSAGEIDENTIFIER']._serialized_start=554
-  _globals['_MESSAGEIDENTIFIER']._serialized_end=593
-  _globals['_AUDIOFRAME']._serialized_start=595
-  _globals['_AUDIOFRAME']._serialized_end=668
-  _globals['_SPEECHRELAY']._serialized_start=671
-  _globals['_SPEECHRELAY']._serialized_end=895
+  _globals['_METADATAITEM']._serialized_end=477
+  _globals['_METADATALIST']._serialized_start=479
+  _globals['_METADATALIST']._serialized_end=523
+  _globals['_METADATARESPONSE']._serialized_start=525
+  _globals['_METADATARESPONSE']._serialized_end=573
+  _globals['_MESSAGEIDENTIFIER']._serialized_start=575
+  _globals['_MESSAGEIDENTIFIER']._serialized_end=614
+  _globals['_AUDIOFRAME']._serialized_start=616
+  _globals['_AUDIOFRAME']._serialized_end=689
+  _globals['_SPEECHRELAY']._serialized_start=692
+  _globals['_SPEECHRELAY']._serialized_end=916
 # @@protoc_insertion_point(module_scope)
