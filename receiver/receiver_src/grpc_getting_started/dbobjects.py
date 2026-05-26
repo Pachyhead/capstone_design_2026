@@ -50,9 +50,9 @@ class ChatTable(Base):
         Convert this model instance into a dictionary structure.
         """
         return {
-            "message_id": self.massage_id,
-            "sender_id": self.send_user_id,
-            "receiver_id": self.rec_user_id,
+            "message_id": str(self.massage_id),
+            "sender_id": str(self.send_user_id),
+            "receiver_id": str(self.rec_user_id),
             "message": self.massage,
             "emotion_path": self.emotion_path,
             "emo_type": self.emotion,
