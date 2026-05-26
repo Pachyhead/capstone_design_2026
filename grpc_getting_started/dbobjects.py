@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, TIMESTAMP, func
+from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, TIMESTAMP, func, DateTime, text
 
 Base = declarative_base()
 
@@ -37,6 +37,13 @@ class ChatTable(Base):
     massage = Column(String(255), nullable=False)
     emotion_path = Column(String(255), nullable=False)
     emotion = Column(Integer, nullable=False)
+
+    updated_at = Column(
+        DateTime, 
+        server_default=text('CURRENT_TIMESTAMP'), 
+        onupdate=text('CURRENT_TIMESTAMP'), 
+        nullable=False
+    )
 
     def to_dict(self) -> dict:
         """
