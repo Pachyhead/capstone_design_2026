@@ -233,10 +233,3 @@ class FileSpeechHandler(AbstractSpeechHandler):
                 for chunk in r.iter_content(chunk_size=1024 * 64):
                     if chunk:
                         yield chunk
-
-# /home/cap/capstone_design_2026/DataBase/emotion_vectors
-# /app/DataBase/emotion_vectors
-
-
-
-print(final_path)  # 출력: ./DataBase/emotion_vectors
