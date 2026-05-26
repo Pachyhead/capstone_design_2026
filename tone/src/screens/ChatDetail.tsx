@@ -51,10 +51,9 @@ export function ChatDetail() {
   useEffect(() => {
     setSearchOpen(false);
     setSearchQuery('');
-    const peerId = conversation.backendId;
-    Promise.allSettled([api.setReceiverId(peerId), api.setSenderId(peerId)]).then((results) => {
-      for (const r of results) if (r.status === 'rejected') console.warn('[api] set peer id:', r.reason);
-    });
+    api
+      .setReceiverId(conversation.backendId)
+      .catch((err) => console.warn('[api] set peer id:', err));
   }, [conversation.id]);
 
   const trimmedQuery = searchQuery.trim();

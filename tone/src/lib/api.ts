@@ -52,6 +52,10 @@ export interface EmotionLabelResult {
   emotion_score: number;
 }
 
+export interface PlayVoiceResult {
+  duration: number;
+}
+
 export interface ReceivedMessage {
   message_id: string;
   sender_id: number;
@@ -100,11 +104,11 @@ export function audioUrl(path: string): string {
 export const api = {
   setMyId: (id: number) => post<InboxBuckets>('/set_my_id', { value: id, my_id: id }),
   setReceiverId: (id: number) => post('/set_receiver_id', { value: id }),
-  setSenderId: (id: number) => post('/set_sender_id', { sender_id: id }),
   startRecording: () => post<StartRecordingResult>('/start_recording'),
   stopRecording: () => post<RecordResult>('/stop_recording'),
   send: (message: string) => post('/send', { message }),
   sendRef: () => post('/send_ref'),
   getEmotionLabel: () => post<EmotionLabelResult>('/get_emotion_label'),
-  playVoice: (messageId: string) => post('/play_voice', { message_id: messageId }),
+  playVoice: (messageId: string) =>
+    post<PlayVoiceResult>('/play_voice', { message_id: messageId }),
 };

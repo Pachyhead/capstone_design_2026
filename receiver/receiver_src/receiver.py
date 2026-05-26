@@ -24,12 +24,12 @@ class Receiver(User):
 
         return wav_path
     
-    def play_voice(self, message_id: str) -> bool:
+    def play_voice(self, message_id: str) -> float:
+        """Returns duration in seconds (0.0 on failure)."""
         file = self._get_voice(message_id)
         try:
-            self.speaker.play_wav(file)
-            return True
+            return self.speaker.play_wav(file)
         except Exception as e:
             print(f"Error during playback: {e}")
             self.speaker.stop_speaker()
-            return False
+            return 0.0
