@@ -44,18 +44,20 @@ class UserIdentifier(_message.Message):
     def __init__(self, user_id: _Optional[str] = ...) -> None: ...
 
 class MetadataItem(_message.Message):
-    __slots__ = ("message_id", "sender_id", "message", "emo_type", "send_time")
+    __slots__ = ("message_id", "sender_id", "receiver_id", "message", "emo_type", "send_time")
     MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
     SENDER_ID_FIELD_NUMBER: _ClassVar[int]
+    RECEIVER_ID_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     EMO_TYPE_FIELD_NUMBER: _ClassVar[int]
     SEND_TIME_FIELD_NUMBER: _ClassVar[int]
     message_id: str
     sender_id: str
+    receiver_id: str
     message: str
     emo_type: int
     send_time: _timestamp_pb2.Timestamp
-    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., message: _Optional[str] = ..., emo_type: _Optional[int] = ..., send_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., receiver_id: _Optional[str] = ..., message: _Optional[str] = ..., emo_type: _Optional[int] = ..., send_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class MetadataList(_message.Message):
     __slots__ = ("items",)

@@ -11,7 +11,9 @@ dependencies = [
     "fastapi>=0.136.1",
     "grpcio>=1.80.0",
     "grpcio-tools>=1.80.0",
+    "numpy>=2.4.6",
     "requests>=2.33.1",
+    "sounddevice>=0.5.5",
     "uvicorn>=0.47.0",
 ]
 
