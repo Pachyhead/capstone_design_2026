@@ -81,17 +81,17 @@ class DBManager:
                 print(f"❌ DB 저장 중 에러 발생: {e}")
                 raise e  # 상위 코드로 에러를 강제로 던져서 프로그램을 멈추고 트레이스백을 띄웁니다.
 
-    def get_chats_by_sender(self, sender_id: int) -> list[list[dict]]:
+    def get_chats_by_user_id(self, user_id: int) -> list[list[dict]]:
         """
         Get all chat history between sender_id and i.
         """
-        if not sender_id in range(0, 4): raise ValueError(f"sender id must be in range(0, 4)")
+        if not user_id in range(0, 4): raise ValueError(f"sender id must be in range(0, 4)")
         with self.Session() as session:
             chatrooms: list[list[dict]] = []
             
             for i in range(4):
                 # 1. (sender_id, sender_id)인 경우는 제외함
-                if i == sender_id:
+                if i == user_id:
                     chatrooms.append([])
                     continue
                     
@@ -100,8 +100,8 @@ class DBManager:
                     session.query(ChatTable)
                     .filter(
                         or_(
-                            (ChatTable.send_user_id == sender_id) & (ChatTable.rec_user_id == i),
-                            (ChatTable.send_user_id == i) & (ChatTable.rec_user_id == sender_id)
+                            (ChatTable.send_user_id == user_id) & (ChatTable.rec_user_id == i),
+                            (ChatTable.send_user_id == i) & (ChatTable.rec_user_id == user_id)
                         )
                     )
                     .order_by(ChatTable.updated_at.asc())
@@ -190,10 +190,10 @@ class FileSpeechHandler(AbstractSpeechHandler):
             return False
     
     def get_pending_metadata(self, user_id: str) -> list[list[dict]]:
-        int_sender_id = int(user_id)
+        int_user_id = int(user_id)
         
         # 1. DBManager를 통해 특정 유저의 ChatTable 객체 리스트를 가져옵니다.
-        chatrooms: list[list[dict]] = self.dbmanager.get_chats_by_sender(int_sender_id)
+        chatrooms: list[list[dict]] = self.dbmanager.get_chats_by_user_id(int_user_id)
         
         return chatrooms
             
