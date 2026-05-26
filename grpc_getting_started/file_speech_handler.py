@@ -196,6 +196,13 @@ class FileSpeechHandler(AbstractSpeechHandler):
         chatrooms: list[list[dict]] = self.dbmanager.get_chats_by_user_id(int_user_id)
         
         return chatrooms
+    
+    def _convert_path(self, path: str) -> str:
+        base_path = "/home/cap/capstone_design_2026"
+
+        relative_path = os.path.relpath(path, base_path)
+
+        return "./" + relative_path
             
     # message_id에 해당하는 wav를 찾아 바이트 형태로 반환
     def generate_voice_stream(self, message_id: str) -> Generator[bytes, None, None]:
@@ -210,16 +217,26 @@ class FileSpeechHandler(AbstractSpeechHandler):
 
         payload = {
             "target_text" : chat_row.massage,
-            "ref_audio" : user_row.user_ref_audio_path,
+            "ref_audio" : self._convert_path(str(user_row.user_ref_audio_path)),
             "ref_text" : "어쨌든 우리한테 와서 건강하게 지금도 잘 자라고 있으니까",
             "use_emotion" : True,
-            "emotion_npy_path" : chat_row.emotion_path,
+            "emotion_npy_path" : self._convert_path(str(chat_row.emotion_path))
         }
 
         with requests.post(API_URL, json=payload, stream=True) as r:
             # HTTP 상태 코드가 200(정상)이 아니면 에러를 발생
-            r.raise_for_status()
-            
-            for chunk in r.iter_content(chunk_size=1024 * 64):
-                if chunk:
-                    yield chunk
+            try :
+                r.raise_for_status()
+            except :
+                print(r.content)
+            else :
+                for chunk in r.iter_content(chunk_size=1024 * 64):
+                    if chunk:
+                        yield chunk
+
+# /home/cap/capstone_design_2026/DataBase/emotion_vectors
+# /app/DataBase/emotion_vectors
+
+
+
+print(final_path)  # 출력: ./DataBase/emotion_vectors

@@ -68,3 +68,6 @@ def run():
 if __name__ == "__main__":
     logging.basicConfig()
     run()
+
+# /home/cap/capstone_design_2026/DataBase/emotion_vectors
+# /app/DataBase/emotion_vectors

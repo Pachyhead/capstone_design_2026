@@ -1,11 +1,13 @@
 import struct
 from typing import Optional
+import librosa
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import numpy as np
 import torch
+import os
 
 from qwen_tts.inference.emotion_loader import load_emotion_projector
 from qwen_tts.inference.qwen3_tts_model import Qwen3TTSModel
@@ -70,15 +72,18 @@ class Query(BaseModel):
 
 def _synthesize(req: Query):
     """모델 호출 한 번. (wav: np.ndarray[float32], sr: int)"""
+    if os.path.exists(req.ref_audio) and os.path.exists(req.emotion_npy_path):
+        audio, sr = librosa.load(req.ref_audio, sr=None, mono=True)
+    else :
+        raise FileNotFoundError
     use_emo = req.use_emotion and req.emotion_npy_path is not None
     emotion = _load_emotion_npy(req.emotion_npy_path) if use_emo else None
     # baseline 비교용으로 emotion 안 쓸 때는 LoRA도 꺼서 진짜 upstream 모델 동작
     set_lora_enabled(qwen3tts.model, use_emo)
-
     wavs, sr = qwen3tts.generate_voice_clone(
         text=req.target_text,
         language="Korean",
-        ref_audio=req.ref_audio,
+        ref_audio=(audio, sr),
         ref_text=req.ref_text,
         emotion_vec=emotion,
         do_sample=True,
@@ -111,6 +116,7 @@ async def stream(req: Query):
     codec_decoder를 packet 단위로 호출하도록 별도 구현 필요.
     """
     try:
+        print(req)
         wav, sr = _synthesize(req)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"synthesis failed: {e}")
