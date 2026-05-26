@@ -8,31 +8,34 @@ from .  import server_communicate_pb2
 from . import server_communicate_pb2_grpc
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import io
 import json
 from .server_communicate_connect import set_connection
 import datetime
 
-def merge_wav_byte(wav_bytes_list, output_filename="combined.wav"):
+def merge_wav_byte(wav_bytes_list, storage: Path | None = None, output_filename="combined") -> Path:
+    if not storage: raise ValueError(f"storage path is not specified")
     try:
         # b''를 건너뛰고 유효한 데이터를 찾음
         valid_chunks = [b for b in wav_bytes_list if b and b != b""]
         
         if not valid_chunks:
-            print("Audio do not exist")
-            return
+            raise ValueError("Audio do not exist")
 
         # 모든 바이너리 청크를 하나로 병합
         complete_wav_bytes = b"".join(valid_chunks)
+        fpath = storage / f"{output_filename}.wav"
 
         # 바이너리 스트림 전체를 그대로 .wav 파일로 씀
-        with open(output_filename, "wb") as f:
+        with open(fpath, "wb") as f:
             f.write(complete_wav_bytes)
 
         print(f"file saved successfully: {output_filename}")
+        return fpath
     except OSError as e:
-        print(f"File save error: {e}")
+        raise OSError(f"File save error: {e}")
 
 def save_message_to_json(metadata_list):
     try:

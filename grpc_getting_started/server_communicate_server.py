@@ -67,16 +67,13 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
         for raw_chatroom_item in raw_chatroom_items:
             chatroom_item = []
             for metadata in raw_chatroom_item:
-                dt = datetime.strptime(metadata['send_time'], "%Y-%m-%d %H:%M:%S.%f")
-                timestamp = Timestamp()
-                timestamp.FromDatetime(dt)
-
                 chat_item = server_communicate_pb2.MetadataItem(
                     message_id = metadata['message_id'],
                     sender_id = metadata['sender_id'],
+                    receiver_id = metadata['receiver_id'],
                     message = metadata['message'],
                     emo_type = metadata['emo_type'],
-                    send_time = timestamp
+                    send_time = metadata['send_time']
                 )
                 chatroom_item.append(chat_item)
             chatroom_items.append(chatroom_item)
