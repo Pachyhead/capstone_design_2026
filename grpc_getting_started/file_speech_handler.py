@@ -16,6 +16,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 import numpy as np
+from sqlalchemy import or_, and_
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
@@ -80,12 +81,44 @@ class DBManager:
                 print(f"❌ DB 저장 중 에러 발생: {e}")
                 raise e  # 상위 코드로 에러를 강제로 던져서 프로그램을 멈추고 트레이스백을 띄웁니다.
 
-    """
-    3. 특정 유저가 보낸 모든 채팅 메시지를 가져오는 함수
-    """
-    def get_chats_by_sender(self, sender_id: int):
+    def get_chats_by_sender(self, sender_id: int) -> list[list[dict]]:
+        """
+        Get all chat history between sender_id and i.
+        """
+        if not sender_id in range(0, 4): raise ValueError(f"sender id must be in range(0, 4)")
         with self.Session() as session:
-            return session.query(ChatTable).filter(ChatTable.send_user_id == sender_id).all()
+            chatrooms: list[list[dict]] = []
+            
+            for i in range(4):
+                # 1. (sender_id, sender_id)인 경우는 제외함
+                if i == sender_id:
+                    chatrooms.append([])
+                    continue
+                    
+                # 2. sender_id와 i가 주고받은 대화 내역을 전부 가져오기
+                chats: list[ChatTable] = (
+                    session.query(ChatTable)
+                    .filter(
+                        or_(
+                            (ChatTable.send_user_id == sender_id) & (ChatTable.rec_user_id == i),
+                            (ChatTable.send_user_id == i) & (ChatTable.rec_user_id == sender_id)
+                        )
+                    )
+                    .order_by(ChatTable.updated_at.asc())
+                    .all()
+                )
+
+                """
+                조회된 ChatTable 객체들을 to_dict()를 활용해 딕셔너리로 변환합니다.
+                """
+                dict_chats = [chat.to_dict() for chat in chats]
+                
+                """
+                최종 리스트(2차원)에 변환된 딕셔너리 리스트를 추가합니다.
+                """
+                chatrooms.append(dict_chats)
+                
+            return chatrooms
         
     def get_chat_by_id(self, message_id: str) -> ChatTable | None:
         with self.Session() as session:
@@ -156,33 +189,13 @@ class FileSpeechHandler(AbstractSpeechHandler):
             print(f"{e}")
             return False
     
-    def get_pending_metadata(self, user_id: str) -> list[dict]:
+    def get_pending_metadata(self, user_id: str) -> list[list[dict]]:
         int_sender_id = int(user_id)
         
         # 1. DBManager를 통해 특정 유저의 ChatTable 객체 리스트를 가져옵니다.
-        rows: list[ChatTable] = self.dbmanager.get_chats_by_sender(int_sender_id)
+        chatrooms: list[list[dict]] = self.dbmanager.get_chats_by_sender(int_sender_id)
         
-        # 데이터가 없으면 ValueError를 발생시킵니다.
-        if not rows: 
-            return []
-            
-        # 2. ChatTable 객체 리스트를 순수한 list[dict] 형태로 변환합니다.
-        result_list = []
-        for row in rows:
-            row_data = {
-                "message_id": row.massage_id,  # 외부 JSON 규격과 맞추기 위해 message_id로 매핑
-                "sender_id": row.send_user_id,
-                "receiver_id": row.rec_user_id,
-                "message": row.massage,
-                "emotion_path": row.emotion_path,
-                "emo_type": row.emotion,
-                # datetime 객체는 나중에 gRPC나 JSON 통신 시 에러 방지를 위해 문자열로 미리 변환합니다.
-                "send_time": row.updated_at.strftime("%Y-%m-%d %H:%M:%S.%f") if row.updated_at else None
-            }
-            result_list.append(row_data)
-                    
-        # 3. 딕셔너리들이 가득 담긴 파이썬 리스트를 최종 리턴합니다.
-        return result_list
+        return chatrooms
             
     # message_id에 해당하는 wav를 찾아 바이트 형태로 반환
     def generate_voice_stream(self, message_id: str) -> Generator[bytes, None, None]:
