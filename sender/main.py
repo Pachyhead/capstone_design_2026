@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     with Sender(
         storage=STORAGE,
         user_id=1,
-        receiver_id=1,
+        receiver_id=2,
         fsq_path=str(PROJECT_ROOT / "sender_models" / "skip_kl_8d_8L_kl05_1e-4.pt"),
     ) as sender:
         app.state.sender = sender

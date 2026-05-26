@@ -56,5 +56,5 @@ class ChatTable(Base):
             "message": self.massage,
             "emotion_path": self.emotion_path,
             "emo_type": self.emotion,
-            "send_time": self.updated_at.strftime("%Y-%m-%d %H:%M:%S.%f") if getattr(self, 'updated_at', None) else None
+            "send_time": self.updated_at if getattr(self, 'updated_at', None) else None
         }
