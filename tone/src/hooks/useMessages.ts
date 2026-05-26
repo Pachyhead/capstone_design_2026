@@ -10,6 +10,14 @@ export interface MessagesHook {
   reload: () => void;
 }
 
+// Backend ships "YYYY-MM-DD HH:MM:SS.ffffff" (or ISO). UI wants "HH:mm".
+// Pulls the first HH:MM pair out so either format works.
+function formatSentAt(raw: string | undefined): string {
+  if (!raw) return '';
+  const m = raw.match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : raw.slice(0, 5);
+}
+
 function backendToMessage(
   rec: ReceivedMessage,
   conversationId: string,
@@ -25,7 +33,7 @@ function backendToMessage(
     durationSec: 0,
     // 10-bar placeholder energy — backend doesn't ship per-message energy yet
     energy: Array.from({ length: 10 }, () => Math.random() * 0.5 + 0.4),
-    sentAt: rec.send_time,
+    sentAt: formatSentAt(rec.send_time),
   };
 }
 

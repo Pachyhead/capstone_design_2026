@@ -103,7 +103,6 @@ export function audioUrl(path: string): string {
 
 export const api = {
   setMyId: (id: number) => post<InboxBuckets>('/set_my_id', { value: id, my_id: id }),
-  setReceiverId: (id: number) => post('/set_receiver_id', { value: id }),
   startRecording: () => post<StartRecordingResult>('/start_recording'),
   stopRecording: () => post<RecordResult>('/stop_recording'),
   send: (message: string) => post('/send', { message }),

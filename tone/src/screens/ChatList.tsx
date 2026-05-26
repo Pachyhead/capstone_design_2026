@@ -1,11 +1,31 @@
+import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { conversations } from '@/data/mock';
 import { paletteFor } from '@/tokens/emotions';
 import { EMOTION_LABELS } from '@/types';
-import { useProfiles } from '@/hooks/useProfiles';
+import { useProfiles, type BackendId } from '@/hooks/useProfiles';
+import { useInbox } from '@/hooks/useInbox';
+import { useLastSeen } from '@/hooks/useLastSeen';
+import { emotionFromBackend } from '@/lib/api';
+
+function formatSentAt(raw: string | undefined): string {
+  if (!raw) return '';
+  const m = raw.match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : raw.slice(0, 5);
+}
 
 export function ChatList() {
   const { activeProfile } = useProfiles();
+  const { inbox, refresh } = useInbox();
+  const lastSeen = useLastSeen();
+
+  useEffect(() => {
+    if (!activeProfile) return;
+    refresh(activeProfile.backendId).catch((e) =>
+      console.warn('[chatlist] inbox refresh failed', e),
+    );
+  }, [activeProfile?.backendId]);
+
   const visible = conversations.filter((c) => c.backendId !== activeProfile?.backendId);
   return (
     <aside
@@ -43,7 +63,23 @@ export function ChatList() {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3 flex flex-col gap-1">
         {visible.map((conv) => {
-          const palette = paletteFor(conv.lastMessage.emotion.primary);
+          const bucket = inbox[conv.backendId as BackendId] ?? [];
+          const last = bucket.length ? bucket[bucket.length - 1] : null;
+          const previewText = last?.message ?? '';
+          const previewEmotion = last ? emotionFromBackend(last.emo_type) : 'neutral';
+          const previewSentAt = formatSentAt(last?.send_time);
+          const palette = paletteFor(previewEmotion);
+
+          const seenId = lastSeen[conv.id];
+          let unreadCount = 0;
+          if (bucket.length > 0) {
+            if (!seenId) {
+              unreadCount = bucket.length;
+            } else {
+              const idx = bucket.findIndex((m) => m.message_id === seenId);
+              unreadCount = idx === -1 ? bucket.length : bucket.length - idx - 1;
+            }
+          }
           return (
             <NavLink
               key={conv.id}
@@ -79,7 +115,7 @@ export function ChatList() {
                         className="text-[11px] flex-shrink-0"
                         style={{ color: isActive ? palette.deep : '#9B8E7B', opacity: 0.8 }}
                       >
-                        {conv.lastMessage.sentAt}
+                        {previewSentAt}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -87,20 +123,23 @@ export function ChatList() {
                         className="text-[12px] flex-1 overflow-hidden text-ellipsis whitespace-nowrap leading-snug"
                         style={{
                           color: isActive ? palette.deep : '#6B5F4F',
-                          opacity: 0.9,
+                          opacity: previewText ? 0.9 : 0.5,
+                          fontStyle: previewText ? 'normal' : 'italic',
                         }}
                       >
-                        {conv.lastMessage.text}
+                        {previewText || '아직 메시지가 없습니다'}
                       </span>
-                      <span
-                        className="text-[10px] px-[6px] py-[1px] rounded-[6px] font-medium flex-shrink-0"
-                        style={{ background: palette.main, color: palette.deep }}
-                      >
-                        {EMOTION_LABELS[conv.lastMessage.emotion.primary]}
-                      </span>
-                      {conv.unread > 0 && (
+                      {last && (
+                        <span
+                          className="text-[10px] px-[6px] py-[1px] rounded-[6px] font-medium flex-shrink-0"
+                          style={{ background: palette.main, color: palette.deep }}
+                        >
+                          {EMOTION_LABELS[previewEmotion]}
+                        </span>
+                      )}
+                      {unreadCount > 0 && (
                         <span className="bg-charcoal text-white text-[10px] px-[6px] py-[1px] rounded-[8px] min-w-[16px] text-center font-medium flex-shrink-0">
-                          {conv.unread}
+                          {unreadCount}
                         </span>
                       )}
                     </div>

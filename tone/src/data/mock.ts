@@ -279,13 +279,6 @@ export const speakerVoiceProfiles: Record<string, SpeakerVoiceProfile> = {
   },
 };
 
-export const myProfile = {
-  name: '이재웅',
-  handle: '@jaewoong',
-  initial: '재',
-  friendCount: 12,
-};
-
 export const voiceProfile: VoiceProfile = {
   registered: true,
   sentenceCount: 6,

@@ -3,15 +3,13 @@ import type { Emotion, VoiceProfile } from '@/types';
 
 const STORAGE_KEY = 'tone:voiceProfile';
 
-// initial demo state — matches the previous mock.voiceProfile so users see the
-// app populated on first load. Onboarding completion overwrites this with the
-// emotions actually recorded.
+// Unregistered baseline. Onboarding writes real recorded data over this.
 const DEFAULT: VoiceProfile = {
-  registered: true,
-  sentenceCount: 6,
-  durationSec: 90,
-  emotionCoverage: 8,
-  detectedEmotions: ['happy', 'sad', 'surprised', 'fearful', 'neutral', 'angry', 'disgusted', 'unk'],
+  registered: false,
+  sentenceCount: 0,
+  durationSec: 0,
+  emotionCoverage: 0,
+  detectedEmotions: [],
 };
 
 const subscribers = new Set<() => void>();

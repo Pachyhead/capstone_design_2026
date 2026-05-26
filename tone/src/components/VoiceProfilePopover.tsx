@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Conversation } from '@/types';
+import type { Conversation, Emotion } from '@/types';
 import { EMOTION_LABELS } from '@/types';
 import { paletteFor } from '@/tokens/emotions';
 import { speakerVoiceProfiles } from '@/data/mock';
+import { useInbox } from '@/hooks/useInbox';
+import { emotionFromBackend } from '@/lib/api';
+import type { BackendId } from '@/hooks/useProfiles';
 
 interface Props {
   conversation: Conversation;
@@ -14,11 +17,22 @@ const FALLBACK = {
   coverage: 6,
   pitch: '중간' as const,
   pace: '보통' as const,
-  samples: ['happy', 'sad', 'neutral', 'fearful', 'surprised', 'angry'] as const,
+  samples: ['happy', 'sad', 'neutral', 'fearful', 'surprised', 'angry'] as Emotion[],
 };
 
 export function VoiceProfilePopover({ conversation, variant = 'light', onClose }: Props) {
-  const profile = speakerVoiceProfiles[conversation.id] ?? FALLBACK;
+  const mockProfile = speakerVoiceProfiles[conversation.id] ?? FALLBACK;
+  const { inbox } = useInbox();
+  const bucket = inbox[conversation.backendId as BackendId] ?? [];
+
+  // Derive coverage + samples from this peer's incoming messages.
+  // Backend doesn't track pitch/pace, so those still come from mock.
+  const realEmotions: Emotion[] = Array.from(
+    new Set(bucket.map((m) => emotionFromBackend(m.emo_type))),
+  );
+  const coverage = bucket.length > 0 ? realEmotions.length : mockProfile.coverage;
+  const samples: Emotion[] = bucket.length > 0 ? realEmotions : mockProfile.samples;
+
   const [playing, setPlaying] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -69,7 +83,7 @@ export function VoiceProfilePopover({ conversation, variant = 'light', onClose }
             {conversation.name}의 목소리
           </div>
           <div className="text-[11px] mt-1" style={{ color: hint }}>
-            {profile.coverage}/9 감정 샘플 등록됨
+            {coverage}/9 감정 샘플 등록됨
           </div>
         </div>
         <button
@@ -86,9 +100,9 @@ export function VoiceProfilePopover({ conversation, variant = 'light', onClose }
         className="grid grid-cols-3 gap-3 py-3 mb-4 rounded-[10px]"
         style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(20,19,15,0.03)' }}
       >
-        <Stat label="감정 범위" value={`${profile.coverage}/9`} fg={fg} hint={hint} />
-        <Stat label="음높이" value={profile.pitch} fg={fg} hint={hint} />
-        <Stat label="말 속도" value={profile.pace} fg={fg} hint={hint} />
+        <Stat label="감정 범위" value={`${coverage}/9`} fg={fg} hint={hint} />
+        <Stat label="음높이" value={mockProfile.pitch} fg={fg} hint={hint} />
+        <Stat label="말 속도" value={mockProfile.pace} fg={fg} hint={hint} />
       </div>
 
       <p
@@ -98,7 +112,7 @@ export function VoiceProfilePopover({ conversation, variant = 'light', onClose }
         톤 미리듣기
       </p>
       <div className="grid grid-cols-3 gap-2">
-        {profile.samples.map((emotion) => {
+        {samples.map((emotion) => {
           const palette = paletteFor(emotion);
           const isPlaying = playing === emotion;
           return (

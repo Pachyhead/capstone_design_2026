@@ -16,6 +16,7 @@ import type { ShellContext } from '@/App';
 import { api, audioUrl } from '@/lib/api';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useInbox } from '@/hooks/useInbox';
+import { markSeen } from '@/hooks/useLastSeen';
 
 function nowHHMM(): string {
   const d = new Date();
@@ -28,7 +29,13 @@ export function ChatDetail() {
   const conversation = conversations.find((c) => c.id === id) ?? conversations[0];
   const { thread, append } = useMessages(conversation.backendId, conversation.id);
   const { activeProfile } = useProfiles();
-  const { refresh } = useInbox();
+  const { inbox, refresh } = useInbox();
+
+  useEffect(() => {
+    const bucket = inbox[conversation.backendId as 0 | 1 | 2 | 3] ?? [];
+    if (!bucket.length) return;
+    markSeen(conversation.id, bucket[bucket.length - 1].message_id);
+  }, [inbox, conversation.id, conversation.backendId]);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,9 +58,6 @@ export function ChatDetail() {
   useEffect(() => {
     setSearchOpen(false);
     setSearchQuery('');
-    api
-      .setReceiverId(conversation.backendId)
-      .catch((err) => console.warn('[api] set peer id:', err));
   }, [conversation.id]);
 
   const trimmedQuery = searchQuery.trim();
@@ -582,11 +586,23 @@ function ChatHeader({
         className="flex items-center justify-center flex-shrink-0 transition-colors rounded-[18px] px-3 h-9"
         style={{
           background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(20,19,15,0.05)',
+          color: isDark ? '#C8BCAA' : '#6B5F4F',
         }}
         aria-label="감정 통계 보기"
         title={`${conversation.name}와의 감정 통계`}
       >
-        <BubbleCluster data={distribution} size="mini" showLabels={false} />
+        {Object.keys(distribution).length > 0 ? (
+          <BubbleCluster data={distribution} size="mini" showLabels={false} />
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M2 13V7M6 13V3M10 13V8M14 13V5"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
       </button>
 
       <button

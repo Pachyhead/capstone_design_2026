@@ -1,5 +1,4 @@
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { myProfile } from '@/data/mock';
 import { paletteFor } from '@/tokens/emotions';
 import { EmotionAvatar } from '@/components/EmotionAvatar';
 import { Avatar } from '@/components/Avatar';
@@ -12,10 +11,12 @@ import type { ShellContext } from '@/App';
 export function Me() {
   const { mode, setMode } = useOutletContext<ShellContext>();
   const [avatar, setAvatar] = useUserAvatar();
-  const { activeProfile, clearActive, updateProfileAvatar } = useProfiles();
+  const { activeProfile, profiles, clearActive, updateProfileAvatar } = useProfiles();
   const navigate = useNavigate();
 
-  const displayName = activeProfile?.name ?? myProfile.name;
+  const displayName = activeProfile?.name ?? '프로필 미선택';
+  const handle = activeProfile ? `@${activeProfile.id}` : '';
+  const friendCount = Math.max(profiles.length - 1, 0);
 
   const handleAvatarChange = (next: UserAvatar) => {
     setAvatar(next);
@@ -52,7 +53,9 @@ export function Me() {
               <div className="text-[20px] font-semibold text-ink leading-tight">
                 {displayName}
               </div>
-              <div className="text-[13px] text-muted font-mono mt-1">{myProfile.handle}</div>
+              {handle && (
+                <div className="text-[13px] text-muted font-mono mt-1">{handle}</div>
+              )}
             </div>
           </section>
 
@@ -94,7 +97,7 @@ export function Me() {
               className="bg-white rounded-[14px] overflow-hidden"
               style={{ boxShadow: '0 1px 0 rgba(20,19,15,0.04)' }}
             >
-              <MenuRow label="친구" meta={`${myProfile.friendCount}명`} />
+              <MenuRow label="친구" meta={`${friendCount}명`} />
               <MenuRow label="통계" divider onClick={() => navigate('/stats')} />
             </div>
           </section>
