@@ -74,13 +74,10 @@ message MetadataResponse {
 // message type: data structure that recv_clients send to server to get audio(재생로직)
 message MessageIdentifier {
   string message_id = 1;
-  string sender_id = 2;
-  string receiver_id = 3;
 }
 // message type: data structure that recv_clients receive from server(재생로직)
 message AudioFrame {
   bytes audio_content = 1;
-  string sender_id = 2;
-  string message_id = 3;
-  bool is_final = 4; // 마지막 조각인지
+  string message_id = 2;
+  bool is_final = 3; // 마지막 조각인지
 }

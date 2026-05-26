@@ -70,23 +70,17 @@ class MetadataResponse(_message.Message):
     def __init__(self, lists: _Optional[_Iterable[_Union[MetadataList, _Mapping]]] = ...) -> None: ...
 
 class MessageIdentifier(_message.Message):
-    __slots__ = ("message_id", "sender_id", "receiver_id")
+    __slots__ = ("message_id",)
     MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
-    SENDER_ID_FIELD_NUMBER: _ClassVar[int]
-    RECEIVER_ID_FIELD_NUMBER: _ClassVar[int]
     message_id: str
-    sender_id: str
-    receiver_id: str
-    def __init__(self, message_id: _Optional[str] = ..., sender_id: _Optional[str] = ..., receiver_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, message_id: _Optional[str] = ...) -> None: ...
 
 class AudioFrame(_message.Message):
-    __slots__ = ("audio_content", "sender_id", "message_id", "is_final")
+    __slots__ = ("audio_content", "message_id", "is_final")
     AUDIO_CONTENT_FIELD_NUMBER: _ClassVar[int]
-    SENDER_ID_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
     IS_FINAL_FIELD_NUMBER: _ClassVar[int]
     audio_content: bytes
-    sender_id: str
     message_id: str
     is_final: bool
-    def __init__(self, audio_content: _Optional[bytes] = ..., sender_id: _Optional[str] = ..., message_id: _Optional[str] = ..., is_final: bool = ...) -> None: ...
+    def __init__(self, audio_content: _Optional[bytes] = ..., message_id: _Optional[str] = ..., is_final: bool = ...) -> None: ...

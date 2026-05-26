@@ -43,20 +43,18 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
         audio_chunks = self.handler.generate_voice_stream(request.message_id)
 
         if audio_chunks is None:
-            yield server_communicate_pb2.AudioFrame(audio_content=[], sender_id=request.sender_id, message_id=request.message_id, is_final=True)
+            yield server_communicate_pb2.AudioFrame(audio_content=[], message_id=request.message_id, is_final=True)
             return
         
         for chunk in audio_chunks:
             yield server_communicate_pb2.AudioFrame(
                 audio_content=chunk,
-                sender_id=request.sender_id,
                 message_id=request.message_id,
                 is_final=False
             ) # 반환값으로 AudioFrame 리턴
         
         yield server_communicate_pb2.AudioFrame(
             audio_content=b'',
-            sender_id=request.sender_id,
             message_id=request.message_id,
             is_final=True
         ) # 마지막 조각임을 표시

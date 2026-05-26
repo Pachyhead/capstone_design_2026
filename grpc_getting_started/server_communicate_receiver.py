@@ -72,10 +72,10 @@ def GetPendingMessages(user_id):
 
     return chatroom_lists # list list dict
 
-def GetVoice(message_id, sender_id, receiver_id):
+def GetVoice(message_id):
     stub = set_connection()
     
-    message_identifier = server_communicate_pb2.MessageIdentifier(message_id=message_id, sender_id=sender_id, receiver_id=receiver_id)
+    message_identifier = server_communicate_pb2.MessageIdentifier(message_id=message_id)
     audio_frames = stub.GetVoice(message_identifier) # 서버 메서드 호출(음성 가져옴)
 
     wav_bytes_list = []
@@ -107,7 +107,7 @@ def run():
     sender_id = metadata.sender_id
 
     # 수신한 음성 wav로 저장할 때
-    wav_bytes_list = GetVoice(message_id=message_id, sender_id=sender_id, receiver_id="000001")
+    wav_bytes_list = GetVoice(message_id=message_id)
     merge_wav_byte(wav_bytes_list, f"{message_id}.wav")
 
 if __name__ == "__main__":
