@@ -88,7 +88,7 @@ def GetVoice(message_id):
 
         if audio_frame.is_final:
             print("Received final chunk from server.")
-    return wav_bytes_list
+    return wav_bytes_list, message_id
 
 
 def run():
