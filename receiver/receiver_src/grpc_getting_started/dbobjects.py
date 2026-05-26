@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, TIMESTAMP, func
+from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, TIMESTAMP, func, DateTime, text
 
 Base = declarative_base()
 
@@ -38,16 +38,23 @@ class ChatTable(Base):
     emotion_path = Column(String(255), nullable=False)
     emotion = Column(Integer, nullable=False)
 
+    updated_at = Column(
+        DateTime, 
+        server_default=text('CURRENT_TIMESTAMP'), 
+        onupdate=text('CURRENT_TIMESTAMP'), 
+        nullable=False
+    )
+
     def to_dict(self) -> dict:
         """
         Convert this model instance into a dictionary structure.
         """
         return {
-            "message_id": self.massage_id,
-            "sender_id": self.send_user_id,
-            "receiver_id": self.rec_user_id,
+            "message_id": str(self.massage_id),
+            "sender_id": str(self.send_user_id),
+            "receiver_id": str(self.rec_user_id),
             "message": self.massage,
             "emotion_path": self.emotion_path,
             "emo_type": self.emotion,
-            "send_time": self.updated_at.strftime("%Y-%m-%d %H:%M:%S.%f") if getattr(self, 'updated_at', None) else None
+            "send_time": self.updated_at if getattr(self, 'updated_at', None) else None
         }

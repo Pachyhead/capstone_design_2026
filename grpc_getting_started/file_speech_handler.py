@@ -18,7 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import numpy as np
 from sqlalchemy import or_, and_
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 load_dotenv()
 
