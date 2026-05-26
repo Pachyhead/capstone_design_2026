@@ -7,12 +7,14 @@ import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { EMOTION_LABELS, AVATAR_EMOTIONS } from '@/types';
 import type { Emotion } from '@/types';
 import { api } from '@/lib/api';
+import { useInbox } from '@/hooks/useInbox';
 
 const MAX_PROFILES = 4;
 
 export function Profiles() {
   const { profiles, addProfile, removeProfile, selectProfile } = useProfiles();
   const [, setUserAvatar] = useUserAvatar();
+  const { refresh } = useInbox();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const navigate = useNavigate();
@@ -20,9 +22,7 @@ export function Profiles() {
   const handlePick = (p: Profile) => {
     setUserAvatar(p.avatar);
     selectProfile(p.id);
-    api.setMyId(p.backendId)
-      .then(() => api.getMessage(1))
-      .catch((err) => console.warn('[api] setMyId/getMessage failed:', err));
+    refresh(p.backendId).catch((err) => console.warn('[api] setMyId failed:', err));
     navigate('/');
   };
 

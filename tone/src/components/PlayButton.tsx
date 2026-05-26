@@ -6,7 +6,7 @@ interface Props {
   emotion: Emotion;
   size?: number;
   variant?: 'light' | 'dark';
-  messageId?: number;
+  messageId?: string;
 }
 
 export function PlayButton({ emotion, size = 22, variant = 'light', messageId }: Props) {
@@ -16,7 +16,7 @@ export function PlayButton({ emotion, size = 22, variant = 'light', messageId }:
   const fg = variant === 'dark' ? palette.x : '#FFFFFF';
 
   const handleClick = () => {
-    if (messageId === undefined) return;
+    if (!messageId) return;
     api.playVoice(messageId).catch((err) => console.warn('[api] playVoice failed:', err));
   };
 

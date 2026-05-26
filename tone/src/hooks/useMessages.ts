@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { messages as mockMessages } from '@/data/mock';
 import type { Message } from '@/types';
+import { useInbox } from '@/hooks/useInbox';
+import { useProfiles, type BackendId } from '@/hooks/useProfiles';
+import { emotionFromBackend, type ReceivedMessage } from '@/lib/api';
 
 export interface MessagesHook {
   thread: Message[];
@@ -8,33 +10,47 @@ export interface MessagesHook {
   reload: () => void;
 }
 
-// Single swap point for moving from mock to real backend fetch.
-// When backend exposes `GET /messages?conversation_id=X`, replace the body
-// of `fetchThread` with `api.getMessages(conversationId)` and add polling.
-async function fetchThread(conversationId: string): Promise<Message[]> {
-  return mockMessages.filter((m) => m.conversationId === conversationId);
+function backendToMessage(
+  rec: ReceivedMessage,
+  conversationId: string,
+  peerName?: string,
+): Message {
+  return {
+    id: rec.message_id,
+    conversationId,
+    authorId: String(rec.sender_id),
+    authorName: peerName,
+    text: rec.message,
+    emotion: { primary: emotionFromBackend(rec.emo_type) },
+    durationSec: 0,
+    // 10-bar placeholder energy — backend doesn't ship per-message energy yet
+    energy: Array.from({ length: 10 }, () => Math.random() * 0.5 + 0.4),
+    sentAt: rec.send_time,
+  };
 }
 
-export function useMessages(conversationId: string): MessagesHook {
-  const [base, setBase] = useState<Message[]>([]);
-  const [appended, setAppended] = useState<Message[]>([]);
+// `peerBackendId` keys into the inbox returned by /set_my_id.
+// `conversationId` is the front-end-side string id (used for filtering only).
+export function useMessages(peerBackendId: BackendId, conversationId: string): MessagesHook {
+  const { inbox } = useInbox();
+  const { profiles } = useProfiles();
+  const peerName = profiles.find((p) => p.backendId === peerBackendId)?.name;
 
+  const base: Message[] = (inbox[peerBackendId] ?? []).map((rec) =>
+    backendToMessage(rec, conversationId, peerName),
+  );
+
+  // Local echo for messages the user just sent — backend's inbox is incoming-only,
+  // so outgoing bubbles live in component-local state until next mount.
+  const [appended, setAppended] = useState<Message[]>([]);
   useEffect(() => {
     setAppended([]);
-    let active = true;
-    fetchThread(conversationId).then((next) => {
-      if (active) setBase(next);
-    });
-    return () => {
-      active = false;
-    };
   }, [conversationId]);
 
   return {
     thread: [...base, ...appended],
     append: (m) => setAppended((prev) => [...prev, m]),
-    reload: () => {
-      fetchThread(conversationId).then(setBase);
-    },
+    // refresh button on the chat header drives the inbox; reload is a no-op now.
+    reload: () => {},
   };
 }

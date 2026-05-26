@@ -13,62 +13,34 @@ import { computeDistribution } from '@/data/statsCompute';
 import { EMOTION_LABELS } from '@/types';
 import type { Conversation, Emotion, Message } from '@/types';
 import type { ShellContext } from '@/App';
-import { api, audioUrl, emotionFromBackend } from '@/lib/api';
+import { api, audioUrl } from '@/lib/api';
 import { useProfiles } from '@/hooks/useProfiles';
+import { useInbox } from '@/hooks/useInbox';
 
 function nowHHMM(): string {
   const d = new Date();
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-// Synthetic message id until backend exposes real ones in message payloads.
-function messageIdFor(stringId: string): number {
-  let h = 0;
-  for (let i = 0; i < stringId.length; i++) h = (h * 31 + stringId.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
 export function ChatDetail() {
   const { id } = useParams<{ id: string }>();
   const { mode, setMode } = useOutletContext<ShellContext>();
   const conversation = conversations.find((c) => c.id === id) ?? conversations[0];
-  const { thread, append } = useMessages(conversation.id);
+  const { thread, append } = useMessages(conversation.backendId, conversation.id);
   const { activeProfile } = useProfiles();
+  const { refresh } = useInbox();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [draft, setDraft] = useState<{ text: string; emotion: Emotion; durationSec: number; audioUrl?: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const lastSeenMessageIdRef = useRef<number | null>(null);
 
   const handleRefreshInbox = async () => {
-    if (refreshing) return;
+    if (refreshing || !activeProfile) return;
     setRefreshing(true);
     try {
-      if (activeProfile) {
-        try {
-          await api.setMyId(activeProfile.backendId);
-        } catch (err) {
-          console.warn('[api] setMyId on refresh failed:', err);
-        }
-      }
-      const received = await api.getMessage(1);
-      if (received && received.message_id !== lastSeenMessageIdRef.current) {
-        lastSeenMessageIdRef.current = received.message_id;
-        const newMessage: Message = {
-          id: `recv-${received.message_id}-${Date.now()}`,
-          conversationId: conversation.id,
-          authorId: String(received.sender_id),
-          authorName: conversation.name,
-          text: received.message,
-          emotion: { primary: emotionFromBackend(received.emo_type) },
-          durationSec: 0,
-          energy: Array.from({ length: 10 }, () => Math.random() * 0.5 + 0.4),
-          sentAt: nowHHMM(),
-        };
-        append(newMessage);
-      }
+      await refresh(activeProfile.backendId);
     } catch (err) {
       console.warn('[api] refresh inbox failed:', err);
     } finally {
@@ -353,7 +325,7 @@ function TextModeView({
                   style={{ background: palette.light }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <PlayButton emotion={m.emotion.primary} size={26} variant="light" messageId={messageIdFor(m.id)} />
+                    <PlayButton emotion={m.emotion.primary} size={26} variant="light" messageId={m.id} />
                     <EmotionWaveform emotion={m.emotion.primary} energy={m.energy} height={22} />
                     <span
                       className="text-[11px] font-mono flex-shrink-0"
@@ -479,7 +451,7 @@ function VoiceModeView({
                   style={{ background: isMine ? '#8E6E48' : '#785A38' }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <PlayButton emotion={m.emotion.primary} size={28} variant="dark" messageId={messageIdFor(m.id)} />
+                    <PlayButton emotion={m.emotion.primary} size={28} variant="dark" messageId={m.id} />
                     <EmotionWaveform
                       emotion={m.emotion.primary}
                       energy={m.energy}
@@ -554,7 +526,7 @@ function ChatHeader({
   const isDark = variant === 'dark';
   const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
-  const { thread: headerThread } = useMessages(conversation.id);
+  const { thread: headerThread } = useMessages(conversation.backendId, conversation.id);
   const distribution = useMemo(
     () => computeDistribution(headerThread),
     [headerThread],

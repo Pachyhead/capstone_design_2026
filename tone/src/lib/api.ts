@@ -53,12 +53,22 @@ export interface EmotionLabelResult {
 }
 
 export interface ReceivedMessage {
-  message_id: number;
+  message_id: string;
   sender_id: number;
   message: string;
   emo_type: number | string;
   send_time: string;
 }
+
+// /set_my_id response: 4-element array bucketed by sender backend id.
+// Bucket at index === my own backend id is always empty (self).
+// Inner lists are time-ordered (oldest → newest).
+export type InboxBuckets = [
+  ReceivedMessage[],
+  ReceivedMessage[],
+  ReceivedMessage[],
+  ReceivedMessage[],
+];
 
 // backend EmotionLabel IntEnum → frontend Emotion
 const EMOTION_INDEX_TO_NAME: Record<number, Emotion> = {
@@ -88,7 +98,7 @@ export function audioUrl(path: string): string {
 }
 
 export const api = {
-  setMyId: (id: number) => post('/set_my_id', { value: id, my_id: id }),
+  setMyId: (id: number) => post<InboxBuckets>('/set_my_id', { value: id, my_id: id }),
   setReceiverId: (id: number) => post('/set_receiver_id', { value: id }),
   setSenderId: (id: number) => post('/set_sender_id', { sender_id: id }),
   startRecording: () => post<StartRecordingResult>('/start_recording'),
@@ -96,6 +106,5 @@ export const api = {
   send: (message: string) => post('/send', { message }),
   sendRef: () => post('/send_ref'),
   getEmotionLabel: () => post<EmotionLabelResult>('/get_emotion_label'),
-  playVoice: (messageId: number) => post('/play_voice', { message_id: messageId }),
-  getMessage: (messageId: number) => post<ReceivedMessage>('/get_message', { message_id: messageId }),
+  playVoice: (messageId: string) => post('/play_voice', { message_id: messageId }),
 };
