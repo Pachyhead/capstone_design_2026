@@ -44,12 +44,19 @@ class DBManager:
         self.session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(self.session_factory)
 
+    def _convert_path(self, path: str) -> str:
+        base_path = "/home/cap/capstone_design_2026"
+
+        relative_path = os.path.relpath(path, base_path)
+
+        return "./" + relative_path
+
     """
     1. 새로운 유저를 등록하는 함수
     """
     def create_user(self, user_id: int, name: str, audio_path: str):
         with self.Session() as session:
-            new_user = UserTable(id=user_id, user_name=name, user_ref_audio_path=audio_path)
+            new_user = UserTable(id=user_id, user_name=name, user_ref_audio_path=self._convert_path(audio_path))
             session.add(new_user)
             session.commit()
 
@@ -64,7 +71,7 @@ class DBManager:
                     send_user_id=sender, 
                     rec_user_id=receiver,
                     massage=msg, 
-                    emotion_path=emo_path, 
+                    emotion_path=self._convert_path(emo_path), 
                     emotion=emo_type
                 )
                 
@@ -213,13 +220,16 @@ class FileSpeechHandler(AbstractSpeechHandler):
             "ref_audio" : user_row.user_ref_audio_path,
             "ref_text" : "어쨌든 우리한테 와서 건강하게 지금도 잘 자라고 있으니까",
             "use_emotion" : True,
-            "emotion_npy_path" : chat_row.emotion_path,
+            "emotion_npy_path" : chat_row.emotion_path
         }
 
         with requests.post(API_URL, json=payload, stream=True) as r:
             # HTTP 상태 코드가 200(정상)이 아니면 에러를 발생
-            r.raise_for_status()
-            
-            for chunk in r.iter_content(chunk_size=1024 * 64):
-                if chunk:
-                    yield chunk
+            try :
+                r.raise_for_status()
+            except :
+                print(r.content)
+            else :
+                for chunk in r.iter_content(chunk_size=1024 * 64):
+                    if chunk:
+                        yield chunk

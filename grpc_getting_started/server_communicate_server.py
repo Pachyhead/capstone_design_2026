@@ -76,7 +76,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
                     send_time = metadata['send_time']
                 )
                 chatroom_item.append(chat_item)
-            chatroom_items.append(chatroom_item)
+            chatroom_items.append(server_communicate_pb2.MetadataList(items=chatroom_item))
         
         return server_communicate_pb2.MetadataResponse(lists = chatroom_items)
 

@@ -222,3 +222,4 @@ sender/uv.lock
 .vscode 
 DataBase/data/*
 qwen_tts_api/checkpoint-epoch-1/*
+grpc_getting_started/DataBase/*

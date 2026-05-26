@@ -118,7 +118,7 @@ def send(message: str | None = None):
 
 
 @app.post("/send_ref")
-def send_voice():
+def send_ref():
     sender: Sender = app.state.sender
     sender_lock: Lock = app.state.sender_lock
 
