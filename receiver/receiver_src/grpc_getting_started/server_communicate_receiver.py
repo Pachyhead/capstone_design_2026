@@ -6,36 +6,36 @@ import grpc
 
 from .  import server_communicate_pb2
 from . import server_communicate_pb2_grpc
-from config import PROJECT_ROOT
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import io
 import json
 from .server_communicate_connect import set_connection
 import datetime
 
-storage = PROJECT_ROOT / "storage"
-
-def merge_wav_byte(wav_bytes_list, output_filename="combined.wav"):
+def merge_wav_byte(wav_bytes_list, storage: Path | None = None, output_filename="combined") -> Path:
+    if not storage: raise ValueError(f"storage path is not specified")
     try:
         # b''를 건너뛰고 유효한 데이터를 찾음
         valid_chunks = [b for b in wav_bytes_list if b and b != b""]
         
         if not valid_chunks:
-            print("Audio do not exist")
-            return
+            raise ValueError("Audio do not exist")
 
         # 모든 바이너리 청크를 하나로 병합
         complete_wav_bytes = b"".join(valid_chunks)
+        fpath = storage / f"{output_filename}.wav"
 
         # 바이너리 스트림 전체를 그대로 .wav 파일로 씀
-        with open(storage / output_filename, "wb") as f:
+        with open(fpath, "wb") as f:
             f.write(complete_wav_bytes)
 
         print(f"file saved successfully: {output_filename}")
+        return fpath
     except OSError as e:
-        print(f"File save error: {e}")
+        raise OSError(f"File save error: {e}")
 
 def save_message_to_json(metadata_list):
     try:
@@ -52,7 +52,7 @@ def save_message_to_json(metadata_list):
             }
 
             fname = f"{mid}.json"
-            with open(storage / fname, "w", encoding="utf-8") as f: # JSON으로 저장
+            with open(fname, "w", encoding="utf-8") as f: # JSON으로 저장
                 json.dump(new_message, f, ensure_ascii=False, indent=4)
         return True
     except (OSError, Exception) as e:
@@ -63,14 +63,22 @@ def GetPendingMessages(user_id):
     stub = set_connection()
 
     user_identifier = server_communicate_pb2.UserIdentifier(user_id=user_id) # 서비스를 호출할 userIdentifier 정의
-    metadata_list = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴)   
+    chatroom_items = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)   
 
-    return metadata_list.items
+    # 구조체 부분 제거
+    chatroom_lists = []
+    for chatroom_item in chatroom_items.lists:
+        chatroom_list = []
+        for chat_item in chatroom_item.items:
+            chatroom_list.append(chat_item)
+        chatroom_lists.append(chatroom_list)
 
-def GetVoice(message_id, sender_id, receiver_id):
+    return chatroom_lists # list list dict
+
+def GetVoice(message_id):
     stub = set_connection()
     
-    message_identifier = server_communicate_pb2.MessageIdentifier(message_id=message_id, sender_id=sender_id, receiver_id=receiver_id)
+    message_identifier = server_communicate_pb2.MessageIdentifier(message_id=message_id)
     audio_frames = stub.GetVoice(message_identifier) # 서버 메서드 호출(음성 가져옴)
 
     wav_bytes_list = []
@@ -80,7 +88,7 @@ def GetVoice(message_id, sender_id, receiver_id):
 
         if audio_frame.is_final:
             print("Received final chunk from server.")
-    return wav_bytes_list
+    return wav_bytes_list, message_id
 
 
 def run():
@@ -102,7 +110,7 @@ def run():
     sender_id = metadata.sender_id
 
     # 수신한 음성 wav로 저장할 때
-    wav_bytes_list = GetVoice(message_id=message_id, sender_id=sender_id, receiver_id="000001")
+    wav_bytes_list = GetVoice(message_id=message_id)
     merge_wav_byte(wav_bytes_list, f"{message_id}.wav")
 
 if __name__ == "__main__":

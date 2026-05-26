@@ -43,44 +43,42 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
         audio_chunks = self.handler.generate_voice_stream(request.message_id)
 
         if audio_chunks is None:
-            yield server_communicate_pb2.AudioFrame(audio_content=[], sender_id=request.sender_id, message_id=request.message_id, is_final=True)
+            yield server_communicate_pb2.AudioFrame(audio_content=[], message_id=request.message_id, is_final=True)
             return
         
         for chunk in audio_chunks:
             yield server_communicate_pb2.AudioFrame(
                 audio_content=chunk,
-                sender_id=request.sender_id,
                 message_id=request.message_id,
                 is_final=False
             ) # 반환값으로 AudioFrame 리턴
         
         yield server_communicate_pb2.AudioFrame(
             audio_content=b'',
-            sender_id=request.sender_id,
             message_id=request.message_id,
             is_final=True
         ) # 마지막 조각임을 표시
     
     def GetPendingMessages(self, request, context): # rpc에 대한 UserIdentifier 요청 전달
         """ implement GetPendingMessages here."""
-        raw_metadata_list = self.handler.get_pending_metadata(request.user_id)
+        raw_chatroom_items = self.handler.get_pending_metadata(request.user_id)
 
-        proto_items = []
-        for metadata in raw_metadata_list:
-            dt = datetime.strptime(metadata['send_time'], "%Y-%m-%d %H:%M:%S.%f")
-            timestamp = Timestamp()
-            timestamp.FromDatetime(dt)
-
-            proto_item = server_communicate_pb2.MetadataItem(
-                message_id = metadata['message_id'],
-                sender_id = metadata['sender_id'],
-                message = metadata['message'],
-                emo_type = metadata['emo_type'],
-                send_time = timestamp
-            )
-            proto_items.append(proto_item)
+        chatroom_items = []
+        for raw_chatroom_item in raw_chatroom_items:
+            chatroom_item = []
+            for metadata in raw_chatroom_item:
+                chat_item = server_communicate_pb2.MetadataItem(
+                    message_id = metadata['message_id'],
+                    sender_id = metadata['sender_id'],
+                    receiver_id = metadata['receiver_id'],
+                    message = metadata['message'],
+                    emo_type = metadata['emo_type'],
+                    send_time = metadata['send_time']
+                )
+                chatroom_item.append(chat_item)
+            chatroom_items.append(chatroom_item)
         
-        return server_communicate_pb2.MetadataResponse(items = proto_items)
+        return server_communicate_pb2.MetadataResponse(lists = chatroom_items)
 
 def serve(): # grpc 서버 시작하는 부분
     """
