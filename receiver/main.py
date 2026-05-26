@@ -45,9 +45,8 @@ def set_my_id(my_id: int | None = None):
 def play_voice(message_id: str | None = None):
     if message_id is None: raise HTTPException(status_code=400, detail="message id is required.")
     receiver: Receiver = app.state.receiver
-
-    duration = receiver.play_voice(message_id)
-    return {"duration": duration}
+    
+    return receiver.play_voice(message_id)
 
 @app.get("/")
 def _spa_root():
