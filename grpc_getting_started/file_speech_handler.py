@@ -15,6 +15,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.dialects.mysql import insert
 import numpy as np
 from sqlalchemy import or_, and_
 
@@ -23,10 +24,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv()
 
 users: dict[int, str] = {
-    0: "JC",
-    1: "KT",
-    2: "JW",
-    3: "TW"
+    0: "종찬",
+    1: "재웅",
+    2: "경택",
+    3: "태원"
 }
 
 class DBManager:
@@ -56,9 +57,31 @@ class DBManager:
     """
     def create_user(self, user_id: int, name: str, audio_path: str):
         with self.Session() as session:
-            new_user = UserTable(id=user_id, user_name=name, user_ref_audio_path=self._convert_path(audio_path))
-            session.add(new_user)
-            session.commit()
+            try:
+                # 1. MySQL 전용 insert 구문을 생성합니다.
+                stmt = insert(UserTable).values(
+                    id=user_id,
+                    user_name=name,
+                    user_ref_audio_path=self._convert_path(audio_path)
+                )
+
+                # 2. 중복(Primary Key 또는 Unique Key 충돌) 발생 시 업데이트할 값을 지정합니다.
+                stmt = stmt.on_duplicate_key_update(
+                    user_name=stmt.inserted.user_name,
+                    user_ref_audio_path=stmt.inserted.user_ref_audio_path
+                )
+
+                # 3. 쿼리를 실행하고 커밋합니다.
+                session.execute(stmt)
+                session.commit()
+                print("✨ 유저 등록/업데이트 성공!")
+            except SQLAlchemyError as e:
+                """
+                Rollback the session to clear the failed transaction.
+                """
+                session.rollback()
+                print(f"❌ 유저 저장 중 에러 발생: {e}")
+                raise e
 
     def save_chat(self, message_id: str, sender: int, receiver: int, msg: str, emo_path: str, emo_type: int):
         """
