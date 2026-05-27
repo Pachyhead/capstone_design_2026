@@ -55,6 +55,7 @@ def set_my_id(value: int | None = None):
     if value is None:
         raise HTTPException(status_code=400, detail="value is required. range is [0, 3]")
     sender: Sender = app.state.sender
+    if value == sender.receiver_id: raise ValueError(f"Sender ID and receiver ID cannot be the same")
     sender.user_id = value
     return {"message": "user_id updated", "user_id": value}
 
@@ -64,6 +65,7 @@ def set_receiver_id(value: int | None = None):
     if value is None:
         raise HTTPException(status_code=400, detail="value is required. range is [0, 3]")
     sender: Sender = app.state.sender
+    if value == sender.user_id: raise ValueError(f"Sender ID and receiver ID cannot be the same")
     sender.peer_id = value
     return {"message": "receiver_id updated", "receiver_id": value}
 
