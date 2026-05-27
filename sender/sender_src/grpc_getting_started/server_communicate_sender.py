@@ -44,6 +44,22 @@ def Send(sender_id, receiver_id, message, emo_type, emotion_vector):
 
     return status.accepted
 
+def GetPendingMessages(user_id):
+    stub = set_connection()
+
+    user_identifier = server_communicate_pb2.UserIdentifier(user_id=user_id) # 서비스를 호출할 userIdentifier 정의
+    chatroom_items = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)   
+
+    # 구조체 부분 제거
+    chatroom_lists = []
+    for chatroom_item in chatroom_items.lists:
+        chatroom_list = []
+        for chat_item in chatroom_item.items:
+            chatroom_list.append(chat_item)
+        chatroom_lists.append(chatroom_list)
+
+    return chatroom_lists # list list dict
+
 def run():
     """
     Codelab Hint: Logic for your gRPC sender Client will be added here.
@@ -68,6 +84,3 @@ def run():
 if __name__ == "__main__":
     logging.basicConfig()
     run()
-
-# /home/cap/capstone_design_2026/DataBase/emotion_vectors
-# /app/DataBase/emotion_vectors
