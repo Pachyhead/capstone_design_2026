@@ -6,7 +6,7 @@ from recoder import AudioRecorder
 from tone_core.sender import SenderEncode, EncodeResult
 from tone_core.config import SenderConfig
 
-from grpc_getting_started.server_communicate_sender import Send, SendVoice
+from grpc_getting_started.server_communicate_sender import Send
 
 import sounddevice as sd
 import numpy as np

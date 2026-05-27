@@ -7,7 +7,7 @@ from config import PROJECT_ROOT
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from grpc_getting_started.server_communicate_sender import SendVoice
+from grpc_getting_started.server_communicate_sender import SendVoice, GetPendingMessages
 
 STORAGE = PROJECT_ROOT / "storage"
 STORAGE.mkdir(parents=True, exist_ok=True)
@@ -57,8 +57,8 @@ def set_my_id(value: int | None = None):
     sender: Sender = app.state.sender
     if value == sender.receiver_id: raise ValueError(f"Sender ID and receiver ID cannot be the same")
     sender.user_id = value
-    return {"message": "user_id updated", "user_id": value}
-
+    result = GetPendingMessages(sender.user_id)
+    return result
 
 @app.post("/set_receiver_id")
 def set_receiver_id(value: int | None = None):
