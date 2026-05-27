@@ -13,8 +13,6 @@ from dotenv import load_dotenv
 import io
 import json
 from .server_communicate_connect import set_connection
-from google.protobuf.json_format import MessageToDict
-
 import datetime
 
 def merge_wav_byte(wav_bytes_list, storage: Path | None = None, output_filename="combined") -> Path:
@@ -72,7 +70,7 @@ def GetPendingMessages(user_id):
     for chatroom_item in chatroom_items.lists:
         chatroom_list = []
         for chat_item in chatroom_item.items:
-            chatroom_list.append(MessageToDict(chat_item, preserving_proto_field_name=True))
+            chatroom_list.append(chat_item)
         chatroom_lists.append(chatroom_list)
 
     return chatroom_lists # list list dict
