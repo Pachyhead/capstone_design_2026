@@ -31,6 +31,13 @@ export function ChatDetail() {
   const { activeProfile } = useProfiles();
   const { inbox, refresh } = useInbox();
 
+  // 채팅방 진입/전환 시 백엔드 수신자(receiver_id)를 현재 상대로 맞춘다.
+  useEffect(() => {
+    api.setReceiverId(conversation.backendId).catch((err) =>
+      console.warn('[api] setReceiverId failed:', err),
+    );
+  }, [conversation.backendId]);
+
   useEffect(() => {
     const bucket = inbox[conversation.backendId as 0 | 1 | 2 | 3] ?? [];
     if (!bucket.length) return;
