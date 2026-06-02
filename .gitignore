@@ -223,3 +223,8 @@ sender/uv.lock
 DataBase/data/*
 qwen_tts_api/checkpoint-epoch-1/*
 grpc_getting_started/DataBase/*
+
+# receiver
+receiver/storage/*
+
+notebooks/

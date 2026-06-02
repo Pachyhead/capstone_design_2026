@@ -18,7 +18,6 @@ export function EmotionArc({ messages, variant = 'light' }: Props) {
   if (messages.length === 0) return null;
 
   const labelColor = isDark ? 'rgba(255,255,255,0.55)' : '#9B8E7B';
-  const subColor = isDark ? 'rgba(255,255,255,0.35)' : '#C8BCAA';
   const borderColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(20,19,15,0.06)';
   const trackBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(20,19,15,0.04)';
 
@@ -30,9 +29,6 @@ export function EmotionArc({ messages, variant = 'light' }: Props) {
       <div className="flex items-center gap-3">
         <span className="text-[11px] tracking-wider font-medium" style={{ color: labelColor }}>
           감정 흐름
-        </span>
-        <span className="text-[11px]" style={{ color: subColor }}>
-          {messages.length}개 메시지 · {messages[0].sentAt} → {messages[messages.length - 1].sentAt}
         </span>
       </div>
       <div
