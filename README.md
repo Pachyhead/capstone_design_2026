@@ -10,6 +10,14 @@
 
 
 <br />
+
+<p><sub>음성의 <b>텍스트</b> · <b>감정</b> 분리를 통한 저트래픽 음성 통신 </sub></p>
+
+<a href="https://pachyhead.github.io/capstone_design_2026/">
+  <img src="https://img.shields.io/badge/▶%20발표%20보기-Open%20Slides-34d3c0?style=for-the-badge&labelColor=0a0d13" alt="발표 보기" height="40" />
+</a>
+
+
 <br />
 
 ## 👥 Team Members
