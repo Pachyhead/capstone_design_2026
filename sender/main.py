@@ -55,9 +55,13 @@ def set_my_id(value: int | None = None):
     if value is None:
         raise HTTPException(status_code=400, detail="value is required. range is [0, 3]")
     sender: Sender = app.state.sender
-    if value == sender.receiver_id: raise ValueError(f"Sender ID and receiver ID cannot be the same")
+    if value == sender.peer_id: raise ValueError(f"Sender ID and receiver ID cannot be the same")
     sender.user_id = value
-    result = GetPendingMessages(sender.user_id)
+    try:
+        result = GetPendingMessages(str(sender.user_id))
+    except Exception as e:
+        raise Exception(f"getpending message: {e}")
+    print(result)
     return result
 
 @app.post("/set_receiver_id")

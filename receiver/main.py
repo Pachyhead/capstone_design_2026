@@ -36,8 +36,10 @@ def set_my_id(my_id: int | None = None):
     if my_id is None: raise HTTPException(status_code=400, detail="your id is required. range is [0, 3]")
     receiver: Receiver = app.state.receiver
     receiver.user_id = my_id
-
-    result = receiver.get_pending_messages()
+    try:
+        result = receiver.get_pending_messages()
+    except Exception as e:
+        raise Exception(f"get_pending_message: {e}")
 
     return result
 
