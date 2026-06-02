@@ -222,8 +222,11 @@ class FileSpeechHandler(AbstractSpeechHandler):
     def get_pending_metadata(self, user_id: str) -> list[list[dict]]:
         int_user_id = int(user_id)
         
+        try:
         # 1. DBManager를 통해 특정 유저의 ChatTable 객체 리스트를 가져옵니다.
-        chatrooms: list[list[dict]] = self.dbmanager.get_chats_by_user_id(int_user_id)
+            chatrooms: list[list[dict]] = self.dbmanager.get_chats_by_user_id(int_user_id)
+        except Exception as e:
+            raise Exception(f"db logic: {e}")
         
         return chatrooms
             

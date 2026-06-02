@@ -222,8 +222,11 @@ class FileSpeechHandler(AbstractSpeechHandler):
     def get_pending_metadata(self, user_id: str) -> list[list[dict]]:
         int_user_id = int(user_id)
         
+        try:
         # 1. DBManager를 통해 특정 유저의 ChatTable 객체 리스트를 가져옵니다.
-        chatrooms: list[list[dict]] = self.dbmanager.get_chats_by_user_id(int_user_id)
+            chatrooms: list[list[dict]] = self.dbmanager.get_chats_by_user_id(int_user_id)
+        except Exception as e:
+            raise Exception(f"db logic: {e}")
         
         return chatrooms
             
@@ -241,7 +244,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
         payload = {
             "target_text" : chat_row.massage,
             "ref_audio" : user_row.user_ref_audio_path,
-            "ref_text" : "어쨌든 우리한테 와서 건강하게 지금도 잘 자라고 있으니까",
+            "ref_text" : "안녕하세요, 오늘 날씨가 참 좋아서 산책하기 딱 좋은 날인 것 같네요. 주말에는 보통 집에서 책을 읽거나 가까운 카페에 가서 시간을 보냅니다.",
             "use_emotion" : True,
             "emotion_npy_path" : chat_row.emotion_path
         }
