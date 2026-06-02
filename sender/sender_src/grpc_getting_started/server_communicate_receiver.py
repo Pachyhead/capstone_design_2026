@@ -70,7 +70,16 @@ def GetPendingMessages(user_id):
     for chatroom_item in chatroom_items.lists:
         chatroom_list = []
         for chat_item in chatroom_item.items:
-            chatroom_list.append(chat_item)
+            dict_chat_item = {
+                'message_id': str(chat_item.message_id),
+                'sender_id': str(chat_item.sender_id),
+                'receiver_id': str(chat_item.receiver_id),
+                'message': str(chat_item.message),
+                'emo_type': int(chat_item.emo_type),
+                'send_time': chat_item.send_time.ToDatetime()
+            }
+            #chatroom_list.append(chat_item)
+            chatroom_list.append(dict_chat_item)
         chatroom_lists.append(chatroom_list)
 
     return chatroom_lists # list list dict
