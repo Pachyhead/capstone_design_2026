@@ -6,7 +6,7 @@
 
 <br />
 
-<img src="./assets/fan.gif" width="150px" alt="Team Fan Sticker" />
+<img src="./docs/assets/fan.gif" width="150px" alt="Team Fan Sticker" />
 
 
 <br />
@@ -51,18 +51,6 @@
   </tr>
   <tr>
     <td align="center" width="220px">
-      <a href="https://github.com/TaeWonM">
-        <img src="https://github.com/TaeWonM.png" width="120px" alt="민태원 프로필" style="border-radius: 50%;" />
-        <br />
-        <br />
-        <img src="https://img.shields.io/badge/Member-green?style=flat-square" />
-        <br />
-        <strong>🌀 민태원</strong>
-      </a>
-      <br />
-      <a href="https://github.com/TaeWonM">@TWMin</a>
-    </td>
-    <td align="center" width="220px">
       <a href="https://github.com/KyeongTaek">
         <img src="https://github.com/user-attachments/assets/66b8985c-2e1e-4b3a-865d-488d0899a6bf" width="120px" alt="임경택 프로필" style="border-radius: 50%;" />
         <br />
@@ -73,6 +61,18 @@
       </a>
       <br />
       <a href="https://github.com/KyeongTaek">@KyeongTaek</a>
+    </td>
+    <td align="center" width="220px">
+      <a href="https://github.com/TaeWonM">
+        <img src="https://github.com/TaeWonM.png" width="120px" alt="민태원 프로필" style="border-radius: 50%;" />
+        <br />
+        <br />
+        <img src="https://img.shields.io/badge/Member-green?style=flat-square" />
+        <br />
+        <strong>🌀 민태원</strong>
+      </a>
+      <br />
+      <a href="https://github.com/TaeWonM">@TWMin</a>
     </td>
   </tr>
 </table>
