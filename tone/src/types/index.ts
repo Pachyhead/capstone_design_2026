@@ -22,6 +22,7 @@ export const EMOTION_LABELS: Record<Emotion, string> = {
   other: '기타',
 };
 
+// 'unk'(미상)은 백엔드 오류/미상 폴백값이므로 사용자 선택 목록에서는 제외
 export const AVATAR_EMOTIONS: Emotion[] = [
   'happy',
   'sad',
@@ -29,7 +30,6 @@ export const AVATAR_EMOTIONS: Emotion[] = [
   'angry',
   'fearful',
   'disgusted',
-  'unk',
   'neutral',
   'other',
 ];
