@@ -8,7 +8,11 @@ export class ApiError extends Error {
   }
 }
 
-async function post<T = unknown>(path: string, params?: Record<string, string | number>): Promise<T> {
+async function post<T = unknown>(
+  path: string,
+  params?: Record<string, string | number>,
+  opts?: { silentStatuses?: number[] },
+): Promise<T> {
   const url = new URL(`${BASE}${path}`, window.location.origin);
   if (params) {
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
@@ -29,7 +33,9 @@ async function post<T = unknown>(path: string, params?: Record<string, string | 
     /* keep as text */
   }
   if (!res.ok) {
-    console.warn(`${label} → ${res.status}`, parsed);
+    if (!opts?.silentStatuses?.includes(res.status)) {
+      console.warn(`${label} → ${res.status}`, parsed);
+    }
     throw new ApiError(res.status, path, text || res.statusText);
   }
   console.log(`${label} → ${res.status}`, parsed);
@@ -102,9 +108,25 @@ export function audioUrl(path: string): string {
   return `${BASE}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
+// set_receiver_id는 sender 서버 전용. receiver 서버(receiver/main.py)엔 없어 405가 난다.
+// 첫 405를 감지해 이후 호출을 생략한다(같은 dist를 두 서버가 공유 서빙하므로 origin만으론 구분 불가).
+let setReceiverSupported = true;
+
 export const api = {
   setMyId: (id: number) => post<InboxBuckets>('/set_my_id', { value: id, my_id: id }),
-  setReceiverId: (id: number) => post('/set_receiver_id', { value: id }),
+  setReceiverId: async (id: number) => {
+    if (!setReceiverSupported) return;
+    try {
+      return await post('/set_receiver_id', { value: id }, { silentStatuses: [405] });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 405) {
+        setReceiverSupported = false;
+        console.info('[api] /set_receiver_id 미지원 서버(receiver) 감지 — 이후 호출 생략');
+        return;
+      }
+      throw err;
+    }
+  },
   startRecording: () => post<StartRecordingResult>('/start_recording'),
   stopRecording: () => post<RecordResult>('/stop_recording'),
   send: (message: string) => post('/send', { message }),
