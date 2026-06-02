@@ -337,12 +337,6 @@ function TextModeView({
                   <div className="flex items-center gap-2 mb-2">
                     <PlayButton emotion={m.emotion.primary} size={26} variant="light" messageId={m.id} />
                     <EmotionWaveform emotion={m.emotion.primary} energy={m.energy} height={22} />
-                    <span
-                      className="text-[11px] font-mono flex-shrink-0"
-                      style={{ color: palette.deep, opacity: 0.7 }}
-                    >
-                      {m.durationSec.toFixed(1)}s
-                    </span>
                   </div>
                   <p
                     className="text-[14px] leading-snug font-medium m-0 mb-2"
@@ -468,12 +462,6 @@ function VoiceModeView({
                       height={22}
                       variant="dark"
                     />
-                    <span
-                      className="text-[11px] font-mono flex-shrink-0 text-white"
-                      style={{ opacity: 0.5 }}
-                    >
-                      {m.durationSec.toFixed(1)}s
-                    </span>
                   </div>
                   <p
                     className="text-[12px] leading-snug m-0 mb-1"

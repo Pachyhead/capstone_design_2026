@@ -21,13 +21,15 @@ function formatSentAt(raw: string | undefined): string {
 function backendToMessage(
   rec: ReceivedMessage,
   conversationId: string,
+  myBackendId?: BackendId,
   peerName?: string,
 ): Message {
+  const isMine = myBackendId != null && String(rec.sender_id) === String(myBackendId);
   return {
     id: rec.message_id,
     conversationId,
-    authorId: String(rec.sender_id),
-    authorName: peerName,
+    authorId: isMine ? 'me' : String(rec.sender_id),
+    authorName: isMine ? undefined : peerName,
     text: rec.message,
     emotion: { primary: emotionFromBackend(rec.emo_type) },
     durationSec: 0,
@@ -41,11 +43,12 @@ function backendToMessage(
 // `conversationId` is the front-end-side string id (used for filtering only).
 export function useMessages(peerBackendId: BackendId, conversationId: string): MessagesHook {
   const { inbox } = useInbox();
-  const { profiles } = useProfiles();
+  const { profiles, activeProfile } = useProfiles();
   const peerName = profiles.find((p) => p.backendId === peerBackendId)?.name;
+  const myBackendId = activeProfile?.backendId;
 
   const base: Message[] = (inbox[peerBackendId] ?? []).map((rec) =>
-    backendToMessage(rec, conversationId, peerName),
+    backendToMessage(rec, conversationId, myBackendId, peerName),
   );
 
   // Local echo for messages the user just sent — backend's inbox is incoming-only,

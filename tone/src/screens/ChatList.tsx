@@ -66,7 +66,9 @@ export function ChatList() {
           const bucket = inbox[conv.backendId as BackendId] ?? [];
           const last = bucket.length ? bucket[bucket.length - 1] : null;
           const previewText = last?.message ?? '';
-          const previewEmotion = last ? emotionFromBackend(last.emo_type) : 'neutral';
+          const previewEmotion = last
+            ? emotionFromBackend(last.emo_type)
+            : conv.lastMessage.emotion.primary;
           const previewSentAt = formatSentAt(last?.send_time);
           const palette = paletteFor(previewEmotion);
 

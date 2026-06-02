@@ -58,7 +58,8 @@ export interface PlayVoiceResult {
 
 export interface ReceivedMessage {
   message_id: string;
-  sender_id: number;
+  sender_id: number | string;
+  receiver_id: number | string;
   message: string;
   emo_type: number | string;
   send_time: string;
