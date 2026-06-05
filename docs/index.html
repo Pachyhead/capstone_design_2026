@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* 밝고 시원한 테마 (선풍기) */
     --bg1:#eaf4f6;
     --bg2:#dceaef;
     --stage:#ffffff;
@@ -138,6 +137,17 @@
   .chip small{color:var(--muted);font-size:13px;letter-spacing:.04em}
   .op{font-size:30px;color:var(--faint);font-weight:300}
 
+  /* scene cards (problem slide) - 칸을 나눠 이미지·글 분리, 가장자리까지 꽉 채움 */
+  .chip.scene{display:flex;align-items:stretch;text-align:left;padding:0;min-width:0;overflow:hidden;height:152px}
+  .chip.scene img{width:46%;align-self:stretch;object-fit:cover;flex-shrink:0;display:block;border-right:1px solid var(--line)}
+  .chip.scene>div{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 24px}
+  .chip.scene .tag{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .chip.scene .scene-sub{margin-top:7px;font-size:17px;color:var(--text);line-height:1.4}
+  .chip.scene.s-warm>div{background:rgba(255,122,92,.07)}
+  .chip.scene.s-warm .tag{color:var(--warm)}
+  .chip.scene.s-cool>div{background:rgba(10,163,181,.07)}
+  .chip.scene.s-cool .tag{color:var(--cool)}
+
   /* feature list */
   .flist{list-style:none;display:flex;flex-direction:column;gap:22px}
   .flist li{display:flex;gap:18px;align-items:flex-start;font-size:21px;line-height:1.5}
@@ -151,8 +161,8 @@
   .slide.compact-left .stack{gap:15px}
   .slide.compact-left h2{font-size:32px;line-height:1.12}
   .slide.compact-left .flist{gap:12px}
-  .slide.compact-left .flist li{font-size:17px;line-height:1.4}
-  .slide.compact-left .flist .ic{font-size:13px}
+  .slide.compact-left .flist li{font-size:19px;line-height:1.4}
+  .slide.compact-left .flist .ic{font-size:14px}
   .slide.compact-left .mono{font-size:13px !important}
 
   /* cards (scope) */
@@ -197,6 +207,7 @@
   .diag .t{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--warm);margin-bottom:10px;font-weight:600}
   .diag p{color:var(--muted);font-weight:400;line-height:1.55;font-size:18px}
   .diag b{color:var(--ink);font-weight:600}
+  .tag{font-size:.8em;color:var(--faint)}
 
   /* architecture diagram (slide 4) */
   .arch{display:flex;flex-direction:column;gap:14px;margin-top:6px}
@@ -309,7 +320,7 @@
   <div class="deck" id="deck">
 
   <!-- 1 · TITLE -->
-  <section class="slide" data-note="[10s] 인사 + 주제 한 줄. '소리를 보내지 않고, 소리를 만들 정보만 보내는 통신입니다.' 팀 이름은 선풍기 — 시원하게 보내는 음성.">
+  <section class="slide" data-note="[10s] 인사 + 주제 한 줄. '소리를 보내지 않고, 소리를 만들 정보만 보내는 통신입니다.' 팀 이름은 선풍기 - 시원하게 보내는 음성.">
     <img class="fan-hero" src="assets/fan.gif" alt="선풍기 팀 마스코트" data-r style="--i:2">
     <div class="title-wrap">
       <div class="kicker" data-r style="--i:0">2026 캡스톤디자인 · 중간 발표 · 선풍기 🌀</div>
@@ -322,19 +333,38 @@
   </section>
 
   <!-- 2 · PROBLEM -->
-  <section class="slide" data-note="[35s] VoLTE는 파형 자체를 압축·전송. 위성/재난/해상에선 이 대역폭이 곧 비용·병목. 발상의 전환을 던진다.">
+  <section class="slide" data-note="[40s] ①훅(15s): 기지국 끊긴 재난 현장 · 위성 회선 하나의 원양 선박 - 공통점은 음성 통화 한 통이 사치라는 것. 대역폭이 곧 비용이고 병목. ②한계(20s): VoLTE는 파형 자체를 압축·전송 → 비트레이트와 음질이 묶여 있어 통화 품질엔 수천~만 bps 필요, 수백 bps까지 줄이면 음질 붕괴. '파형을 전송한다'는 전제가 만드는 트레이드오프. ③전환(5s): 그래서 질문을 바꿨다 - 소리를 꼭 보내야 할까? 만들 정보만 보내면 되지 않을까? → 다음 슬라이드로.">
     <div class="eyebrow" data-r style="--i:0"><span class="num">01</span> 배경 및 문제</div>
-    <div class="two-col">
-      <div class="stack">
-        <h2 data-r style="--i:1">지금의 음성 통화는<br>‘소리 자체’를 보낸다</h2>
-        <p class="lead" data-r style="--i:2">VoLTE(AMR-WB)는 오디오 파형을 압축해 그대로 전송합니다. 대역폭이 극도로 제한된 위성·재난·해상 환경에선 이 비용이 곧 병목이 됩니다.</p>
-        <div data-r style="--i:3">
-          <div class="bignum">12,650<span class="u">bps</span></div>
-          <div class="mono" style="color:var(--faint);font-size:15px;margin-top:8px;letter-spacing:.04em">VoLTE(AMR-WB)의 대표 음성 비트레이트</div>
+    <div class="two-col" style="align-items:start;grid-template-columns:.9fr 1.1fr;gap:56px">
+      <div data-r style="--i:1;display:flex;flex-direction:column;gap:16px">
+        <div class="tag" style="margin-bottom:2px">배경 - 대역폭이 곧 비용인 환경</div>
+        <div class="chip scene s-warm">
+          <img src="assets/disaster.png" alt="재난 현장">
+          <div>
+            <div class="tag">재난 현장</div>
+            <div class="scene-sub">기지국이 끊긴 통신망</div>
+          </div>
+        </div>
+        <div class="chip scene s-cool">
+          <img src="assets/ship.png" alt="원양 선박">
+          <div>
+            <div class="tag">원양 선박</div>
+            <div class="scene-sub">위성 회선 하나에 의존</div>
+          </div>
         </div>
       </div>
-      <div class="quote" data-r style="--i:4">“소리를 보내지 말고,<br>소리를 <span class="cool">만들 정보</span>만 보내자.”</div>
+      <div class="stack" style="gap:18px">
+        <div class="tag" data-r style="--i:2;margin-bottom:2px">문제 - 파형 전송의 트레이드오프</div>
+        <h2 data-r style="--i:2;font-size:31px">지금의 음성 통화는<br>‘소리 자체’를 보낸다</h2>
+        <p class="lead" data-r style="--i:3;font-size:19px">파형을 보내는 한, <strong style="color:var(--ink)">비트레이트를 낮추면 음질도 함께 무너집니다.</strong></p>
+        <div data-r style="--i:4">
+          <div class="bignum" style="font-size:62px">12,650<span class="u">bps</span></div>
+          <div class="mono" style="color:var(--faint);font-size:14px;margin-top:6px;letter-spacing:.04em">현재 스마트폰 음성통화 방식(VoLTE · AMR-WB 코덱)의 대표 비트레이트</div>
+          <div class="mono" style="color:var(--warm);font-size:13.5px;margin-top:10px;letter-spacing:.02em">수백 bps 초저대역 코덱(Codec2 등)은 존재하지만 <b>음질이 붕괴</b></div>
+        </div>
+      </div>
     </div>
+    <div class="quote" data-r style="--i:5;font-size:27px;max-width:none;margin-top:34px">소리를 <span class="cool">다시 만들 정보</span>만 보내면 되지 않을까?</div>
   </section>
 
   <!-- 3 · IDEA -->
@@ -343,11 +373,11 @@
     <div class="two-col">
       <div class="stack">
         <h2 data-r style="--i:1">음성을 두 성분으로 분리한다</h2>
-        <p class="lead" data-r style="--i:2;font-size:18px">텍스트만 보내면 <span class="warm">감정이 사라집니다</span> — 그 감정을 단 <b style="color:var(--ink)">24bit</b>로 함께 보내는 게 핵심.</p>
+        <p class="lead" data-r style="--i:2;font-size:18px">텍스트만 보내면 <span class="warm">감정이 사라집니다</span><br>- 그 감정을 단 <b style="color:var(--ink)">24bit</b>로 함께 보내는 게 핵심</p>
         <ul class="flist" data-r style="--i:3">
-          <li><span class="ic">TXT</span><div><b><span class="cool">텍스트</span> — 무엇을 말했나</b><span class="sub">Whisper STT로 추출 · 메시지마다 가변</span></div></li>
-          <li><span class="ic warm-ic">EMO</span><div><b><span class="warm">감정</span> — 어떻게 말했나</b><span class="sub">emotion2vec로 추출 · 24bit 고정 코드 (톤·운율 등 준언어 정보)</span></div></li>
-          <li><span class="ic">VOX</span><div><b>화자 목소리 — 미리 등록</b><span class="sub">통화 전 화자 프로필(ref 음성)로 등록 → 전송 불필요</span></div></li>
+          <li><span class="ic">TXT</span><div><b><span class="cool">텍스트</span> - 무엇을 말했나</b><span class="sub">Whisper STT로 추출 · 메시지마다 가변</span></div></li>
+          <li><span class="ic warm-ic">EMO</span><div><b><span class="warm">감정</span> - 어떻게 말했나</b><span class="sub">emotion2vec로 추출 · 24bit 고정 코드 (톤·운율 등 준언어 정보)</span></div></li>
+          <li><span class="ic">VOX</span><div><b>화자 목소리 - 미리 등록</b><span class="sub">통화 전 화자 프로필(ref 음성)로 등록 → 전송 불필요</span></div></li>
         </ul>
       </div>
       <div class="stack" data-r style="--i:3;align-items:center">
@@ -365,10 +395,10 @@
   </section>
 
   <!-- 4 · ARCHITECTURE -->
-  <section class="slide" data-note="[25s · 빠르게 짚고] 1학기 sender/receiver 메신저로 통합 구현 완료. 송신 단말: 녹음→VAD→Whisper STT + emotion2vec→FSQ 인코딩(8지수=24bit). gRPC로 중앙 서버(+MySQL) 전송 — 텍스트+24bit만. 서버: 저장·FSQ 복원(→1024d). 재생 요청 시 서버가 Qwen3-TTS(별도 GPU 도커)에 텍스트+화자 ref+감정 보내 합성, 스트리밍을 수신 단말이 재생. 파형은 링크를 안 지난다.">
-    <div class="eyebrow" data-r style="--i:0"><span class="num">03</span> 시스템 전체 구조</div>
+  <section class="slide" data-note="[45s] 1학기 송신→서버→수신 end-to-end 통합 구현 완료(메신저). 송신 단말: 녹음→ Whisper STT + emotion2vec→FSQ 인코딩(8지수=24bit). ①전송 계층은 gRPC - 링크엔 텍스트+24bit만. 서버는 메시지·감정 코드를 MySQL에 저장했다가 재생 요청 시 FSQ 복원(→1024d) 후 Qwen3-TTS(별도 GPU 도커)에 텍스트+화자 ref+감정을 보내 합성. ②합성 음성은 gRPC 서버사이드 스트리밍으로 프레임 단위 전달 - 통째로 받지 않아 체감 지연 최소화. 핵심 문장: 파형은 링크를 안 지난다.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">03</span> 시스템 전체 구조<span style="margin-left:auto;font-size:12px;letter-spacing:.08em;color:var(--cool);border:1px solid currentColor;border-radius:999px;padding:4px 12px">1학기 · 송신→서버→수신 통합 완료</span></div>
     <div class="arch" data-r style="--i:1">
-      <svg viewBox="0 30 1120 426" width="100%" style="max-height:430px" font-family="IBM Plex Sans KR">
+      <svg viewBox="0 30 1120 392" width="100%" style="max-height:430px" font-family="IBM Plex Sans KR">
         <defs>
           <marker id="ac" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#0aa3b5"/></marker>
           <marker id="aw" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#ff7a5c"/></marker>
@@ -380,9 +410,9 @@
         <rect x="16" y="36" width="364" height="190" rx="16" fill="#f1f8fa" stroke="#0aa3b5" stroke-width="1.6"/>
         <rect x="16" y="36" width="364" height="6" rx="3" fill="#0aa3b5"/>
         <text x="32" y="62" font-family="IBM Plex Mono" font-size="12" letter-spacing=".08em" fill="#5f7a84">SENDER · 송신 단말</text>
-        <!-- 녹음·VAD 소스 -->
+        <!-- 녹음 소스 -->
         <rect x="30" y="112" width="74" height="34" rx="9" fill="#eef7f9" stroke="#0aa3b5"/>
-        <text x="67" y="133" text-anchor="middle" font-size="12" fill="#123038">녹음·VAD</text>
+        <text x="67" y="133" text-anchor="middle" font-size="12" fill="#123038">녹음</text>
         <!-- 분기: 위(텍스트) / 아래(감정) -->
         <path d="M104 122 C124 118 124 99 138 95" fill="none" stroke="#9fb9c0" stroke-width="1.3" marker-end="url(#af)"/>
         <path d="M104 138 C120 150 110 161 120 165" fill="none" stroke="#9fb9c0" stroke-width="1.3" marker-end="url(#af)"/>
@@ -433,7 +463,8 @@
         <!-- ============ SERVER → RECEIVER (합성 음성 스트림) ============ -->
         <line x1="730" y1="131" x2="796" y2="131" stroke="#3f9fd6" stroke-width="2.6" marker-end="url(#a2)"/>
         <text x="763" y="116" text-anchor="middle" font-size="11" fill="#5f7a84">합성 음성</text>
-        <text x="763" y="151" text-anchor="middle" font-size="11" fill="#3f9fd6" font-weight="600">스트리밍</text>
+        <text x="763" y="151" text-anchor="middle" font-size="11" fill="#3f9fd6" font-weight="600">gRPC 스트리밍</text>
+        <text x="763" y="166" text-anchor="middle" font-size="9.5" fill="#577079">프레임 단위 전달</text>
 
         <!-- ============ RECEIVER · 수신 단말 ============ -->
         <rect x="800" y="36" width="304" height="190" rx="16" fill="#f1f8fa" stroke="#7d96a0" stroke-width="1.6"/>
@@ -457,7 +488,7 @@
         <!-- ============ QWEN3-TTS · GPU 도커 ============ -->
         <rect x="400" y="266" width="400" height="138" rx="14" fill="#fff4f1" stroke="#ff7a5c" stroke-width="1.6"/>
         <line x1="400" y1="290" x2="800" y2="290" stroke="#ffd0c4" stroke-width="1"/>
-        <text x="416" y="283" font-family="IBM Plex Mono" font-size="12" letter-spacing=".06em" fill="#5f7a84">GPU 도커 (서버가 호출)</text>
+        <text x="416" y="283" font-family="IBM Plex Mono" font-size="12" letter-spacing=".06em" fill="#5f7a84">API 호출 · 별도 GPU 도커</text>
         <!-- 입력 칩 -->
         <rect x="412" y="300" width="104" height="22" rx="7" fill="#ffffff" stroke="#ffd0c4"/>
         <text x="464" y="315" text-anchor="middle" font-size="10.5" fill="#123038">텍스트</text>
@@ -465,28 +496,16 @@
         <text x="464" y="344" text-anchor="middle" font-size="9.5" fill="#123038">화자 임베딩 2048d</text>
         <rect x="412" y="358" width="104" height="22" rx="7" fill="#ffffff" stroke="#ffd0c4"/>
         <text x="464" y="373" text-anchor="middle" font-size="10.5" fill="#123038">감정 1024d</text>
-        <!-- 감정 1024d → EmotionProjector → 2048d -->
-        <rect x="532" y="351" width="118" height="36" rx="9" fill="#ffffff" stroke="#ff7a5c"/>
-        <text x="591" y="369" text-anchor="middle" font-size="10.5" fill="#ff7a5c" font-weight="600">EmotionProjector</text>
-        <text x="591" y="381" text-anchor="middle" font-size="8.5" fill="#577079">1024→2048 · zero-init</text>
-        <line x1="516" y1="369" x2="530" y2="369" stroke="#ff7a5c" stroke-width="1.4" marker-end="url(#aw)"/>
-        <!-- ⊕ additive : EmotionProjector(2048d) + 화자 임베딩(2048d) -->
-        <circle cx="686" cy="352" r="14" fill="#ffffff" stroke="#ff7a5c" stroke-width="1.6"/>
-        <text x="686" y="358" text-anchor="middle" font-size="17" fill="#ff7a5c" font-weight="700">+</text>
-        <text x="686" y="383" text-anchor="middle" font-size="8.5" fill="#577079">화자 ⊕ 감정</text>
-        <line x1="650" y1="368" x2="672" y2="357" stroke="#ff7a5c" stroke-width="1.4" marker-end="url(#aw)"/>
-        <path d="M516 340 C566 336 638 344 672 350" fill="none" stroke="#7d96a0" stroke-width="1.3" marker-end="url(#af)"/>
-        <!-- Qwen3-TTS (frozen) + LoRA -->
-        <rect x="712" y="326" width="80" height="50" rx="9" fill="#ffece6" stroke="#ff7a5c"/>
-        <text x="752" y="345" text-anchor="middle" font-size="11" fill="#c0573c" font-weight="700">Qwen3-TTS</text>
-        <text x="752" y="358" text-anchor="middle" font-size="9" fill="#577079">(frozen)</text>
-        <text x="752" y="369" text-anchor="middle" font-size="9" fill="#577079">+ LoRA</text>
-        <line x1="700" y1="351" x2="710" y2="351" stroke="#ff7a5c" stroke-width="1.4" marker-end="url(#aw)"/>
-        <path d="M516 311 C612 300 668 318 710 334" fill="none" stroke="#0aa3b5" stroke-width="1.3" marker-end="url(#ac)"/>
-
-        <!-- ============ 배너 ============ -->
-        <rect x="16" y="420" width="1088" height="30" rx="10" fill="#e9f3f5" stroke="#0aa3b5" stroke-width="1.2" stroke-dasharray="6 4"/>
-        <text x="560" y="440" text-anchor="middle" font-size="13" fill="#0aa3b5">네트워크 링크엔 <tspan fill="#123038" font-weight="600">텍스트 + 24bit 감정</tspan>만 흐른다 — 파형은 통과하지 않음</text>
+        <!-- Qwen3-TTS (추상화 · 내부 구조는 슬라이드 05에서 상세) -->
+        <path d="M516 311 L528 311" fill="none" stroke="#7d96a0" stroke-width="1.2"/>
+        <path d="M516 340 L528 340" fill="none" stroke="#7d96a0" stroke-width="1.2"/>
+        <path d="M516 369 L528 369" fill="none" stroke="#7d96a0" stroke-width="1.2"/>
+        <line x1="528" y1="311" x2="528" y2="369" stroke="#7d96a0" stroke-width="1.2"/>
+        <line x1="528" y1="340" x2="590" y2="340" stroke="#7d96a0" stroke-width="1.4" marker-end="url(#af)"/>
+        <rect x="592" y="312" width="186" height="58" rx="11" fill="#ffece6" stroke="#ff7a5c" stroke-width="1.6"/>
+        <text x="685" y="335" text-anchor="middle" font-size="13" fill="#c0573c" font-weight="700">Qwen3-TTS</text>
+        <text x="685" y="349" text-anchor="middle" font-size="9" fill="#577079">텍스트·화자·감정 → 음성 합성</text>
+        <text x="685" y="362" text-anchor="middle" font-size="8.5" fill="#9aa8ad">상세 구조 → 슬라이드 05</text>
       </svg>
     </div>
   </section>
@@ -496,13 +515,13 @@
     <div class="eyebrow" data-r style="--i:0"><span class="num">04</span> 성과 ① · 감정 압축</div>
     <div class="two-col">
       <div class="stack">
-        <h2 data-r style="--i:1">1024차원을 <span class="warm">24비트</span>로<br>— <span class="cool">격자에 스냅</span></h2>
+        <h2 data-r style="--i:1">1024차원을 <span class="warm">24비트</span>로<br>- <span class="cool">격자에 스냅</span></h2>
         <ul class="flist" data-r style="--i:2">
           <li><span class="ic">01</span><div><b>emotion2vec 1024-d → 인코더 → <span class="cool">8차원 연속값</span></b></div></li>
           <li><span class="ic">02</span><div><b>각 차원을 <span class="cool">8레벨 격자에 반올림(스냅)</span> → 격자점 8⁸ ≈ 1,677만 가지 → <span class="warm">log₂(8⁸) = 24bit</span></b><span class="sub">8차원 × 8레벨 · 학습된 코드북 없이 격자 좌표가 곧 코드</span></div></li>
-          <li><span class="ic warm-ic">03</span><div><b>손실 = MSE + <span class="warm">0.5·KL</span></b><span class="sub">KL이 원본·복원의 감정 분류 분포를 직접 맞춤 — 감정 보존의 핵심</span></div></li>
+          <li><span class="ic warm-ic">03</span><div><b>손실 = MSE + <span class="warm">0.5·KL</span></b><span class="sub">KL이 원본·복원의 감정 분류 분포를 직접 맞춤 - 감정 보존의 핵심</span></div></li>
         </ul>
-        <div class="mono" data-r style="--i:3;color:var(--muted);font-size:13.5px;margin-top:4px">감정 분류 보존 <b style="color:var(--ink)">97.64%</b> · 복원 코사인 <b style="color:var(--ink)">99.33%</b> · <b style="color:var(--ink)">24bit</b>가 정보량 <span style="white-space:nowrap">sweet&nbsp;spot</span></div>
+        <div class="mono" data-r style="--i:3;color:var(--muted);font-size:16px !important;margin-top:8px">감정 분류 보존 <b style="color:var(--ink)">97.64%</b> · 복원 코사인 <b style="color:var(--ink)">99.33%</b> · <b style="color:var(--ink)">24bit</b>가 정보량 <span style="white-space:nowrap">sweet&nbsp;spot</span></div>
       </div>
       <div data-r style="--i:4;display:flex;flex-direction:column;gap:14px;align-items:center">
         <!-- FSQ-AE · 대칭 오토인코더 (인코더 ▷ FSQ ◁ 디코더) -->
@@ -579,153 +598,327 @@
         </svg>
       </div>
     </div>
-    <div class="cite" data-r style="--i:5">FSQ — Mentzer et al., <b>“Finite Scalar Quantization: VQ-VAE Made Simple”</b> · ICLR 2024 · arXiv:2309.15505</div>
+    <div class="cite" data-r style="--i:5">FSQ - Mentzer et al., <b>“Finite Scalar Quantization: VQ-VAE Made Simple”</b> · ICLR 2024 · arXiv:2309.15505</div>
   </section>
 
   <!-- 7 · RESULT 2 -->
-  <section class="slide" data-note="[50s] 핵심: 감정 임베딩을 '화자 임베딩'에 더한다(additive). 화자 임베딩은 등록된 ref 음성을 speaker encoder에 통과시켜 얻음(2048d). EmotionProjector(1024→2048)는 zero-init → 학습 시작 시 출력 0이라 baseline과 bit-exact. 더한 결과를 codec 시퀀스 position 6 토큰으로 주입. backbone(talker)은 frozen, EmotionProjector+LoRA만 학습(소수 파라미터). 그래서 같은 텍스트·같은 화자라도 감정 따라 억양·속도가 달라진다.">
+  <section class="slide" data-note="[50s] 핵심: 감정 임베딩을 '화자 임베딩'에 더한다. 화자 임베딩은 등록된 ref 음성을 speaker encoder에 통과시켜 얻음(2048d). EmotionProjector(1024→2048)는 zero-init → 학습 시작 시 출력 0이라 baseline과 bit-exact. 더한 결과를 codec 시퀀스 position 6 토큰으로 주입. backbone(talker)은 frozen, EmotionProjector+LoRA만 학습(소수 파라미터). 그래서 같은 텍스트·같은 화자라도 감정 따라 억양·속도가 달라진다.">
     <div class="eyebrow" data-r style="--i:0"><span class="num">05</span> 성과 ② · 감정 조건부 합성</div>
     <div class="two-col" style="grid-template-columns:1fr 1fr;align-items:start">
       <div class="stack">
         <h2 data-r style="--i:1;font-size:30px">감정을 <span class="warm">화자 임베딩</span>에 더해 넣는다</h2>
+        <p data-r style="--i:1;font-size:16px;color:var(--muted);margin-top:-10px;line-height:1.5"><b style="color:var(--ink)">목표</b> · 고차원 <span class="warm">감정 벡터 주입</span>을 통한 감정 표현</p>
         <ul class="flist" data-r style="--i:2">
           <li><span class="ic">01</span><div><b>화자 임베딩은 등록된 <span class="cool">ref 음성</span>에서</b><span class="sub">speaker encoder가 ref 음성 → 화자 임베딩(2048d) 추출</span></div></li>
-          <li><span class="ic warm-ic">02</span><div><b>감정을 <span class="warm">더한다</span> (additive)</b><span class="sub">EmotionProjector(1024→2048, zero-init) 출력을 화자 임베딩에 합산 → 시작 시 baseline과 동일, 안정적 학습</span></div></li>
-          <li><span class="ic">03</span><div><b>backbone은 frozen · 소수 파라미터만 학습</b><span class="sub">talker LM <b style="color:var(--ink)">attention에만 LoRA</b> · <b style="color:var(--ink)">MTP(residual codec)는 frozen</b> · 학습 = EmotionProjector + LoRA ≈ 9M</span></div></li>
+          <li><span class="ic warm-ic">02</span><div><b>감정을 <span class="warm">더한다</span></b><span class="sub">EmotionProjector(1024→2048, zero-init) 출력을 화자 임베딩에 합산 → 시작 시 baseline과 동일, 안정적 학습</span></div></li>
+          <li><span class="ic">03</span><div><b>backbone은 frozen · 소수 파라미터만 학습</b><span class="sub">talker LM <b style="color:var(--ink)">attention에만 LoRA</b> · 학습 = EmotionProjector + LoRA ≈ 9M</span></div></li>
         </ul>
       </div>
       <div data-r style="--i:3">
-        <svg viewBox="0 0 420 378" width="100%" style="max-height:384px" font-family="IBM Plex Sans KR">
+        <svg viewBox="0 0 480 384" width="100%" style="max-height:404px" font-family="IBM Plex Sans KR">
           <defs>
-            <marker id="q2c" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#0aa3b5"/></marker>
-            <marker id="q2w" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#ff7a5c"/></marker>
-            <marker id="q22" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#3f9fd6"/></marker>
+            <marker id="ac" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#5f7a84"/></marker>
+            <marker id="aw" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#ff7a5c"/></marker>
+            <marker id="ag" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#38b07a"/></marker>
           </defs>
-          <!-- 입력: 화자 ref -->
-          <rect x="10" y="12" width="188" height="46" rx="11" fill="#f1f8fa" stroke="#0aa3b5" stroke-width="1.5"/>
-          <rect x="10" y="12" width="188" height="5" rx="2.5" fill="#0aa3b5"/>
-          <text x="104" y="32" text-anchor="middle" font-size="13" fill="#0aa3b5" font-weight="600">화자 ref 음성</text>
-          <text x="104" y="49" text-anchor="middle" font-size="10" fill="#577079">Speaker Encoder → 2048d</text>
-          <!-- 입력: 감정 -->
-          <rect x="222" y="12" width="188" height="46" rx="11" fill="#fff4f1" stroke="#ff7a5c" stroke-width="1.5"/>
-          <rect x="222" y="12" width="188" height="5" rx="2.5" fill="#ff7a5c"/>
-          <text x="316" y="32" text-anchor="middle" font-size="13" fill="#ff7a5c" font-weight="600">감정 1024d</text>
-          <text x="316" y="49" text-anchor="middle" font-size="10" fill="#577079">EmotionProjector(학습) → 2048d</text>
-          <!-- → ⊕ -->
-          <path d="M104 58 C104 74 160 80 196 86" fill="none" stroke="#0aa3b5" stroke-width="1.6" marker-end="url(#q2c)"/>
-          <path d="M316 58 C316 74 260 80 224 86" fill="none" stroke="#ff7a5c" stroke-width="1.6" marker-end="url(#q2w)"/>
-          <circle cx="210" cy="92" r="15" fill="#ffffff" stroke="#ff7a5c" stroke-width="1.7"/>
-          <text x="210" y="99" text-anchor="middle" font-size="20" fill="#ff7a5c" font-weight="700">+</text>
-          <text x="238" y="101" text-anchor="start" font-size="9" fill="#577079">additive</text>
-          <text x="238" y="111" text-anchor="start" font-size="9" fill="#577079">2048d</text>
-          <!-- ⊕ → position 6 -->
-          <path d="M210 107 C214 122 232 131 245 137" fill="none" stroke="#ff7a5c" stroke-width="1.6" marker-end="url(#q2w)"/>
-          <text x="118" y="131" text-anchor="middle" font-size="10" fill="#5f7a84">talker 입력 codec 시퀀스</text>
-          <!-- 시퀀스 셀 (position 6 = 조건 강조) -->
-          <rect x="81" y="140" width="24" height="22" rx="4" fill="#eef3f5" stroke="#c4d4d8"/>
-          <rect x="107" y="140" width="24" height="22" rx="4" fill="#eef3f5" stroke="#c4d4d8"/>
-          <rect x="133" y="140" width="24" height="22" rx="4" fill="#eef3f5" stroke="#c4d4d8"/>
-          <rect x="159" y="140" width="24" height="22" rx="4" fill="#eef3f5" stroke="#c4d4d8"/>
-          <rect x="185" y="140" width="24" height="22" rx="4" fill="#eef3f5" stroke="#c4d4d8"/>
-          <rect x="211" y="140" width="24" height="22" rx="4" fill="#eef3f5" stroke="#c4d4d8"/>
-          <rect x="237" y="140" width="24" height="22" rx="4" fill="#ffe3da" stroke="#ff7a5c" stroke-width="1.6"/>
-          <text x="249" y="156" text-anchor="middle" font-size="11" fill="#ff7a5c" font-weight="700">6</text>
-          <rect x="263" y="140" width="24" height="22" rx="4" fill="#e3f3f6" stroke="#0aa3b5"/>
-          <rect x="289" y="140" width="24" height="22" rx="4" fill="#e3f3f6" stroke="#0aa3b5"/>
-          <rect x="315" y="140" width="24" height="22" rx="4" fill="#e3f3f6" stroke="#0aa3b5"/>
-          <text x="150" y="177" text-anchor="middle" font-size="8.5" fill="#8aa0a7">0–5 · think/bos</text>
-          <text x="249" y="177" text-anchor="middle" font-size="8.5" fill="#ff7a5c" font-weight="700">6 = speaker⊕emotion</text>
-          <text x="327" y="177" text-anchor="middle" font-size="8.5" fill="#0aa3b5">7+ · 텍스트</text>
-          <!-- 시퀀스 → talker -->
-          <line x1="210" y1="184" x2="210" y2="202" stroke="#3f9fd6" stroke-width="2" marker-end="url(#q22)"/>
-          <!-- Talker LM -->
-          <rect x="46" y="204" width="328" height="48" rx="12" fill="#f1f8fa" stroke="#0aa3b5" stroke-width="1.5"/>
-          <rect x="46" y="204" width="328" height="5" rx="2.5" fill="#0aa3b5"/>
-          <text x="210" y="227" text-anchor="middle" font-size="14" fill="#123038" font-weight="600">Qwen3-TTS Talker LM</text>
-          <text x="210" y="244" text-anchor="middle" font-size="10" fill="#577079">self-attention에 LoRA · backbone frozen</text>
-          <!-- → codec -->
-          <line x1="210" y1="252" x2="210" y2="270" stroke="#0aa3b5" stroke-width="2" marker-end="url(#q2c)"/>
-          <text x="246" y="265" text-anchor="start" font-size="9.5" fill="#577079">codec 토큰</text>
-          <!-- Speech Tokenizer -->
-          <rect x="66" y="272" width="288" height="44" rx="12" fill="#e9f1f9" stroke="#3f9fd6" stroke-width="1.5"/>
-          <rect x="66" y="272" width="288" height="5" rx="2.5" fill="#3f9fd6"/>
-          <text x="210" y="294" text-anchor="middle" font-size="12.5" fill="#123038" font-weight="600">Speech Tokenizer · RVQ decode</text>
-          <text x="210" y="309" text-anchor="middle" font-size="10" fill="#577079">codec 토큰 → 파형 24kHz</text>
-          <!-- → 합성 음성 -->
-          <line x1="210" y1="316" x2="210" y2="334" stroke="#0aa3b5" stroke-width="2" marker-end="url(#q2c)"/>
-          <rect x="120" y="338" width="180" height="32" rx="10" fill="#eef7f9" stroke="#0aa3b5" stroke-width="1.4"/>
-          <text x="210" y="358" text-anchor="middle" font-size="12.5" fill="#0aa3b5" font-weight="600">합성 음성 · 24kHz</text>
+          <text x="236" y="15" text-anchor="middle" font-size="12.5" fill="#123038" font-weight="600">Qwen3-TTS 12Hz Custom Tuning Architecture</text>
+
+          <!-- inputs (data vectors) -->
+          <rect x="8" y="46" width="92" height="30" rx="8" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="54" y="65" text-anchor="middle" font-size="12" fill="#1e3c45">Text</text>
+          <text x="54" y="86" text-anchor="middle" font-size="13" fill="#8aa0a7">&#8942;</text>
+          <rect x="8" y="92" width="92" height="32" rx="8" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="54" y="107" text-anchor="middle" font-size="11" fill="#1e3c45">Prompt</text>
+          <text x="54" y="119" text-anchor="middle" font-size="11" fill="#1e3c45">Audio</text>
+          <path d="M100 61 C116 64 116 83 128 87" fill="none" stroke="#9fb9c0" stroke-width="1.4" marker-end="url(#ac)"/>
+          <path d="M100 108 C116 104 116 93 128 90" fill="none" stroke="#9fb9c0" stroke-width="1.4" marker-end="url(#ac)"/>
+
+          <!-- LM block (frozen) -->
+          <rect x="130" y="40" width="212" height="106" rx="13" fill="#eef3f5" stroke="#8aa0a7" stroke-width="1.4"/>
+          <text x="236" y="57" text-anchor="middle" font-size="11" fill="#123038" font-weight="600">Qwen3-TTS LM Block (12Hz)</text>
+          <rect x="140" y="66" width="120" height="70" rx="9" fill="#e2e8eb" stroke="#9fb1b8"/>
+          <text x="200" y="95" text-anchor="middle" font-size="10" fill="#3a4f57" font-weight="600">Main Transformer</text>
+          <text x="200" y="108" text-anchor="middle" font-size="10" fill="#3a4f57" font-weight="600">Body</text>
+          <text x="200" y="123" text-anchor="middle" font-size="9" fill="#6b7f87">(Frozen)</text>
+          <rect x="268" y="72" width="66" height="46" rx="8" fill="#fff4f1" stroke="#ff7a5c" stroke-width="1.3"/>
+          <text x="301" y="89" text-anchor="middle" font-size="9.5" fill="#ff7a5c" font-weight="700">LoRA</text>
+          <text x="301" y="101" text-anchor="middle" font-size="8.5" fill="#ff7a5c">Params</text>
+          <text x="301" y="112" text-anchor="middle" font-size="7.5" fill="#c0573c">(Trainable)</text>
+          <text x="301" y="133" text-anchor="middle" font-size="7.5" fill="#ff7a5c" font-weight="600">TRAINABLE</text>
+
+          <!-- output -->
+          <line x1="342" y1="92" x2="356" y2="92" stroke="#38b07a" stroke-width="1.6" marker-end="url(#ag)"/>
+          <rect x="358" y="68" width="114" height="48" rx="10" fill="#e9f7ef" stroke="#38b07a" stroke-width="1.3"/>
+          <text x="418" y="86" text-anchor="middle" font-size="9.5" fill="#1e3c45" font-weight="600">Generated 12Hz</text>
+          <text x="418" y="108" text-anchor="middle" font-size="9.5" fill="#1e3c45" font-weight="600">Audio Tokens</text>
+          <text x="416" y="130" text-anchor="middle" font-size="8" fill="#577079">&#8594; RVQ decode &#183; 파형 24kHz</text>
+
+          <!-- summed conditioning vector into LM -->
+          <line x1="248" y1="192" x2="248" y2="148" stroke="#ff7a5c" stroke-width="1.8" marker-end="url(#aw)"/>
+          <text x="256" y="169" text-anchor="start" font-size="8.5" fill="#577079">Summed Conditioning</text>
+          <text x="256" y="180" text-anchor="start" font-size="8.5" fill="#577079">Vector (2048) &#183; TRAIN</text>
+
+          <!-- Add Block -->
+          <rect x="210" y="192" width="76" height="34" rx="9" fill="#ffffff" stroke="#ff7a5c" stroke-width="1.4"/>
+          <text x="248" y="213" text-anchor="middle" font-size="11" fill="#ff7a5c" font-weight="700">&#65291; Add Block</text>
+
+          <!-- Speaker Token -->
+          <rect x="14" y="190" width="104" height="40" rx="9" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="66" y="208" text-anchor="middle" font-size="10.5" fill="#1e3c45" font-weight="600">Speaker Token</text>
+          <text x="66" y="222" text-anchor="middle" font-size="9" fill="#577079">고정 &#183; 2048</text>
+          <line x1="118" y1="209" x2="208" y2="209" stroke="#9fb9c0" stroke-width="1.5" marker-end="url(#ac)"/>
+          <text x="162" y="203" text-anchor="middle" font-size="8.5" fill="#577079">2048</text>
+
+          <!-- Emotion Vector -->
+          <rect x="14" y="250" width="104" height="40" rx="9" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="66" y="268" text-anchor="middle" font-size="10.5" fill="#1e3c45" font-weight="600">Emotion Vector</text>
+          <text x="66" y="282" text-anchor="middle" font-size="9" fill="#577079">1024</text>
+          <line x1="118" y1="270" x2="148" y2="270" stroke="#9fb9c0" stroke-width="1.5" marker-end="url(#ac)"/>
+
+          <!-- Linear Projection (trainable) -->
+          <rect x="150" y="250" width="120" height="40" rx="9" fill="#fff4f1" stroke="#ff7a5c" stroke-width="1.3"/>
+          <text x="210" y="266" text-anchor="middle" font-size="10" fill="#ff7a5c" font-weight="600">Linear Projection</text>
+          <text x="210" y="280" text-anchor="middle" font-size="8.5" fill="#c0573c">1024 &#8594; 2048 &#183; 학습</text>
+          <line x1="234" y1="250" x2="234" y2="228" stroke="#ff7a5c" stroke-width="1.5" marker-end="url(#aw)"/>
+          <text x="300" y="244" text-anchor="middle" font-size="8" fill="#577079">2048 (projected)</text>
+
+          <!-- legend -->
+          <line x1="14" y1="312" x2="466" y2="312" stroke="#e1ebee" stroke-width="1"/>
+          <text x="14" y="331" font-size="9" fill="#8aa0a7" font-weight="600" letter-spacing=".08em">LEGEND</text>
+          <rect x="72" y="322" width="12" height="12" rx="3" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="90" y="332" font-size="9.5" fill="#577079">Data Vectors</text>
+          <rect x="178" y="322" width="12" height="12" rx="3" fill="#e2e8eb" stroke="#8aa0a7"/>
+          <text x="196" y="332" font-size="9.5" fill="#577079">Frozen</text>
+          <rect x="258" y="322" width="12" height="12" rx="3" fill="#fff4f1" stroke="#ff7a5c"/>
+          <text x="276" y="332" font-size="9.5" fill="#577079">Trainable (LoRA &#183; Projection)</text>
         </svg>
       </div>
     </div>
   </section>
 
-  <!-- 7B · RESULT 3 · BANDWIDTH -->
-  <section class="slide" data-note="[40s] 문제로 회수. 우리가 보내는 건 텍스트(가변)+감정 24bit뿐 → 한국어 대화체 5음절/초 기준 ≈ 120 bps. VoLTE 12,650·Codec2 700보다 압도적으로 작다. '전화 1분 데이터로 우리는 105분을 떠든다.' 현금 1만원이면 전화 ~7시간 vs 우리 ~31일(시간당이 아닌 정보량=대역폭 기준 과금 가정). ※ 120bps는 대표값(엔트로피 코딩 시 ~60).">
-    <div class="eyebrow" data-r style="--i:0"><span class="num">06</span> 성과 ③ · 대역폭</div>
-    <div class="two-col" style="align-items:start">
-      <div class="stack">
-        <h2 data-r style="--i:1;font-size:28px">보내는 건 <span class="cool">텍스트</span> + <span class="warm">24bit</span> — 전화의 <span class="cool">약 1/100</span></h2>
-        <p class="lead" data-r style="--i:2">파형 대신 텍스트(가변) + 감정 24bit만 보냅니다. 한국어 대화체(≈5음절/초) 기준 약 <b style="color:var(--ink)">120 bps</b>.</p>
-        <div data-r style="--i:3;display:flex;align-items:center;gap:26px">
-          <svg viewBox="0 0 96 124" width="74" fill="none" stroke="#0aa3b5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
-            <rect x="30" y="6" width="58" height="112" rx="10"/>
-            <line x1="50" y1="18" x2="68" y2="18"/>
-            <rect x="40" y="28" width="38" height="18" rx="3"/>
-            <g fill="#0aa3b5" stroke="none">
-              <circle cx="46" cy="62" r="2.8"/><circle cx="59" cy="62" r="2.8"/><circle cx="72" cy="62" r="2.8"/>
-              <circle cx="46" cy="76" r="2.8"/><circle cx="59" cy="76" r="2.8"/><circle cx="72" cy="76" r="2.8"/>
-              <circle cx="46" cy="90" r="2.8"/><circle cx="59" cy="90" r="2.8"/><circle cx="72" cy="90" r="2.8"/>
-            </g>
-            <line x1="46" y1="104" x2="72" y2="104"/>
-            <path d="M12 30 q0-7 7-7 q7 0 7 7 l0 6 -14 0 z"/>
-            <path d="M12 96 q0 7 7 7 q7 0 7-7 l0-6 -14 0 z"/>
-            <line x1="19" y1="36" x2="19" y2="90"/>
-            <path d="M19 66 q8 3 12 0"/>
-          </svg>
-          <div>
-            <div class="bignum" style="color:var(--cool);font-size:64px">≈120<span class="u">bps</span></div>
-            <div class="mono" style="color:var(--faint);font-size:15px;margin-top:8px;line-height:1.8">전화 1분 데이터 = 우리 <b style="color:var(--muted)">약 105분</b> 통화<br>현금 1만원이면 ☎ ~7시간 vs 🌀 <b style="color:var(--muted)">~31일</b><br><span style="font-size:12px">※ 시간당이 아닌 정보량(대역폭) 기준 과금 가정</span></div>
-          </div>
-        </div>
+  <!-- 8 · DIAGNOSIS -->
+  <section class="slide" data-note="[40s] Baseline vs Emotion 전 감정 평가. 먼저 못 박기: 코사인 절대값은 거의 동률(0.849→0.857)이나 222쌍 중 52.3%가 향상 방향 - 절반 이상이 개선됐고, 더 유의미한 차이는 Top-1에서 납니다. 이렇게 선제하면 축 절단(0.70 시작) 지적이 사라짐. 핵심 성과: Top-1 감정 일치율 17.1%→23.0% (+5.9pp, 상대 +34%), 무작위(7클래스) ~14% 기준선을 명확히 상회. 기쁨 +14pp로 최대, 놀람·분노도 향상. 한계: fearful(n=3) 등 소수 감정은 데이터 부족으로 Baseline·Emotion 모두 Top-1 0% → 2학기 데이터 확보로 보강. ※(Q 대비) TTS 합성 지연 실측치 준비(예: 발화당 ○○ms). [전환→대역폭] 합성 품질은 보강할 과제지만, 전송량 절감은 이미 확정된 사실입니다 →">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">06</span> 성과 ② · 평가·진단</div>
+    <h2 data-r style="--i:1;font-size:26px;margin-bottom:8px">Baseline vs <span class="warm">Emotion</span> - 전 감정 평가</h2>
+    <div data-r style="--i:2;display:flex;gap:30px;align-items:flex-start">
+      <div style="flex:1 1 0;min-width:0"><svg viewBox="0 0 560 326" width="100%" font-family="IBM Plex Sans KR">
+<text x="44" y="22" font-size="14" fill="#123038" font-weight="600">평균 코사인 유사도 · ↑</text>
+<rect x="402" y="11" width="13" height="11" rx="2.5" fill="#93c0e8"/><text x="420" y="21" font-size="11" fill="#5f7a84">Baseline</text>
+<rect x="480" y="11" width="13" height="11" rx="2.5" fill="#ff8f76"/><text x="498" y="21" font-size="11" fill="#5f7a84">Emotion</text>
+<line x1="44" y1="272.0" x2="552" y2="272.0" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="275.5" font-size="9.5" fill="#5f7a84" text-anchor="end">0.70</text>
+<line x1="44" y1="229.6" x2="552" y2="229.6" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="233.1" font-size="9.5" fill="#5f7a84" text-anchor="end">0.75</text>
+<line x1="44" y1="187.2" x2="552" y2="187.2" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="190.7" font-size="9.5" fill="#5f7a84" text-anchor="end">0.80</text>
+<line x1="44" y1="144.8" x2="552" y2="144.8" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="148.3" font-size="9.5" fill="#5f7a84" text-anchor="end">0.85</text>
+<line x1="44" y1="102.4" x2="552" y2="102.4" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="105.9" font-size="9.5" fill="#5f7a84" text-anchor="end">0.90</text>
+<line x1="44" y1="60.0" x2="552" y2="60.0" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="63.5" font-size="9.5" fill="#5f7a84" text-anchor="end">0.95</text>
+<line x1="44" y1="272" x2="552" y2="272" stroke="#cbd8dc" stroke-width="1.2"/>
+<rect x="59.3" y="145.6" width="19" height="126.4" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="82.3" y="138.9" width="19" height="133.1" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="68.8" y="141.6" font-size="8" fill="#577079" text-anchor="middle">0.849</text>
+<text x="91.8" y="134.9" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.857</text>
+<text x="80.3" y="288" font-size="10.5" fill="#123038" text-anchor="middle">전체</text>
+<text x="80.3" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=222</text>
+<rect x="131.9" y="195.7" width="19" height="76.3" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="154.9" y="187.2" width="19" height="84.8" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="141.4" y="191.7" font-size="8" fill="#577079" text-anchor="middle">0.790</text>
+<text x="164.4" y="183.2" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.800</text>
+<text x="152.9" y="288" font-size="10.5" fill="#123038" text-anchor="middle">놀람</text>
+<text x="152.9" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=65</text>
+<rect x="204.4" y="110.0" width="19" height="162.0" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="227.4" y="108.3" width="19" height="163.7" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="213.9" y="106.0" font-size="8" fill="#577079" text-anchor="middle">0.891</text>
+<text x="236.9" y="104.3" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.893</text>
+<text x="225.4" y="288" font-size="10.5" fill="#123038" text-anchor="middle">기쁨</text>
+<text x="225.4" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=64</text>
+<rect x="277.0" y="132.1" width="19" height="139.9" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="300.0" y="127.8" width="19" height="144.2" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="286.5" y="128.1" font-size="8" fill="#577079" text-anchor="middle">0.865</text>
+<text x="309.5" y="123.8" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.870</text>
+<text x="298.0" y="288" font-size="10.5" fill="#123038" text-anchor="middle">슬픔</text>
+<text x="298.0" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=49</text>
+<rect x="349.6" y="153.3" width="19" height="118.7" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="372.6" y="136.3" width="19" height="135.7" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="359.1" y="149.3" font-size="8" fill="#577079" text-anchor="middle">0.840</text>
+<text x="382.1" y="132.3" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.860</text>
+<text x="370.6" y="288" font-size="10.5" fill="#123038" text-anchor="middle">혐오</text>
+<text x="370.6" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=21</text>
+<rect x="422.1" y="123.6" width="19" height="148.4" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="445.1" y="115.1" width="19" height="156.9" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="431.6" y="119.6" font-size="8" fill="#577079" text-anchor="middle">0.875</text>
+<text x="454.6" y="111.1" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.885</text>
+<text x="443.1" y="288" font-size="10.5" fill="#123038" text-anchor="middle">분노</text>
+<text x="443.1" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=20</text>
+<rect x="494.7" y="154.1" width="19" height="117.9" rx="2" fill="#d6dee1" stroke="#c2ced3" stroke-width=".6"/>
+<rect x="517.7" y="121.1" width="19" height="150.9" rx="2" fill="#cdd6da" stroke="#c2ced3" stroke-width=".6"/>
+<text x="504.2" y="150.1" font-size="8" fill="#9aa8ad" text-anchor="middle">0.839</text>
+<text x="527.2" y="117.1" font-size="8" fill="#9aa8ad" text-anchor="middle">0.878</text>
+<text x="515.7" y="288" font-size="10.5" fill="#9aa8ad" text-anchor="middle">두려움</text>
+<text x="515.7" y="299" font-size="8.5" fill="#c0573c" text-anchor="middle">n=3 · 부족</text>
+</svg></div>
+      <div style="flex:1 1 0;min-width:0"><svg viewBox="0 0 560 326" width="100%" font-family="IBM Plex Sans KR">
+<text x="44" y="22" font-size="14" fill="#123038" font-weight="600">Top-1 감정 일치율 (%) · emotion2vec 분류 · ↑</text>
+<rect x="402" y="11" width="13" height="11" rx="2.5" fill="#93c0e8"/><text x="420" y="21" font-size="11" fill="#5f7a84">Baseline</text>
+<rect x="480" y="11" width="13" height="11" rx="2.5" fill="#ff8f76"/><text x="498" y="21" font-size="11" fill="#5f7a84">Emotion</text>
+<line x1="44" y1="272.0" x2="552" y2="272.0" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="275.5" font-size="9.5" fill="#5f7a84" text-anchor="end">0</text>
+<line x1="44" y1="229.6" x2="552" y2="229.6" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="233.1" font-size="9.5" fill="#5f7a84" text-anchor="end">10</text>
+<line x1="44" y1="187.2" x2="552" y2="187.2" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="190.7" font-size="9.5" fill="#5f7a84" text-anchor="end">20</text>
+<line x1="44" y1="144.8" x2="552" y2="144.8" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="148.3" font-size="9.5" fill="#5f7a84" text-anchor="end">30</text>
+<line x1="44" y1="102.4" x2="552" y2="102.4" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="105.9" font-size="9.5" fill="#5f7a84" text-anchor="end">40</text>
+<line x1="44" y1="60.0" x2="552" y2="60.0" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="63.5" font-size="9.5" fill="#5f7a84" text-anchor="end">50</text>
+<line x1="44" y1="272" x2="552" y2="272" stroke="#cbd8dc" stroke-width="1.2"/>
+<rect x="59.3" y="199.5" width="19" height="72.5" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="82.3" y="174.5" width="19" height="97.5" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="68.8" y="195.5" font-size="8" fill="#577079" text-anchor="middle">17.1</text>
+<text x="91.8" y="170.5" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">23.0</text>
+<text x="80.3" y="288" font-size="10.5" fill="#123038" text-anchor="middle">전체</text>
+<text x="80.3" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=222</text>
+<rect x="131.9" y="206.7" width="19" height="65.3" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="154.9" y="187.2" width="19" height="84.8" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="141.4" y="202.7" font-size="8" fill="#577079" text-anchor="middle">15.4</text>
+<text x="164.4" y="183.2" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">20.0</text>
+<text x="152.9" y="288" font-size="10.5" fill="#123038" text-anchor="middle">놀람</text>
+<text x="152.9" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=65</text>
+<rect x="204.4" y="139.7" width="19" height="132.3" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="227.4" y="79.9" width="19" height="192.1" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="213.9" y="135.7" font-size="8" fill="#577079" text-anchor="middle">31.2</text>
+<text x="236.9" y="75.9" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">45.3</text>
+<text x="225.4" y="288" font-size="10.5" fill="#123038" text-anchor="middle">기쁨</text>
+<text x="225.4" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=64</text>
+<rect x="277.0" y="228.8" width="19" height="43.2" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="300.0" y="228.8" width="19" height="43.2" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="286.5" y="224.8" font-size="8" fill="#577079" text-anchor="middle">10.2</text>
+<text x="309.5" y="224.8" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">10.2</text>
+<text x="298.0" y="288" font-size="10.5" fill="#123038" text-anchor="middle">슬픔</text>
+<text x="298.0" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=49</text>
+<rect x="349.6" y="251.6" width="19" height="20.4" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="372.6" y="251.6" width="19" height="20.4" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="359.1" y="247.6" font-size="8" fill="#577079" text-anchor="middle">4.8</text>
+<text x="382.1" y="247.6" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">4.8</text>
+<text x="370.6" y="288" font-size="10.5" fill="#123038" text-anchor="middle">혐오</text>
+<text x="370.6" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=21</text>
+<rect x="422.1" y="229.6" width="19" height="42.4" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="445.1" y="208.4" width="19" height="63.6" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="431.6" y="225.6" font-size="8" fill="#577079" text-anchor="middle">10.0</text>
+<text x="454.6" y="204.4" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">15.0</text>
+<text x="443.1" y="288" font-size="10.5" fill="#123038" text-anchor="middle">분노</text>
+<text x="443.1" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=20</text>
+<text x="504.2" y="268.0" font-size="8" fill="#9aa8ad" text-anchor="middle">0.0</text>
+<text x="527.2" y="268.0" font-size="8" fill="#9aa8ad" text-anchor="middle">0.0</text>
+<text x="515.7" y="288" font-size="10.5" fill="#9aa8ad" text-anchor="middle">두려움</text>
+<text x="515.7" y="299" font-size="8.5" fill="#c0573c" text-anchor="middle">n=3 · 부족</text>
+<line x1="44" y1="211.4" x2="552" y2="211.4" stroke="#9aa8ad" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="550" y="208" font-size="8.5" fill="#7d8a90" text-anchor="end">무작위(7클래스) ~14%</text>
+</svg></div>
+    </div>
+    <div data-r style="--i:3;display:flex;gap:18px;margin-top:10px">
+      <div class="diag" style="flex:1;max-width:none;padding:13px 22px;border-left-color:var(--cool)">
+        <div class="t" style="color:var(--cool)">장점 · Strength</div>
+        <p style="font-size:16px"><b>Top-1 감정 일치율 향상</b> - 전체 <b>222쌍</b> 기준 <b class="cool">17.1% → 23.0%</b> (<b>+5.9pp</b>, 상대 <b>+34%</b>) · 무작위(7클래스) ~14% 기준선을 명확히 상회합니다.</p>
       </div>
-      <div class="stack">
-        <div class="chart" data-r style="--i:4">
-          <div class="row"><span class="lab">VoLTE</span><div class="track"><div class="fill zero" style="--w:100%"></div></div><span class="pct">12,650</span></div>
-          <div class="row"><span class="lab">Codec2</span><div class="track"><div class="fill mid" style="--w:5.5%"></div></div><span class="pct">700</span></div>
-          <div class="row"><span class="lab cool">우리</span><div class="track"><div class="fill ok" style="--w:1.2%"></div></div><span class="pct">~120</span></div>
-        </div>
-        <div class="mono" data-r style="--i:5;color:var(--faint);font-size:13px;line-height:1.7">bps · 낮을수록 좋음 — 우리는 VoLTE의 ~1/105, Codec2의 ~1/6<br>※ 대표값(5음절/초) · 엔트로피 코딩 시 ~60 bps</div>
+      <div class="diag" style="flex:1;max-width:none;padding:13px 22px">
+        <div class="t">한계 · Limitation</div>
+        <p style="font-size:16px"><b>데이터 불균형 · 소수 감정 성능 정체</b> - <span class="mono">fearful</span>(n=3) 등 소수 감정은 데이터 부족으로 Baseline·Emotion 모두 <b>Top-1 Match Rate 0.0%</b>에 머물러 있습니다.</p>
       </div>
     </div>
+    <div class="mono" data-r style="--i:4;margin-top:16px;text-align:center;color:var(--muted);font-size:15px;line-height:1.55">우리는 통화의 <b style="color:var(--ink)">실시간성을 대체하지 않습니다</b> - <b style="color:var(--cool)">통화가 불가능한 대역</b>에서 <b style="color:var(--ink)">음성의 경험</b>을 가능하게 합니다</div>
+    <div class="mono" data-r style="--i:5;margin-top:8px;text-align:center;color:var(--faint);font-size:12px">※ 평가 프로토콜: 합성 음성 → <span style="color:var(--cool)">emotion2vec</span> 재추출 → 원본 발화와 비교</div>
   </section>
 
-  <!-- 8 · DIAGNOSIS -->
-  <section class="slide" data-note="[40s] 감정 조건이 top-1 감정 일치를 17.1%→23.0%, cos 0.849→0.857로 개선(222쌍 중 52% 케이스). 기쁨 +14pp로 최대, 놀람·분노도 향상. 슬픔·혐오는 정체, 두려움은 n=3로 표본 부족. 정체 감정은 운율 디테일(MTP residual codebook)에 인코딩 — 현재 LoRA는 semantic codebook만 제어. → 2학기 residual codebook 제어로 해결.">
-    <div class="eyebrow" data-r style="--i:0"><span class="num">07</span> 현재 결과와 진단</div>
-    <div class="two-col" style="grid-template-columns:1fr 1fr">
-      <div class="stack">
-        <h2 data-r style="--i:1;font-size:32px">되는 감정과<br>아직 약한 감정</h2>
-        <div class="chart" data-r style="--i:2">
-          <div class="row"><span class="lab">기쁨</span><div class="track"><div class="fill ok" style="--w:45%"></div></div><span class="pct">45.3%</span></div>
-          <div class="row"><span class="lab">놀람</span><div class="track"><div class="fill mid" style="--w:20%"></div></div><span class="pct">20.0%</span></div>
-          <div class="row"><span class="lab">분노</span><div class="track"><div class="fill mid" style="--w:15%"></div></div><span class="pct">15.0%</span></div>
-          <div class="row zero"><span class="lab">슬픔</span><div class="track"><div class="fill zero" style="--w:10%"></div></div><span class="pct">10.2%</span></div>
-          <div class="row zero"><span class="lab">혐오</span><div class="track"><div class="fill zero" style="--w:5%"></div></div><span class="pct">4.8%</span></div>
-          <div class="row zero"><span class="lab">두려움</span><div class="track"><div class="fill zero" style="--w:3%"></div></div><span class="pct">0%</span></div>
+  <!-- 7B · RESULT 3 · BANDWIDTH -->
+  <section class="slide" data-note="[50s] 한 발화 = 텍스트+24bit. ①차트 위→아래: 음성 메시지 16k, VoLTE 12.65k, Codec2 700 - 전부 파형을 보냄. 우리는 ~128bps(텍스트 120 + 감정 8), 텍스트 메시지와 3바이트 차이. ②펀치: 텍스트 메시지에 3바이트를 얹으면 목소리와 감정의 단서가 돌아온다. ③우측 카드: 같은 1만원이면 통화 7시간, 우리는 쉬지 않고 말해도 약 한 달 - 요금이 얼마든 비율(~1/100)은 불변. ※128은 실측으로 확정 예정.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">07</span> 성과 ③ · 대역폭</div>
+    <h2 data-r style="--i:1;font-size:30px">한 발화 = <span class="cool">텍스트</span> + <span class="warm">감정 24bit</span> - 전화의 약 <span class="cool">1/100</span></h2>
+
+    <div class="two-col" style="align-items:center;grid-template-columns:1.18fr .82fr;gap:46px;margin-top:30px">
+
+      <!-- ◀ 좌: 통합 차트 -->
+      <div data-r style="--i:2;display:flex;flex-direction:column;gap:12px;font-size:15px">
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span></span><span></span>
+          <span class="tag" style="text-align:right">평균 bps</span>
+          <span class="tag" style="text-align:center">목소리</span>
+          <span class="tag" style="text-align:center">감정</span>
         </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span>음성 메시지 <span class="tag">Opus</span></span>
+          <div style="height:13px"><div style="width:100%;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
+          <span class="mono" style="text-align:right">16,000</span>
+          <span style="text-align:center">✓</span><span style="text-align:center">✓</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span>VoLTE 통화</span>
+          <div style="height:13px"><div style="width:79%;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
+          <span class="mono" style="text-align:right">12,650</span>
+          <span style="text-align:center">✓</span><span style="text-align:center">✓</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span>초저대역폭 <span class="tag">Codec2</span></span>
+          <div style="height:13px"><div style="width:4.4%;height:100%;border-radius:7px;background:#e8b34a"></div></div>
+          <span class="mono" style="text-align:right">700</span>
+          <span style="text-align:center">✓</span><span style="text-align:center">△</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--cool);border-radius:12px;padding:8px 10px;margin:0 -10px">
+          <span style="font-weight:700;color:var(--cool)">우리 <span class="tag" style="color:var(--warm)">+24bit</span></span>
+          <div style="height:13px"><div style="width:0.9%;min-width:5px;height:100%;border-radius:7px;background:var(--cool)"></div></div>
+          <span class="mono" style="text-align:right;font-weight:700;color:var(--cool)">~128</span>
+          <span style="text-align:center;color:var(--cool);font-weight:700">✓</span><span style="text-align:center;color:var(--cool);font-weight:700">✓</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span>텍스트 메시지</span>
+          <div style="height:13px"><div style="width:0.85%;min-width:4px;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
+          <span class="mono" style="text-align:right">~120</span>
+          <span style="text-align:center;color:var(--faint)">✗</span><span style="text-align:center;color:var(--faint)">✗</span>
+        </div>
+        <p style="font-size:20px;margin-top:18px"><span class="cool">텍스트 메시지</span>에 <span class="warm">3바이트</span>를 얹으면, <span class="warm">목소리와 감정의 단서</span>가 돌아옵니다.</p>
       </div>
-      <div class="stack" style="justify-content:center">
-        <div class="diag" data-r style="--i:3">
-          <div class="t">진단</div>
-          <p>향상이 없던 감정(<b>슬픔·혐오·두려움</b>)은 <b>운율 디테일</b>(MTP residual codebook)에 인코딩됩니다. 현재 LoRA는 backbone의 <b>semantic codebook만</b> 제어하므로, 이 감정들은 아직 잡지 못합니다.</p>
+
+      <!-- ▶ 우: 같은 1만원 비교 -->
+      <div class="chip" data-r style="--i:3;text-align:left;padding:28px 30px;position:relative">
+        <svg viewBox="0 0 96 124" width="48" fill="none" stroke="#0aa3b5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;top:20px;right:22px;opacity:.85">
+          <rect x="30" y="6" width="58" height="112" rx="10"/>
+          <line x1="50" y1="18" x2="68" y2="18"/>
+          <rect x="40" y="28" width="38" height="18" rx="3"/>
+          <g fill="#0aa3b5" stroke="none">
+            <circle cx="46" cy="62" r="2.8"/><circle cx="59" cy="62" r="2.8"/><circle cx="72" cy="62" r="2.8"/>
+            <circle cx="46" cy="76" r="2.8"/><circle cx="59" cy="76" r="2.8"/><circle cx="72" cy="76" r="2.8"/>
+            <circle cx="46" cy="90" r="2.8"/><circle cx="59" cy="90" r="2.8"/><circle cx="72" cy="90" r="2.8"/>
+          </g>
+          <line x1="46" y1="104" x2="72" y2="104"/>
+          <path d="M12 30 q0-7 7-7 q7 0 7 7 l0 6 -14 0 z"/>
+          <path d="M12 96 q0 7 7 7 q7 0 7-7 l0-6 -14 0 z"/>
+          <line x1="19" y1="36" x2="19" y2="90"/>
+          <path d="M19 66 q8 3 12 0"/>
+        </svg>
+        <div class="tag">같은 데이터 요금 1만원으로</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:18px">
+          <span style="font-size:16px;color:var(--muted);width:64px">통화</span>
+          <span class="mono" style="font-size:42px;font-weight:600;color:var(--muted)">7<span style="font-size:19px">시간</span></span>
         </div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:10px">
+          <span style="font-size:16px;color:var(--cool);width:64px;font-weight:700">우리</span>
+          <span class="mono" style="font-size:54px;font-weight:700;color:var(--cool)">한 달<span style="font-size:19px;color:var(--faint)"> ≈ 29일</span></span>
+        </div>
+        <div style="font-size:14px;color:var(--muted);margin-top:16px;line-height:1.55">쉬지 않고 말한다고 가정한 시간.<br>요금이 얼마든 <b style="color:var(--ink)">비율(약 1/100)은 불변</b>입니다.</div>
       </div>
     </div>
+
+    <div class="mono" data-r style="--i:4;font-size:12.5px;color:var(--faint);line-height:1.8;margin-top:18px">※ 막대는 대화체 평균 기준(실측은 시연 08) · bps = 음성 1초 발화당 데이터량 · 우리 ~128 = 텍스트 120(한국어 약 5글자/초) + 감정 8(24bit/발화, 3초 발화 기준)<br>※ Opus ~16kbps: WhatsApp·Telegram 모바일 음성 메시지 기준 · 1만원 = 데이터 40MB(250원/MB) 가정</div>
   </section>
 
   <!-- 9 · DEMO -->
-  <section class="slide" style="padding-top:46px;padding-bottom:30px" data-note="[시연 · 뒷부분 동영상 ~1:30 · 재생(말하기 시간 미포함)] 메신저 round-trip 영상: 송신부에서 음성→텍스트+24bit 감정코드 추출 → 전송 → 수신부에서 원 화자 목소리로 합성·재생. → [음성 50s] 같은 발화를 ①원본 ②우리 복원(텍스트+24bit+ref) ③초저대역폭 코덱(Codec2 ~0.7kbps)으로 비교. 핵심: 우리는 메시지당 텍스트+24bit만으로 원본에 가깝게 복원, 기존 초저대역폭 코덱은 더 쓰고도 음질 붕괴. ※ 미디어는 docs/assets에 미리 넣어둔다.">
+  <section class="slide" style="padding-top:46px;padding-bottom:30px" data-note="[시연 · 뒷부분 동영상 1:09 · 재생(말하기 시간 미포함)] 메신저 round-trip 영상: 송신부에서 음성→텍스트+24bit 감정코드 추출 → 전송 → 수신부에서 원 화자 목소리로 합성·재생. → [음성 50s] 같은 발화를 ①원본(16kHz PCM 256kbps) ②우리 복원(≈170bps) ③초저대역폭 코덱(Codec2 700bps)으로 비교. 핵심: 우리는 메시지당 텍스트+24bit만으로 원본에 가깝게 복원, 기존 초저대역폭 코덱은 더 쓰고도 음질 붕괴. 질문 대비: 화자 ref는 사전 1회 등록이라 전송량 불포함 / bps는 코덱 페이로드 기준(전송 계층 제외). ※ 170bps = 이 발화(2.5초·15음절) 실측. ※ 미디어는 docs/assets에 미리 넣어둔다.">
     <div class="eyebrow" data-r style="--i:0"><span class="num">08</span> TONE · 시연 · 메신저 </div>
     <div data-r class="demo-frame" style="--i:1">
       <div class="demo-stage">
@@ -749,7 +942,7 @@
           </div>
         </div>
         <!-- 시연 동영상 -->
-        <div class="demo-video empty">
+        <div class="demo-video">
           <video controls preload="metadata" playsinline>
             <source src="assets/demo_roundtrip.mp4" type="video/mp4">
           </video>
@@ -775,41 +968,42 @@
         </div>
       </div>
     </div>
-    <div class="same-text" data-r style="--i:2;margin-top:8px">동일 발화 <b>“오늘 발표 정말 잘 끝났네요.”</b> — 원본 vs 우리 복원 vs 초저대역폭 코덱</div>
+    <div class="same-text" data-r style="--i:2;margin-top:8px">동일 발화 <b>“와 진짜 태원이는 진짜 너무 대단한데?”</b> - 원본 vs 우리 복원 vs 초저대역폭 코덱</div>
     <div class="demo-row" data-r style="--i:3">
       <div class="player base">
-        <div class="ptag">원본 녹음 · Original</div>
-        <audio controls preload="none"><source src="assets/demo_original.wav" type="audio/wav"></audio>
+        <div class="ptag">원본 녹음 · 16kHz PCM ≈ 256 kbps</div>
+        <audio controls preload="metadata"><source src="assets/demo_original_16k.wav" type="audio/wav"></audio>
       </div>
       <div class="player sad">
-        <div class="ptag" style="color:var(--cool)">우리 복원 · 텍스트+24bit+ref</div>
-        <audio controls preload="none"><source src="assets/demo_ours.wav" type="audio/wav"></audio>
+        <div class="ptag" style="color:var(--cool)">우리 복원 · 텍스트+24bit ≈ 170 bps</div>
+        <audio controls preload="metadata"><source src="assets/demo_ours.wav" type="audio/wav"></audio>
       </div>
       <div class="player happy">
-        <div class="ptag" style="color:var(--warm)">초저대역폭 코덱 · Codec2 ≈ 0.7 kbps</div>
-        <audio controls preload="none"><source src="assets/demo_codec2.wav" type="audio/wav"></audio>
+        <div class="ptag" style="color:var(--warm)">초저대역폭 코덱 · Codec2 ≈ 700 bps</div>
+        <audio controls preload="metadata"><source src="assets/demo_codec2.wav" type="audio/wav"></audio>
       </div>
     </div>
-    <div class="demo-note" data-r style="--i:4"><span class="dot"></span> 메시지당 <span class="cool">텍스트 + 24bit</span>만으로 <span class="warm">원본에 가깝게</span> 복원 — 기존 초저대역폭 코덱은 더 쓰고도 음질이 무너집니다</div>
+    <div class="demo-note" data-r style="--i:4"><span class="dot"></span> 메시지당 <span class="cool">텍스트 + 24bit</span>만으로 <span class="warm">원본에 가깝게</span> 복원 - 기존 초저대역폭 코덱은 더 쓰고도 음질이 무너집니다</div>
+    <div data-r style="--i:5;font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:6px;padding-left:19px">※ 화자 ref 음성은 사전 1회 등록 · 전송량 불포함 · 비트레이트는 이 발화(2.5초) 실측</div>
   </section>
 
   <!-- 10 · ROADMAP -->
-  <section class="slide" data-note="[30s] 데이터셋 확보 → TTS 재학습(약한 감정·화자 다양성 해결) → 대역폭은 페이로드가 결정적이라 계산 가능: 한국어 실측 + 코덱(Codec2 등) 정량 비교 → 여러 명 대화방으로 실시간 스트리밍 고도화.">
+  <section class="slide" data-note="[30s] 데이터셋 확보 → TTS 재학습(약한 감정·화자 다양성 해결) → 주관평가(MOS) → STEP3 페이로드 압축: 가변 한글 텍스트는 엔트로피 코딩, 감정 벡터는 비트패킹(현재 와이어 repeated int32 80bit → 본래 24bit) → 발화당 ~20B(정보율 ~70bps) → 다자 대화방·실시간 스트리밍 → 배포.">
     <div class="eyebrow" data-r style="--i:0"><span class="num">09</span> 2학기 계획</div>
-    <h2 data-r style="--i:1;margin-bottom:18px">완성으로 가는 다섯 걸음</h2>
+    <h2 data-r style="--i:1;font-size:28px;margin-bottom:14px">완성으로 가는 다섯 걸음</h2>
     <div class="road">
-      <div class="step" data-r style="--i:2"><div class="mk">STEP 1</div><div class="body"><h4>데이터셋 확보 &amp; TTS 재학습</h4><p>다양한 화자·표현 감정이 담긴 음성 데이터를 수집하고, 이를 토대로 TTS 재학습 — 슬픔·혐오·두려움 등 아직 약한 감정까지 표현하고 화자에 종속되지 않는 감정 전달</p></div></div>
+      <div class="step" data-r style="--i:2"><div class="mk">STEP 1</div><div class="body"><h4>데이터셋 확보 &amp; TTS 재학습</h4><p>다양한 화자·표현 감정이 담긴 음성 데이터를 수집하고, 이를 토대로 TTS 재학습 - 슬픔·혐오·두려움 등 아직 약한 감정까지 표현하고 화자에 종속되지 않는 감정 전달</p></div></div>
       <div class="step" data-r style="--i:3"><div class="mk">STEP 2</div><div class="body"><h4>주관 평가 (MOS · 청취 실험)</h4><p>객관 지표(분류 일치율·복원 코사인)를 넘어, 사람 청취 기반 MOS·감정 전달 정확도로 실제 품질을 검증</p></div></div>
-      <div class="step" data-r style="--i:4"><div class="mk">STEP 3</div><div class="body"><h4>텍스트 엔트로피 코딩</h4><p>감정은 이미 24bit 고정 — 가변 페이로드인 한글 텍스트를 엔트로피 코딩으로 추가 압축해 평균 대역폭을 ~120 → ~60bps로 (한 번 더 절반)</p></div></div>
+      <div class="step" data-r style="--i:4"><div class="mk">STEP 3</div><div class="body"><h4>페이로드 압축 - 비트패킹 &amp; 한글 엔트로피 코딩</h4><p><b>감정 코드</b>는 비트 단위로 빈틈없이 패킹하고, <b>가변 한글 텍스트</b>는 엔트로피 코딩으로 압축해 발화당 전송량을 한계까지 절감</p></div></div>
       <div class="step" data-r style="--i:5"><div class="mk">STEP 4</div><div class="body"><h4>다자 대화방 &amp; 실시간 스트리밍</h4><p>1:1을 넘어 여러 명이 함께하는 대화방으로 확장 · WebSocket / WebRTC 기반 실시간 통신 고도화</p></div></div>
-      <div class="step" data-r style="--i:6"><div class="mk">STEP 5</div><div class="body"><h4>배포</h4><p>단말 앱과 서버를 패키징해 실제 통신 환경에 배포 — 사용자가 직접 쓰는 서비스 형태로 출시</p></div></div>
+      <div class="step" data-r style="--i:6"><div class="mk">STEP 5</div><div class="body"><h4>시연 가능한 서비스 형태로 완성</h4><p>단말 앱과 서버를 패키징해, 사용자가 직접 써보는 <b>시연 가능한 서비스 형태</b>로 완성</p></div></div>
     </div>
   </section>
 
   <!-- 11 · CLOSE + TEAM -->
   <section class="slide" data-note="[20s] 한 줄 요약 + 팀 + 감사. 감정 24bit 압축 · 감정 따라 달라지는 음성 합성 · 전화의 ~1/100 대역폭. 팀 선풍기, Q&A.">
     <div class="eyebrow" data-r style="--i:0"><span class="num">10</span> 정리 &amp; Team · 선풍기 🌀</div>
-    <div class="close-sum" data-r style="--i:1;font-size:30px;max-width:none;white-space:nowrap">감정은 <b class="warm">24비트</b>로 압축, 감정 따라 <b class="cool">달라지는 음성</b>을 합성<br>— 전화의 <b class="cool">~1/100</b> 대역폭으로.</div>
+    <div class="close-sum" data-r style="--i:1;font-size:30px;max-width:none;white-space:nowrap">감정은 <b class="warm">24비트</b>로 압축, 감정 따라 <b class="cool">달라지는 음성</b>을 합성<br>- 전화의 <b class="cool">~1/100</b> 대역폭으로</div>
     <div class="team" style="margin-top:28px">
       <div class="member lead" data-r style="--i:2">
         <img src="https://github.com/Pachyhead.png" alt="이종찬">
@@ -876,7 +1070,7 @@
     document.body.dataset.slide=i;
     prog.style.width=((i+1)/slides.length*100)+'%';
     cur.textContent=String(i+1).padStart(2,'0');
-    ntBody.textContent=slides[i].dataset.note||'—';
+    ntBody.textContent=slides[i].dataset.note||'-';
   }
   function next(){show(i+1)}
   function prev(){show(i-1)}
