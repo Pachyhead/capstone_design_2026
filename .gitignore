@@ -228,3 +228,4 @@ grpc_getting_started/DataBase/*
 receiver/storage/*
 
 notebooks/
+export/
