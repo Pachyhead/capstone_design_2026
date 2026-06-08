@@ -1,5 +1,5 @@
 <div align="center">
-
+ 
 # 🌀 capstone_design_2026 🌀
 
 <h3 align="center">🌬️ 선풍기 💨</h3>
