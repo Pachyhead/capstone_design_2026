@@ -234,13 +234,24 @@
   .cite b{color:var(--muted);font-weight:500}
 
   /* demo */
-  .player{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 18px;display:flex;flex-direction:column;gap:7px}
-  .player .ptag{font-family:var(--mono);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-  .player.base{border-left:3px solid var(--faint)}
-  .player.happy{border-left:3px solid var(--warm)}
-  .player.sad{border-left:3px solid var(--cool)}
-  .player audio{width:100%;height:36px}
-  .demo-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:10px}
+  .player{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px 16px 15px;display:flex;flex-direction:column;gap:9px;box-shadow:0 10px 26px -22px rgba(12,70,82,.5);transition:transform .25s ease,box-shadow .25s ease}
+  .player:hover{transform:translateY(-2px);box-shadow:0 16px 32px -24px rgba(12,70,82,.55)}
+  .player .phead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .player .prole{font-size:14.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px}
+  .player .prole::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--faint);flex-shrink:0}
+  .player .prate{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.02em;padding:3px 9px;border-radius:999px;background:var(--panel-2);color:var(--faint);white-space:nowrap}
+  .player .pspec{font-family:var(--mono);font-size:11.5px;letter-spacing:.03em;color:var(--faint);margin-top:-3px}
+  .player audio{width:100%;height:34px}
+  .player.orig .prole{color:var(--muted)}
+  .player.ours{border-color:var(--cool);background:linear-gradient(180deg,#f0fbfc,#e9f7f9);box-shadow:0 14px 30px -20px rgba(10,163,181,.5)}
+  .player.ours:hover{box-shadow:0 18px 36px -22px rgba(10,163,181,.6)}
+  .player.ours .prole{color:var(--cool)}
+  .player.ours .prole::before{background:var(--cool)}
+  .player.ours .prate{background:var(--cool);color:#fff}
+  .player.codec .prole{color:var(--warm)}
+  .player.codec .prole::before{background:var(--warm)}
+  .player.codec .prate{background:var(--warm-dim);color:#a8402a}
+  .demo-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:12px;align-items:stretch}
   .same-text{font-size:17px;color:var(--muted);font-weight:400}
   .same-text b{color:var(--ink);font-weight:600}
   .demo-video{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#0d2228;
@@ -837,7 +848,7 @@
   </section>
 
   <!-- 7B · RESULT 3 · BANDWIDTH -->
-  <section class="slide" data-note="[50s] 한 발화 = 텍스트+24bit. ①차트(3초 발화당 전송 바이트) 위→아래: 음성 메시지 Opus ~6KB, VoLTE ~4.7KB, Codec2 ~260B - 전부 파형을 보냄. 우리는 텍스트 ~45B + 감정 3B = ~48B. 핵심: 감정 3바이트는 24bit 그대로라 가정 없는 확정값(발화가 길어도 고정), vs VoLTE ≈ 1/100. ②펀치: 텍스트 메시지에 3바이트를 얹으면 목소리와 감정의 단서가 돌아온다. ③우측 카드: 같은 1만원이면 통화 7시간, 우리는 쉬지 않고 말해도 약 한 달 - 요금이 얼마든 비율(~1/100)은 불변. ※코덱 바이트=비트레이트×3초÷8, 우리 전송량 실측은 시연 08.">
+  <section class="slide" data-note="[50s] 한 발화 = 텍스트+24bit. ①차트(실시간 소통 시 초당 필요 대역폭 bps) 위→아래: Opus 16,000, VoLTE 12,650, Codec2 700 - 전부 파형. 우리 ~128bps = (텍스트 45B + 감정 3B = 48B = 384bit) ÷ 3초, 텍스트 메시지(~120bps)와 감정 3B 차이. 핵심: 감정은 +24bit(3B)뿐 = 한글 한 글자어치, 나머진 어차피 보낼 텍스트. vs VoLTE ≈ 1/100. ②펀치: 텍스트에 3바이트 얹으면 사라졌던 감정·억양이 돌아온다(목소리는 사전 등록 화자). ③우측: 1만원이면 통화 7시간 vs 우리 약 한 달 - 같은 요금 약 100배, 비율(~1/100) 불변. ※시연 08은 빠른 발화라 170bps 실측.">
     <div class="eyebrow" data-r style="--i:0"><span class="num">07</span> 성과 · 대역폭</div>
     <h2 data-r style="--i:1;font-size:30px">한 발화 = <span class="cool">텍스트</span> + <span class="warm">감정 24bit</span> - 전화의 약 <span class="cool">1/100</span></h2>
 
@@ -845,76 +856,82 @@
 
       <!-- ◀ 좌: 통합 차트 -->
       <div data-r style="--i:2;display:flex;flex-direction:column;gap:12px;font-size:15px">
+        <div style="font-size:15px;color:var(--muted);letter-spacing:-.01em">실시간 소통 시 <b style="color:var(--ink)">초당 필요 대역폭</b></div>
         <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
           <span></span><span></span>
-          <span class="tag" style="text-align:right">한 발화 · B</span>
+          <span class="tag" style="text-align:right">bps</span>
           <span class="tag" style="text-align:center">목소리</span>
           <span class="tag" style="text-align:center">감정</span>
         </div>
         <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
           <span>음성 메시지 <span class="tag">Opus</span></span>
           <div style="height:13px"><div style="width:100%;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
-          <span class="mono" style="text-align:right">~6 KB</span>
+          <span class="mono" style="text-align:right">16,000</span>
           <span style="text-align:center">✓</span><span style="text-align:center">✓</span>
         </div>
         <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
           <span>VoLTE 통화</span>
           <div style="height:13px"><div style="width:79%;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
-          <span class="mono" style="text-align:right">~4.7 KB</span>
+          <span class="mono" style="text-align:right">12,650</span>
           <span style="text-align:center">✓</span><span style="text-align:center">✓</span>
         </div>
         <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
           <span>초저대역폭 <span class="tag">Codec2</span></span>
           <div style="height:13px"><div style="width:4.4%;height:100%;border-radius:7px;background:#e8b34a"></div></div>
-          <span class="mono" style="text-align:right">~260 B</span>
+          <span class="mono" style="text-align:right">700</span>
           <span style="text-align:center">✓</span><span style="text-align:center">△</span>
         </div>
         <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--cool);border-radius:12px;padding:8px 10px;margin:0 -10px">
           <span style="font-weight:700;color:var(--cool)">우리 <span class="tag" style="color:var(--warm)">+24bit</span></span>
-          <div style="height:13px"><div style="width:0.9%;min-width:5px;height:100%;border-radius:7px;background:var(--cool)"></div></div>
-          <span class="mono" style="text-align:right;font-weight:700;color:var(--cool)">~48 B</span>
+          <div style="height:13px"><div style="width:0.8%;min-width:5px;height:100%;border-radius:7px;background:var(--cool)"></div></div>
+          <span class="mono" style="text-align:right;font-weight:700;color:var(--cool)">~128</span>
           <span style="text-align:center;color:var(--cool);font-weight:700">✓</span><span style="text-align:center;color:var(--cool);font-weight:700">✓</span>
         </div>
         <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
           <span>텍스트 메시지</span>
-          <div style="height:13px"><div style="width:0.85%;min-width:4px;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
-          <span class="mono" style="text-align:right">~45 B</span>
+          <div style="height:13px"><div style="width:0.75%;min-width:4px;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
+          <span class="mono" style="text-align:right">~120</span>
           <span style="text-align:center;color:var(--faint)">✗</span><span style="text-align:center;color:var(--faint)">✗</span>
         </div>
-        <p style="font-size:20px;margin-top:18px"><span class="cool">텍스트 메시지</span>에 <span class="warm">3바이트</span>를 얹으면, <span class="warm">목소리와 감정의 단서</span>가 돌아옵니다.</p>
+        <div class="mono" style="margin-top:16px;padding:10px 14px;background:var(--panel);border:1px solid var(--cool);border-radius:10px;font-size:14px;color:var(--muted);line-height:1.5">
+          <b style="color:var(--cool)">우리 ≈ 128 bps</b> = (텍스트 <b style="color:var(--ink)">45B</b> + 감정 <b style="color:var(--warm)">3B</b> = 48B = 384 bit) ÷ <b style="color:var(--ink)">3초</b> 발화
+        </div>
+        <p style="font-size:20px;margin-top:14px"><span class="cool">텍스트 메시지</span>에 <span class="warm">3바이트</span>를 얹으면, <span class="warm">사라졌던 감정과 억양</span>이 돌아옵니다.</p>
       </div>
 
       <!-- ▶ 우: 같은 1만원 비교 -->
-      <div class="chip" data-r style="--i:3;text-align:left;padding:28px 30px;position:relative">
-        <svg viewBox="0 0 96 124" width="48" fill="none" stroke="#0aa3b5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;top:20px;right:22px;opacity:.85">
-          <rect x="30" y="6" width="58" height="112" rx="10"/>
-          <line x1="50" y1="18" x2="68" y2="18"/>
-          <rect x="40" y="28" width="38" height="18" rx="3"/>
+      <div class="chip t" data-r style="--i:3;text-align:left;padding:26px 30px;position:relative;overflow:hidden">
+        <svg viewBox="0 0 104 132" width="44" fill="none" stroke="#0aa3b5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;top:16px;right:18px;opacity:.78">
+          <rect x="30" y="6" width="62" height="104" rx="11"/>
+          <line x1="48" y1="18" x2="74" y2="18"/>
+          <rect x="44" y="27" width="36" height="13" rx="2"/>
           <g fill="#0aa3b5" stroke="none">
-            <circle cx="46" cy="62" r="2.8"/><circle cx="59" cy="62" r="2.8"/><circle cx="72" cy="62" r="2.8"/>
-            <circle cx="46" cy="76" r="2.8"/><circle cx="59" cy="76" r="2.8"/><circle cx="72" cy="76" r="2.8"/>
-            <circle cx="46" cy="90" r="2.8"/><circle cx="59" cy="90" r="2.8"/><circle cx="72" cy="90" r="2.8"/>
+            <circle cx="50" cy="53" r="2.5"/><circle cx="61" cy="53" r="2.5"/><circle cx="72" cy="53" r="2.5"/>
+            <circle cx="50" cy="65" r="2.5"/><circle cx="61" cy="65" r="2.5"/><circle cx="72" cy="65" r="2.5"/>
+            <circle cx="50" cy="77" r="2.5"/><circle cx="61" cy="77" r="2.5"/><circle cx="72" cy="77" r="2.5"/>
+            <circle cx="50" cy="89" r="2.5"/><circle cx="61" cy="89" r="2.5"/><circle cx="72" cy="89" r="2.5"/>
           </g>
-          <line x1="46" y1="104" x2="72" y2="104"/>
-          <path d="M12 30 q0-7 7-7 q7 0 7 7 l0 6 -14 0 z"/>
-          <path d="M12 96 q0 7 7 7 q7 0 7-7 l0-6 -14 0 z"/>
-          <line x1="19" y1="36" x2="19" y2="90"/>
-          <path d="M19 66 q8 3 12 0"/>
+          <line x1="48" y1="101" x2="74" y2="101"/>
+          <path d="M10 30 q0-9 9-9 q9 0 9 9 l0 7 -18 0 z"/>
+          <path d="M10 84 q0 9 9 9 q9 0 9-9 l0-7 -18 0 z"/>
+          <line x1="19" y1="37" x2="19" y2="77"/>
+          <path d="M19 93 q-7 5 -1 11 q7 5 1 11 q-6 4 6 7" stroke-width="2.2"/>
         </svg>
         <div class="tag">같은 데이터 요금 1만원으로</div>
-        <div style="display:flex;align-items:baseline;gap:10px;margin-top:18px">
-          <span style="font-size:16px;color:var(--muted);width:64px">통화</span>
-          <span class="mono" style="font-size:42px;font-weight:600;color:var(--muted)">7<span style="font-size:19px">시간</span></span>
+        <div style="display:flex;align-items:baseline;gap:12px;margin-top:20px">
+          <span style="font-size:15px;color:var(--muted);width:48px">통화</span>
+          <span class="mono" style="font-size:30px;font-weight:600;color:var(--muted)">7<span style="font-size:16px">시간</span></span>
         </div>
-        <div style="display:flex;align-items:baseline;gap:10px;margin-top:10px">
-          <span style="font-size:16px;color:var(--cool);width:64px;font-weight:700">우리</span>
-          <span class="mono" style="font-size:54px;font-weight:700;color:var(--cool)">한 달<span style="font-size:19px;color:var(--faint)"> ≈ 29일</span></span>
+        <div style="display:flex;align-items:baseline;gap:12px;margin-top:6px">
+          <span style="font-size:15px;color:var(--cool);width:48px;font-weight:700">우리</span>
+          <span class="mono" style="font-size:48px;font-weight:700;color:var(--cool);line-height:1.05">약 한 달<span style="font-size:17px;color:var(--faint);font-weight:500"> ≈ 29일</span></span>
         </div>
-        <div style="font-size:14px;color:var(--muted);margin-top:16px;line-height:1.55">쉬지 않고 말한다고 가정한 시간.<br>요금이 얼마든 <b style="color:var(--ink)">비율(약 1/100)은 불변</b>입니다.</div>
+        <div style="margin-top:18px"><span style="display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(10,163,181,.12);color:var(--cool);font-weight:700;font-size:15px">같은 요금으로 약 100배 더 오래</span></div>
+        <div style="font-size:13px;color:var(--faint);margin-top:14px;line-height:1.5">쉬지 않고 말한다고 가정 · 요금이 얼마든 <b style="color:var(--muted)">비율(약 1/100)은 불변</b></div>
       </div>
     </div>
 
-    <div class="mono" data-r style="--i:4;font-size:12.5px;color:var(--faint);line-height:1.8;margin-top:18px">※ 한 발화 = 3초 예시 · 음성 코덱 전송량 = 비트레이트 × 3초 ÷ 8 (Opus 16k→~6KB · VoLTE 12.65k→~4.7KB · Codec2 700→~260B) · 우리 ~48B = 텍스트 ~45B(한국어 약 5글자/초) + 감정 <b style="color:var(--cool)">3B(24bit, 발화 길이와 무관하게 고정)</b><br>※ Opus ~16kbps: WhatsApp·Telegram 모바일 음성 메시지 기준 · 1만원 = 데이터 40MB(250원/MB) 가정 · 실측은 시연 08</div>
+    <div class="mono" data-r style="--i:4;font-size:12.5px;color:var(--faint);line-height:1.8;margin-top:18px">※ 초당 필요 대역폭(bps) = 실시간 대화 시 초당 망 용량 · 텍스트 메시지는 감정 제외(텍스트만) · 코덱은 공개 스펙값<br>※ 1만원 = 데이터 40MB(250원/MB) 가정 · 시연 08은 빠른 발화라 ~170bps 실측</div>
   </section>
 
   <!-- 9 · DEMO -->
@@ -968,18 +985,30 @@
         </div>
       </div>
     </div>
-    <div class="same-text" data-r style="--i:2;margin-top:8px">동일 발화 <b>“와 진짜 태원이는 진짜 너무 대단한데?”</b> - 원본 vs 우리 복원 vs 초저대역폭 코덱</div>
+    <div class="same-text" data-r style="--i:2;margin-top:8px">동일 발화 <b>“와 진짜 태원이는 진짜 너무 대단한데?”</b> - 원본 vs <b style="color:var(--cool)">우리 복원</b> vs <b style="color:var(--warm)">초저대역폭 코덱</b></div>
     <div class="demo-row" data-r style="--i:3">
-      <div class="player base">
-        <div class="ptag">원본 녹음 · 16kHz PCM ≈ 256 kbps</div>
+      <div class="player orig">
+        <div class="phead">
+          <span class="prole">원본 녹음</span>
+          <span class="prate">≈ 256 kbps</span>
+        </div>
+        <div class="pspec">16kHz PCM</div>
         <audio controls preload="metadata"><source src="assets/demo_original_16k.wav" type="audio/wav"></audio>
       </div>
-      <div class="player sad">
-        <div class="ptag" style="color:var(--cool)">우리 복원 · 텍스트+24bit ≈ 170 bps</div>
+      <div class="player ours">
+        <div class="phead">
+          <span class="prole">우리 복원</span>
+          <span class="prate">≈ 170 bps</span>
+        </div>
+        <div class="pspec">텍스트 + 24bit</div>
         <audio controls preload="metadata"><source src="assets/demo_ours.wav" type="audio/wav"></audio>
       </div>
-      <div class="player happy">
-        <div class="ptag" style="color:var(--warm)">초저대역폭 코덱 · Codec2 ≈ 700 bps</div>
+      <div class="player codec">
+        <div class="phead">
+          <span class="prole">초저대역폭 코덱</span>
+          <span class="prate">≈ 700 bps</span>
+        </div>
+        <div class="pspec">Codec2</div>
         <audio controls preload="metadata"><source src="assets/demo_codec2.wav" type="audio/wav"></audio>
       </div>
     </div>
@@ -988,15 +1017,15 @@
   </section>
 
   <!-- 10 · ROADMAP -->
-  <section class="slide" data-note="[30s] 데이터셋 확보 → TTS 재학습(약한 감정·화자 다양성 해결) → 주관평가(MOS) → STEP3 페이로드 압축: 가변 한글 텍스트는 엔트로피 코딩, 감정 벡터는 비트패킹(현재 와이어 repeated int32 80bit → 본래 24bit) → 발화당 ~20B(정보율 ~70bps) → 다자 대화방·실시간 스트리밍 → 배포.">
+  <section class="slide" data-note="[30s] 데이터셋 확보 → TTS 재학습(약한 감정·화자 다양성 해결) → 주관평가(MOS) → STEP3 페이로드 압축: 가변 한글 텍스트는 엔트로피 코딩, 감정 벡터는 24bit로 비트패킹 → 발화당 ~20B(정보율 ~70bps) → 다자 대화방·실시간 스트리밍 → 배포.">
     <div class="eyebrow" data-r style="--i:0"><span class="num">09</span> 2학기 계획</div>
     <h2 data-r style="--i:1;font-size:28px;margin-bottom:14px">완성으로 가는 다섯 걸음</h2>
     <div class="road">
-      <div class="step" data-r style="--i:2"><div class="mk">STEP 1</div><div class="body"><h4>데이터셋 확보 &amp; TTS 재학습</h4><p>다양한 화자·표현 감정이 담긴 음성 데이터를 수집하고, 이를 토대로 TTS 재학습 - 슬픔·혐오·두려움 등 아직 약한 감정까지 표현하고 화자에 종속되지 않는 감정 전달</p></div></div>
-      <div class="step" data-r style="--i:3"><div class="mk">STEP 2</div><div class="body"><h4>주관 평가 (MOS · 청취 실험)</h4><p>객관 지표(분류 일치율·복원 코사인)를 넘어, 사람 청취 기반 MOS·감정 전달 정확도로 실제 품질을 검증</p></div></div>
-      <div class="step" data-r style="--i:4"><div class="mk">STEP 3</div><div class="body"><h4>페이로드 압축 - 비트패킹 &amp; 한글 엔트로피 코딩</h4><p><b>감정 코드</b>는 비트 단위로 빈틈없이 패킹하고, <b>가변 한글 텍스트</b>는 엔트로피 코딩으로 압축해 발화당 전송량을 한계까지 절감</p></div></div>
-      <div class="step" data-r style="--i:5"><div class="mk">STEP 4</div><div class="body"><h4>다자 대화방 &amp; 실시간 스트리밍</h4><p>1:1을 넘어 여러 명이 함께하는 대화방으로 확장 · 서버 경유 <b>gRPC/WebSocket</b> 기반 실시간 통신 고도화</p></div></div>
-      <div class="step" data-r style="--i:6"><div class="mk">STEP 5</div><div class="body"><h4>시연 가능한 서비스 형태로 완성</h4><p>단말 앱과 서버를 패키징해, 사용자가 직접 써보는 <b>시연 가능한 서비스 형태</b>로 완성</p></div></div>
+      <div class="step" data-r style="--i:2"><div class="mk">STEP 1</div><div class="body"><h4>데이터셋 확보 &amp; TTS 재학습</h4><p>다양한 화자·표현 감정이 담긴 음성 데이터를 수집하고, 이를 토대로 TTS 재학습 - <b style="color:var(--muted)">슬픔·혐오·두려움 등 아직 약한 감정</b>까지 표현하고 <b style="color:var(--muted)">화자에 종속되지 않는 감정 전달</b></p></div></div>
+      <div class="step" data-r style="--i:3"><div class="mk">STEP 2</div><div class="body"><h4>주관 평가 (MOS · 청취 실험)</h4><p>객관 지표(분류 일치율·복원 코사인)를 넘어, <b style="color:var(--muted)">사람 청취 기반 MOS·감정 전달 정확도</b>로 실제 품질을 검증</p></div></div>
+      <div class="step" data-r style="--i:4"><div class="mk">STEP 3</div><div class="body"><h4>페이로드 압축 - 비트패킹 &amp; 한글 엔트로피 코딩</h4><p>감정 코드는 비트 단위로 빈틈없이 패킹하고, 가변 한글 텍스트는 엔트로피 코딩으로 압축해 <b style="color:var(--muted)">발화당 전송량을 한계까지 절감</b></p></div></div>
+      <div class="step" data-r style="--i:5"><div class="mk">STEP 4</div><div class="body"><h4>다자 대화방 &amp; 실시간 스트리밍</h4><p>1:1을 넘어 <b style="color:var(--muted)">여러 명이 함께하는 대화방으로 확장</b> · 서버 경유 gRPC/WebSocket 기반 <b style="color:var(--muted)">실시간 통신 고도화</b></p></div></div>
+      <div class="step" data-r style="--i:6"><div class="mk">STEP 5</div><div class="body"><h4>시연 가능한 서비스 형태로 완성</h4><p>단말 앱과 서버를 패키징해, 사용자가 직접 써보는 <b style="color:var(--muted)">시연 가능한 서비스 형태로 완성</b></p></div></div>
     </div>
   </section>
 
