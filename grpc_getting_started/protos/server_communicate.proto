@@ -17,8 +17,11 @@ service SpeechRelay { // definition of service
   // 송신측 -> 서버: 송신자 wav(전송 로직에 추가)
   rpc SendVoice(SpeechReferenceRequest) returns (UploadStatus) {} // 성공 여부 반환
 
-  // 송신측 -> 서버: 텍스트, 감정 데이터(전송 로직)
+  // 송신측 -> 서버: 텍스트, 감정 데이터(전송 로직) --> deprecated. 호환성 위해 남겨둠.
   rpc Send(SpeechUploadRequest) returns (UploadStatus) {} // 성공 여부 반환
+  // 송신측 -> 서버: 텍스트, 감정 데이터 패킷(전송 로직)
+  rpc SendPacket(SpeechUploadPacketRequest) returns (UploadStatus) {} // 성공 여부 반환
+
 
   // 서버 -> 수신측: 메타데이터(접속 로직)
   rpc GetPendingMessages(UserIdentifier) returns (MetadataResponse) {}
@@ -33,7 +36,7 @@ message SpeechReferenceRequest {
   bytes audio_content = 2;
 }
 
-// message type: data structure that send_clients send to server
+// message type: data structure that send_clients send to server --> deprecated. 호환성 위해 남겨둠
 message SpeechUploadRequest { 
   // Codelab Hint: Define the SpeechUploadRequest messages here
   
@@ -42,6 +45,10 @@ message SpeechUploadRequest {
   string message = 3;
   int32 emo_type = 4;
   repeated int32 emotion_vector = 5;
+}
+// message type: data structure that send_clients send to server
+message SpeechUploadPacketRequest {
+  bytes packet = 1; // 비트패킹된 전체 패킷
 }
 // message type: data structure that send_clients receive from server
 message UploadStatus {

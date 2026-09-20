@@ -3,9 +3,9 @@
 import grpc
 import warnings
 
-from . import server_communicate_pb2 as server__communicate__pb2
+import server_communicate_pb2 as server__communicate__pb2
 
-GRPC_GENERATED_VERSION = '1.70.0'
+GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in server_communicate_pb2_grpc.py depends on'
+        + ' but the generated code in server_communicate_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -44,6 +44,11 @@ class SpeechRelayStub(object):
         self.Send = channel.unary_unary(
                 '/SpeechRelay/Send',
                 request_serializer=server__communicate__pb2.SpeechUploadRequest.SerializeToString,
+                response_deserializer=server__communicate__pb2.UploadStatus.FromString,
+                _registered_method=True)
+        self.SendPacket = channel.unary_unary(
+                '/SpeechRelay/SendPacket',
+                request_serializer=server__communicate__pb2.SpeechUploadPacketRequest.SerializeToString,
                 response_deserializer=server__communicate__pb2.UploadStatus.FromString,
                 _registered_method=True)
         self.GetPendingMessages = channel.unary_unary(
@@ -73,7 +78,14 @@ class SpeechRelayServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Send(self, request, context):
-        """송신측 -> 서버: 텍스트, 감정 데이터(전송 로직)
+        """송신측 -> 서버: 텍스트, 감정 데이터(전송 로직) --> deprecated. 호환성 위해 남겨둠.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendPacket(self, request, context):
+        """송신측 -> 서버: 텍스트, 감정 데이터 패킷(전송 로직)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -104,6 +116,11 @@ def add_SpeechRelayServicer_to_server(servicer, server):
             'Send': grpc.unary_unary_rpc_method_handler(
                     servicer.Send,
                     request_deserializer=server__communicate__pb2.SpeechUploadRequest.FromString,
+                    response_serializer=server__communicate__pb2.UploadStatus.SerializeToString,
+            ),
+            'SendPacket': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendPacket,
+                    request_deserializer=server__communicate__pb2.SpeechUploadPacketRequest.FromString,
                     response_serializer=server__communicate__pb2.UploadStatus.SerializeToString,
             ),
             'GetPendingMessages': grpc.unary_unary_rpc_method_handler(
@@ -172,6 +189,33 @@ class SpeechRelay(object):
             target,
             '/SpeechRelay/Send',
             server__communicate__pb2.SpeechUploadRequest.SerializeToString,
+            server__communicate__pb2.UploadStatus.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendPacket(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/SpeechRelay/SendPacket',
+            server__communicate__pb2.SpeechUploadPacketRequest.SerializeToString,
             server__communicate__pb2.UploadStatus.FromString,
             options,
             channel_credentials,
