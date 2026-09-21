@@ -220,8 +220,8 @@ sender/storage/
 sender/sender_models
 sender/uv.lock
 .vscode 
-DataBase/data/*
-qwen_tts_api/checkpoint-epoch-1/*
+DataBase/*
+qwen_tts_api/checkpoint_epoch_1/*
 grpc_getting_started/DataBase/*
 
 # receiver
@@ -229,3 +229,9 @@ receiver/storage/*
 
 notebooks/
 export/
+receiver/receiver_src/grpc_getting_started/DataBase/*
+sender/sender_src/grpc_getting_started/DataBase/*
+
+notebooks/
+
+.new_venv

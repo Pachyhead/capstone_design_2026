@@ -24,7 +24,7 @@ qwen3tts = Qwen3TTSModel.from_pretrained(
 print(f"Loading Model with projector ...")
 load_emotion_projector(
     qwen3tts.model,
-    "/app/qwen_tts_api/checkpoint-epoch-1",
+    "/app/qwen_tts_api/checkpoint_epoch_1",
     device=torch.device("cuda"),
     dtype=torch.bfloat16,
 )
@@ -63,9 +63,9 @@ class Query(BaseModel):
     ref_text: Optional[str] = None
     emotion_npy_path: Optional[str] = None
     use_emotion: bool = True
-    temperature: float = 0.9
+    temperature: float = 0.5
     top_k: int = 50
-    top_p: float = 1.0
+    top_p: float = 0.9
     max_new_tokens: int = 4096
     chunk_ms: int = 320  # streaming packet size (12Hz 토크나이저 default 4 timestep)
 

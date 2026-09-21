@@ -61,7 +61,7 @@ def main():
             )
             print(test_result)
     else:
-        o_path, m_path, e_path = make_dir(arg.output_dir)
+        o_path, m_path, e_path = make_dir(args.output_dir)
 
         # 이어하기 상태 복원
         processed_sources, next_id = load_processed_state(m_path)
