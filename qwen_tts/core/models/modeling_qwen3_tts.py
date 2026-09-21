@@ -1240,7 +1240,10 @@ class Qwen3TTSTalkerCodePredictorModelForConditionalGeneration(Qwen3TTSPreTraine
 
         loss = None
         if labels is not None:
-            loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
+            # labels here are already aligned 1:1 with the 15 per-layer logits;
+            # pass them as shift_labels so ForCausalLMLoss does not left-shift again
+            # (which would drop one layer and misalign all 15). See QwenLM/Qwen3-TTS#278.
+            loss = self.loss_function(logits=logits, labels=None, shift_labels=labels.contiguous(), vocab_size=self.config.vocab_size, **kwargs)
 
         return Qwen3TTSTalkerCodePredictorOutputWithPast(
             loss=loss,

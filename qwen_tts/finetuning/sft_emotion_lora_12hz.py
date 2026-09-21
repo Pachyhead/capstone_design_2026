@@ -181,7 +181,11 @@ def train():
                 input_text_ids = input_ids[:, :, 0]
                 input_codec_ids = input_ids[:, :, 1]
 
-                input_text_embedding = model.talker.model.text_embedding(input_text_ids) * text_embedding_mask
+                # Match the inference path (modeling generate()): text-channel embeddings
+                # must pass through talker.text_projection before entering the talker.
+                input_text_embedding = model.talker.text_projection(
+                    model.talker.model.text_embedding(input_text_ids)
+                ) * text_embedding_mask
                 input_codec_embedding = model.talker.model.codec_embedding(input_codec_ids) * codec_embedding_mask
                 input_codec_embedding[:, 6, :] = speaker_embedding
 
@@ -192,15 +196,22 @@ def train():
                     codec_i_embedding = codec_i_embedding * codec_mask.unsqueeze(-1)
                     input_embeddings = input_embeddings + codec_i_embedding
 
+                # Pass UNSHIFTED tensors: transformers' ForCausalLMLoss shifts labels
+                # internally (logit at t targets label at t+1). Pre-shifting here would
+                # double-shift and train the model one frame ahead (upstream bug,
+                # QwenLM/Qwen3-TTS#278; symptom: progressively faster speech, #179).
                 outputs = model.talker(
-                    inputs_embeds=input_embeddings[:, :-1, :],
-                    attention_mask=attention_mask[:, :-1],
-                    labels=codec_0_labels[:, 1:],
+                    inputs_embeds=input_embeddings,
+                    attention_mask=attention_mask,
+                    labels=codec_0_labels,
                     output_hidden_states=True,
                 )
 
-                hidden_states = outputs.hidden_states[0][-1]
-                talker_hidden_states = hidden_states[codec_mask[:, :-1]]
+                # Sub-talker must see the hidden state that PRECEDES each codec frame
+                # (the one layer-0 was sampled from at inference), i.e. hidden[p-1]
+                # paired with codec_ids[p].
+                hidden_states = outputs.hidden_states[0][-1][:, :-1, :]
+                talker_hidden_states = hidden_states[codec_mask[:, 1:]]
                 talker_codec_ids = codec_ids[codec_mask]
 
                 _, sub_talker_loss = model.talker.forward_sub_talker_finetune(
