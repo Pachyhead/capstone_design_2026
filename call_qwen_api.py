@@ -3,14 +3,14 @@ import requests
 API_URL = "http://localhost:8080/stream"
 
 payload = {
-    "target_text" : "호출이 이상하게 되는 이유를 알아보자",
-    "ref_audio" : "./000023.wav",
-    "ref_text" : "어쨌든 우리한테 와서 건강하게 지금도 잘 자라고 있으니까",
+    "target_text" : "와 진짜 태원이 너무 대단한데..?",
+    "ref_audio" : "./DataBase/ref_audio/0_ref.wav",
+    "ref_text" : "안녕하세요, 오늘 날씨가 참 좋아서 산책하기 딱 좋은 날인 것 같네요. 주말에는 보통 집에서 책을 읽거나 가까운 카페에 가서 시간을 보냅니다.",
     "use_emotion" : True,
-    "emotion_npy_path" : "./100324.npy",
-    "temperature" : 0.5,
+    "emotion_npy_path" : "./DataBase/emotion_vectors/06018423-a74e-47f0-ba29-512bd61605bf.npy",
+    "temperature" : 0.9,
     "top_k" : 50,
-    "top_p" : 0.8
+    "top_p" : 1.0
 }
 
 
