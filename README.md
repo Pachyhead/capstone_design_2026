@@ -1,15 +1,23 @@
 <div align="center">
-
+ 
 # 🌀 capstone_design_2026 🌀
 
 <h3 align="center">🌬️ 선풍기 💨</h3>
 
 <br />
 
-<img src="./assets/fan.gif" width="150px" alt="Team Fan Sticker" />
+<img src="./docs/assets/fan.gif" width="150px" alt="Team Fan Sticker" />
 
 
 <br />
+
+<p><sub>음성의 <b>텍스트</b> · <b>감정</b> 분리를 통한 저트래픽 음성 통신 </sub></p>
+
+<a href="https://pachyhead.github.io/capstone_design_2026/">
+  <img src="https://img.shields.io/badge/▶%20발표%20보기-Open%20Slides-34d3c0?style=for-the-badge&labelColor=0a0d13" alt="발표 보기" height="40" />
+</a>
+
+
 <br />
 
 ## 👥 Team Members
@@ -43,18 +51,6 @@
   </tr>
   <tr>
     <td align="center" width="220px">
-      <a href="https://github.com/TaeWonM">
-        <img src="https://github.com/TaeWonM.png" width="120px" alt="민태원 프로필" style="border-radius: 50%;" />
-        <br />
-        <br />
-        <img src="https://img.shields.io/badge/Member-green?style=flat-square" />
-        <br />
-        <strong>🌀 민태원</strong>
-      </a>
-      <br />
-      <a href="https://github.com/TaeWonM">@TWMin</a>
-    </td>
-    <td align="center" width="220px">
       <a href="https://github.com/KyeongTaek">
         <img src="https://github.com/user-attachments/assets/66b8985c-2e1e-4b3a-865d-488d0899a6bf" width="120px" alt="임경택 프로필" style="border-radius: 50%;" />
         <br />
@@ -65,6 +61,18 @@
       </a>
       <br />
       <a href="https://github.com/KyeongTaek">@KyeongTaek</a>
+    </td>
+    <td align="center" width="220px">
+      <a href="https://github.com/TaeWonM">
+        <img src="https://github.com/TaeWonM.png" width="120px" alt="민태원 프로필" style="border-radius: 50%;" />
+        <br />
+        <br />
+        <img src="https://img.shields.io/badge/Member-green?style=flat-square" />
+        <br />
+        <strong>🌀 민태원</strong>
+      </a>
+      <br />
+      <a href="https://github.com/TaeWonM">@TWMin</a>
     </td>
   </tr>
 </table>

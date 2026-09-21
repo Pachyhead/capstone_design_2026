@@ -227,6 +227,8 @@ grpc_getting_started/DataBase/*
 # receiver
 receiver/storage/*
 
+notebooks/
+export/
 receiver/receiver_src/grpc_getting_started/DataBase/*
 sender/sender_src/grpc_getting_started/DataBase/*
 

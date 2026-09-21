@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>캡스톤 중간 발표 · 저트래픽 음성 통신 · 선풍기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#eaf4f6;
+    --bg2:#dceaef;
+    --stage:#ffffff;
+    --panel:#f1f8fa;
+    --panel-2:#e9f3f5;
+    --ink:#123038;          /* 제목 */
+    --text:#1e3c45;
+    --muted:#577079;
+    --faint:#5f7a84;
+    --cool:#0aa3b5;         /* 텍스트 / 신호 (시원한 청록) */
+    --cool-2:#3f9fd6;       /* 바람 (스카이) */
+    --cool-dim:#b9e4ea;
+    --warm:#ff7a5c;         /* 감정 (코랄) */
+    --warm-dim:#ffd6cb;
+    --line:rgba(18,60,70,.14);
+    --line-soft:rgba(18,60,70,.07);
+    --sans:'IBM Plex Sans KR',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1100px 720px at 82% -8%, rgba(63,159,214,.16), transparent 60%),
+      radial-gradient(950px 720px at 8% 112%, rgba(10,163,181,.14), transparent 60%),
+      linear-gradient(135deg,var(--bg1),var(--bg2));
+    color:var(--text);
+    font-family:var(--sans);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- 16:9 고정 무대 (전체화면에서도 비율 유지) ---------- */
+  #stage{
+    position:absolute;top:50%;left:50%;
+    width:1280px;height:720px;
+    transform:translate(-50%,-50%) scale(var(--s,1));
+    transform-origin:center center;
+    background:var(--stage);
+    border:1px solid var(--line);
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 50px 110px -45px rgba(12,70,82,.55);
+  }
+  /* 무대 안 은은한 그리드 */
+  #stage::after{
+    content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background-image:
+      linear-gradient(var(--line-soft) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:48px 48px;
+    -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 82%);
+            mask-image:radial-gradient(ellipse at center,#000 30%,transparent 82%);
+  }
+
+  .slide{
+    position:absolute;inset:0;z-index:1;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:58px 84px;
+    opacity:0;visibility:hidden;transform:scale(.99);
+    transition:opacity .45s ease, transform .45s ease, visibility .45s;
+  }
+  .slide.active{opacity:1;visibility:visible;transform:none}
+
+  /* reveal */
+  [data-r]{opacity:0;transform:translateY(16px);transition:opacity .55s ease, transform .55s ease;
+    transition-delay:calc(var(--i,0) * 85ms + 110ms)}
+  .slide.active [data-r]{opacity:1;transform:none}
+
+  .eyebrow{
+    font-family:var(--mono);font-size:15px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--muted);display:flex;align-items:center;gap:14px;margin-bottom:26px;
+  }
+  .eyebrow .num{color:var(--cool);font-weight:600}
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--line);max-width:160px}
+
+  h1{font-size:56px;font-weight:700;line-height:1.14;letter-spacing:-.02em;color:var(--ink);white-space:nowrap}
+  h2{font-size:40px;font-weight:600;line-height:1.18;letter-spacing:-.015em;color:var(--ink)}
+  .lead{font-size:23px;color:var(--muted);font-weight:400;line-height:1.6;max-width:46ch}
+
+  .cool{color:var(--cool)}
+  .cool2{color:var(--cool-2)}
+  .warm{color:var(--warm)}
+  .mono{font-family:var(--mono)}
+
+  /* ---------- title ---------- */
+  .title-wrap{max-width:64ch;position:relative;z-index:2}
+  .kicker{font-family:var(--mono);font-size:16px;letter-spacing:.16em;color:var(--cool);margin-bottom:30px;text-transform:uppercase;font-weight:500}
+  .title-en{font-family:var(--mono);font-size:17px;color:var(--faint);letter-spacing:.02em;margin-top:26px;line-height:1.7}
+  .title-meta{display:flex;gap:42px;margin-top:46px;flex-wrap:wrap;align-items:flex-end}
+  .title-meta .blk small{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .title-meta .blk div{font-size:17px;color:var(--text);font-weight:500}
+  /* 선풍기(정중앙)에서 파형이 왼쪽으로 흘러나오며 옅어짐 */
+  .wave{position:absolute;right:50%;top:53%;transform:translateY(-50%);width:540px;opacity:.95;pointer-events:none;z-index:1;
+    -webkit-mask-image:linear-gradient(to left,#000 12%,transparent 88%);
+            mask-image:linear-gradient(to left,#000 12%,transparent 88%)}
+  .wave path{stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 2.2s ease forwards .5s}
+  .slide:not(.active) .wave path{animation:none;stroke-dashoffset:1400}
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  /* 선풍기 GIF */
+  .fan-hero{position:absolute;right:96px;top:50%;transform:translateY(-50%);width:206px;height:auto;
+    z-index:2;pointer-events:none;filter:drop-shadow(0 18px 34px rgba(12,70,82,.32))}
+  .fan-corner{position:absolute;top:24px;right:30px;width:74px;height:auto;z-index:6;pointer-events:none;
+    opacity:.95;transition:opacity .4s ease;filter:drop-shadow(0 8px 16px rgba(12,70,82,.22))}
+  body[data-slide="0"] .fan-corner,body[data-slide="0"] .brand,body[data-slide="11"] .fan-corner{opacity:0}
+
+  /* ---------- big number ---------- */
+  .bignum{font-family:var(--mono);font-size:96px;font-weight:600;line-height:1;color:var(--warm);letter-spacing:-.03em}
+  .bignum .u{font-size:.32em;color:var(--muted);letter-spacing:0;margin-left:.4ch}
+  .quote{font-size:33px;font-weight:400;line-height:1.4;border-left:3px solid var(--cool);
+    padding-left:26px;color:var(--ink);max-width:30ch}
+
+  .two-col{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center}
+  .stack{display:flex;flex-direction:column;gap:24px}
+
+  /* split visual (idea slide) */
+  .split{display:flex;align-items:center;gap:20px;font-family:var(--mono)}
+  .chip{padding:20px 24px;border-radius:16px;border:1px solid var(--line);background:var(--panel);
+    text-align:center;min-width:152px}
+  .chip .big{font-size:24px;font-weight:600;margin-bottom:6px}
+  .chip.t{border-color:var(--cool);box-shadow:0 14px 30px -20px rgba(10,163,181,.7)}
+  .chip.t .big{color:var(--cool)}
+  .chip.e{border-color:var(--warm);box-shadow:0 14px 30px -20px rgba(255,122,92,.7)}
+  .chip.e .big{color:var(--warm)}
+  .chip small{color:var(--muted);font-size:13px;letter-spacing:.04em}
+  .op{font-size:30px;color:var(--faint);font-weight:300}
+
+  /* scene cards (problem slide) - 칸을 나눠 이미지·글 분리, 가장자리까지 꽉 채움 */
+  .chip.scene{display:flex;align-items:stretch;text-align:left;padding:0;min-width:0;overflow:hidden;height:152px}
+  .chip.scene img{width:46%;align-self:stretch;object-fit:cover;flex-shrink:0;display:block;border-right:1px solid var(--line)}
+  .chip.scene>div{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 24px}
+  .chip.scene .tag{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .chip.scene .scene-sub{margin-top:7px;font-size:17px;color:var(--text);line-height:1.4}
+  .chip.scene.s-warm>div{background:rgba(255,122,92,.07)}
+  .chip.scene.s-warm .tag{color:var(--warm)}
+  .chip.scene.s-cool>div{background:rgba(10,163,181,.07)}
+  .chip.scene.s-cool .tag{color:var(--cool)}
+
+  /* feature list */
+  .flist{list-style:none;display:flex;flex-direction:column;gap:22px}
+  .flist li{display:flex;gap:18px;align-items:flex-start;font-size:21px;line-height:1.5}
+  .flist .ic{font-family:var(--mono);color:var(--cool);font-size:15px;margin-top:.4em;flex-shrink:0;letter-spacing:.05em;font-weight:600}
+  .flist .warm-ic{color:var(--warm)}
+  .flist b{font-weight:600;color:var(--ink)}
+  .flist .sub{color:var(--muted);font-weight:400;font-size:.82em;display:block;margin-top:4px;line-height:1.45}
+
+  /* 왼쪽 글씨 축소 + 오른쪽(그림 2개) 확대 슬라이드 */
+  .slide.compact-left .two-col{grid-template-columns:.9fr 1.1fr;gap:46px;align-items:start}
+  .slide.compact-left .stack{gap:15px}
+  .slide.compact-left h2{font-size:32px;line-height:1.12}
+  .slide.compact-left .flist{gap:12px}
+  .slide.compact-left .flist li{font-size:19px;line-height:1.4}
+  .slide.compact-left .flist .ic{font-size:14px}
+  .slide.compact-left .mono{font-size:13px !important}
+
+  /* cards (scope) */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:32px 34px;position:relative;overflow:hidden}
+  .card .tag{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+  .card h3{font-size:25px;font-weight:600;margin:14px 0 10px}
+  .card p{color:var(--muted);font-weight:400;line-height:1.55;font-size:18px}
+  .card.t{border-top:3px solid var(--cool)}
+  .card.e{border-top:3px solid var(--warm)}
+  .card .ghost{position:absolute;right:-8px;bottom:-22px;font-family:var(--mono);font-size:96px;font-weight:600;color:var(--cool);opacity:.06}
+
+  /* stat row */
+  .stats{display:flex;gap:64px;flex-wrap:wrap}
+  .stat .v{font-family:var(--mono);font-size:62px;font-weight:600;color:var(--cool);line-height:1}
+  .stat .v.w{color:var(--warm)}
+  .stat .k{color:var(--muted);font-size:17px;margin-top:12px;font-weight:400;max-width:24ch;line-height:1.45}
+
+  .compress{display:flex;align-items:center;gap:18px;font-family:var(--mono);margin-top:8px;flex-wrap:wrap}
+  .compress .box{border:1px solid var(--line);border-radius:12px;padding:16px 20px;background:var(--panel)}
+  .compress .box small{display:block;color:var(--faint);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  .compress .box .n{font-size:24px;font-weight:600}
+  .compress .arrow{color:var(--cool);font-size:26px}
+
+  /* bar chart */
+  .chart{display:flex;flex-direction:column;gap:16px;margin-top:4px}
+  .row{display:grid;grid-template-columns:84px 1fr 104px;align-items:center;gap:18px}
+  .row .lab{font-size:19px;color:var(--text);font-weight:500}
+  .row .track{height:16px;background:var(--panel-2);border-radius:8px;overflow:hidden;border:1px solid var(--line-soft)}
+  .row .fill{height:100%;width:0;border-radius:8px;transition:width 1s cubic-bezier(.22,1,.36,1);transition-delay:.3s}
+  .slide.active .row .fill{width:var(--w)}
+  .row .pct{font-family:var(--mono);font-size:17px;color:var(--muted);text-align:right}
+  .row .pct i{font-style:normal;font-size:12px;color:var(--faint);margin-left:5px}
+  .row .pct i.up{color:var(--cool)}
+  .fill.ok{background:linear-gradient(90deg,var(--cool-2),var(--cool))}
+  .fill.mid{background:linear-gradient(90deg,#e0a83a,#f0c45c)}
+  .fill.zero{background:#cbd8dc}
+  .row.zero .lab,.row.zero .pct{color:var(--faint)}
+
+  .diag{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warm);
+    border-radius:0 14px 14px 0;padding:24px 28px;max-width:54ch}
+  .diag .t{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--warm);margin-bottom:10px;font-weight:600}
+  .diag p{color:var(--muted);font-weight:400;line-height:1.55;font-size:18px}
+  .diag b{color:var(--ink);font-weight:600}
+  .tag{font-size:.8em;color:var(--faint)}
+
+  /* architecture diagram (slide 4) */
+  .arch{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .arow{display:flex;align-items:stretch;justify-content:center}
+  .node{flex:1 1 0;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 22px}
+  .node.sender{border-top:3px solid var(--cool)}
+  .node.server{border-top:3px solid var(--cool-2)}
+  .node.receiver{border-top:3px solid var(--faint)}
+  .node.qwen{border-top:3px solid var(--warm);background:#fff4f1;max-width:580px;width:100%}
+  .node .ntag{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+  .node .ln{font-size:16px;color:var(--ink);line-height:1.9;font-weight:600}
+  .node .ln .s{color:var(--muted);font-weight:400;font-size:14px}
+  .farr{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 16px;flex-shrink:0}
+  .farr .a{font-size:28px;color:var(--cool);line-height:1}
+  .farr .lbl{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:8px;text-align:center;line-height:1.45}
+  .qwen-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .qwen-wrap .va{font-family:var(--mono);font-size:18px;color:var(--warm);letter-spacing:.12em}
+  .arch-banner{text-align:center;font-family:var(--mono);font-size:14px;color:var(--cool);
+    border:1px dashed var(--cool);border-radius:10px;padding:11px;background:var(--panel-2)}
+  .arch-banner b{color:var(--ink);font-weight:600}
+
+  /* citation footnote */
+  .cite{position:absolute;left:84px;bottom:32px;font-family:var(--mono);font-size:13px;color:var(--faint);letter-spacing:.01em}
+  .cite b{color:var(--muted);font-weight:500}
+
+  /* demo */
+  .player{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px 16px 15px;display:flex;flex-direction:column;gap:9px;box-shadow:0 10px 26px -22px rgba(12,70,82,.5);transition:transform .25s ease,box-shadow .25s ease}
+  .player:hover{transform:translateY(-2px);box-shadow:0 16px 32px -24px rgba(12,70,82,.55)}
+  .player .phead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .player .prole{font-size:14.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px}
+  .player .prole::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--faint);flex-shrink:0}
+  .player .prate{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.02em;padding:3px 9px;border-radius:999px;background:var(--panel-2);color:var(--faint);white-space:nowrap}
+  .player .pspec{font-family:var(--mono);font-size:11.5px;letter-spacing:.03em;color:var(--faint);margin-top:-3px}
+  .player audio{width:100%;height:34px}
+  .player.orig .prole{color:var(--muted)}
+  .player.ours{border-color:var(--cool);background:linear-gradient(180deg,#f0fbfc,#e9f7f9);box-shadow:0 14px 30px -20px rgba(10,163,181,.5)}
+  .player.ours:hover{box-shadow:0 18px 36px -22px rgba(10,163,181,.6)}
+  .player.ours .prole{color:var(--cool)}
+  .player.ours .prole::before{background:var(--cool)}
+  .player.ours .prate{background:var(--cool);color:#fff}
+  .player.codec .prole{color:var(--warm)}
+  .player.codec .prole::before{background:var(--warm)}
+  .player.codec .prate{background:var(--warm-dim);color:#a8402a}
+  .demo-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:12px;align-items:stretch}
+  .same-text{font-size:17px;color:var(--muted);font-weight:400}
+  .same-text b{color:var(--ink);font-weight:600}
+  .demo-video{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#0d2228;
+    display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .demo-video video{width:392px;max-width:100%;aspect-ratio:16/9;display:block;background:#0d2228;object-fit:contain}
+  .demo-video.empty{background:var(--panel);border-style:dashed}
+  .demo-video .ph{font-family:var(--mono);font-size:13px;color:var(--faint);letter-spacing:.04em;text-align:center;padding:12px 16px;line-height:1.55}
+  .demo-note{font-family:var(--mono);font-size:14px;color:var(--muted);margin-top:12px;display:flex;gap:10px;align-items:center}
+  .demo-note .dot{width:9px;height:9px;border-radius:50%;background:var(--cool);flex-shrink:0}
+
+  /* 감정 색상 범례 (메신저 UI 감정별 색 · 미상 제외) */
+  .demo-frame{width:fit-content;max-width:100%;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:14px 22px;box-shadow:0 16px 40px -30px rgba(12,70,82,.45)}
+  .demo-stage{display:flex;align-items:center;gap:20px;justify-content:center}
+  .demo-stage .demo-video{flex:0 1 auto;min-width:0}
+  .emo-col{display:flex;flex-direction:column;gap:12px;flex-shrink:0}
+  .emo{display:flex;flex-direction:column;align-items:center;gap:4px;width:58px}
+  .emo .ef{width:44px;height:44px;display:block;filter:drop-shadow(0 3px 7px rgba(12,70,82,.13))}
+  .emo .el{font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.02em;line-height:1}
+  .emo-cap{text-align:center;font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:8px}
+  .emo-cap b{color:var(--ink);font-weight:600}
+
+  /* roadmap */
+  .road{display:flex;flex-direction:column;gap:0;margin-top:4px}
+  .step{display:grid;grid-template-columns:96px 1fr;gap:26px;padding:15px 0;position:relative;padding-left:2px}
+  .step .mk{font-family:var(--mono);font-size:14px;color:var(--cool);padding-left:26px;position:relative;font-weight:600;padding-top:2px}
+  .step .mk::before{content:"";position:absolute;left:-5px;top:5px;width:11px;height:11px;border-radius:50%;background:var(--cool);box-shadow:0 0 0 5px rgba(10,163,181,.14)}
+  .step::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--line)}
+  .step .body h4{font-size:21px;font-weight:600;margin-bottom:5px;color:var(--ink)}
+  .step .body p{color:var(--muted);font-weight:400;font-size:17px;line-height:1.5}
+
+  /* closing */
+  .close-sum{font-size:42px;font-weight:300;line-height:1.42;max-width:34ch;color:var(--ink)}
+  .close-sum b{font-weight:600}
+
+  /* team */
+  .team{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin-top:6px}
+  .member{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:30px 18px;
+    display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+  .member.lead{border-top:3px solid var(--warm)}
+  .member img{width:112px;height:112px;border-radius:50%;object-fit:cover;border:2px solid #fff;
+    box-shadow:0 10px 24px -10px rgba(12,70,82,.4);background:var(--panel-2)}
+  .member .nm{font-size:21px;font-weight:600;color:var(--ink)}
+  .member .hd{font-family:var(--mono);font-size:14px;color:var(--cool);letter-spacing:.01em}
+  .member .rl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:4px 13px}
+  .member.lead .rl{color:var(--warm);border-color:var(--warm)}
+
+  /* chrome (뷰포트 고정) */
+  .progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--cool),var(--cool-2));z-index:30;
+    transition:width .45s ease;width:0}
+  .counter{position:fixed;bottom:20px;right:26px;z-index:30;font-family:var(--mono);font-size:14px;color:var(--muted);letter-spacing:.08em}
+  .counter b{color:var(--cool)}
+  .nav{position:fixed;bottom:16px;left:26px;z-index:30;display:flex;gap:10px}
+  .nav button{width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.7);
+    color:var(--muted);cursor:pointer;font-size:18px;transition:.2s;display:flex;align-items:center;justify-content:center}
+  .nav button:hover{border-color:var(--cool);color:var(--cool)}
+  .brand{position:absolute;top:20px;left:34px;z-index:7;font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;transition:opacity .4s ease}
+  .brand .acc{color:var(--cool)}
+
+  /* presenter notes */
+  .notes{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.97);border-top:1px solid var(--line);
+    padding:16px 32px;display:none;font-family:var(--mono);box-shadow:0 -10px 30px -16px rgba(12,70,82,.35)}
+  .notes.show{display:block}
+  .notes .nt{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--cool);margin-bottom:6px;font-weight:600}
+  .notes .nb{font-size:15px;color:var(--muted);line-height:1.5}
+  .hintbar{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:30;font-family:var(--mono);
+    font-size:12px;color:var(--faint);letter-spacing:.08em;opacity:.7}
+</style>
+</head>
+<body>
+
+<div class="progress" id="prog"></div>
+
+<div id="stage">
+  <div class="brand">TONE <span class="acc">//</span> 선풍기 🌀 CBNU 2026</div>
+  <img class="fan-corner" src="assets/fan.gif" alt="선풍기">
+  <div class="deck" id="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide" data-note="[10s] 인사 + 주제 한 줄. '소리를 보내지 않고, 소리를 만들 정보만 보내는 통신입니다.' 팀 이름은 선풍기 - 시원하게 보내는 음성.">
+    <img class="fan-hero" src="assets/fan.gif" alt="선풍기 팀 마스코트" data-r style="--i:2">
+    <div class="title-wrap">
+      <div class="kicker" data-r style="--i:0">2026 캡스톤디자인 · 중간 발표 · 선풍기 🌀</div>
+      <h1 data-r style="--i:1">음성의 <span class="cool">텍스트</span>·<span class="warm">감정</span> 분리를 통한<br>저트래픽 음성 통신</h1>
+      <div class="title-meta" data-r style="--i:4">
+        <div class="blk"><small>Team · 선풍기 🌀</small><div>이종찬 · 최재웅 · 임경택 · 민태원</div></div>
+        <div class="blk"><small>충북대학교 컴퓨터공학과</small><div class="mono" style="font-size:15px">github.com/Pachyhead/capstone_design_2026</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · PROBLEM -->
+  <section class="slide" data-note="[40s] ①훅(15s): 기지국 끊긴 재난 현장 · 위성 회선 하나의 원양 선박 - 공통점은 음성 통화 한 통이 사치라는 것. 대역폭이 곧 비용이고 병목. ②한계(20s): VoLTE는 파형 자체를 압축·전송 → 비트레이트와 음질이 묶여 있어 통화 품질엔 수천~만 bps 필요, 수백 bps까지 줄이면 음질 붕괴. '파형을 전송한다'는 전제가 만드는 트레이드오프. ③전환(5s): 그래서 질문을 바꿨다 - 소리를 꼭 보내야 할까? 만들 정보만 보내면 되지 않을까? → 다음 슬라이드로.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">01</span> 배경 및 문제</div>
+    <div class="two-col" style="align-items:start;grid-template-columns:.9fr 1.1fr;gap:56px">
+      <div data-r style="--i:1;display:flex;flex-direction:column;gap:16px">
+        <div class="tag" style="margin-bottom:2px">배경 - 대역폭이 곧 비용인 환경</div>
+        <div class="chip scene s-warm">
+          <img src="assets/disaster.png" alt="재난 현장">
+          <div>
+            <div class="tag">재난 현장</div>
+            <div class="scene-sub">기지국이 끊긴 통신망</div>
+          </div>
+        </div>
+        <div class="chip scene s-cool">
+          <img src="assets/ship.png" alt="원양 선박">
+          <div>
+            <div class="tag">원양 선박</div>
+            <div class="scene-sub">위성 회선 하나에 의존</div>
+          </div>
+        </div>
+      </div>
+      <div class="stack" style="gap:18px">
+        <div class="tag" data-r style="--i:2;margin-bottom:2px">문제 - 파형 전송의 트레이드오프</div>
+        <h2 data-r style="--i:2;font-size:31px">지금의 음성 통화는<br>‘소리 자체’를 보낸다</h2>
+        <p class="lead" data-r style="--i:3;font-size:19px">파형을 보내는 한, <strong style="color:var(--ink)">비트레이트를 낮추면 음질도 함께 무너집니다.</strong></p>
+        <div data-r style="--i:4">
+          <div class="bignum" style="font-size:62px">12,650<span class="u">bps</span></div>
+          <div class="mono" style="color:var(--faint);font-size:14px;margin-top:6px;letter-spacing:.04em">현재 스마트폰 음성통화 방식(VoLTE · AMR-WB 코덱)의 대표 비트레이트</div>
+          <div class="mono" style="color:var(--warm);font-size:13.5px;margin-top:10px;letter-spacing:.02em">수백 bps 초저대역 코덱(Codec2 등)은 존재하지만 <b>음질이 붕괴</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="quote" data-r style="--i:5;font-size:27px;max-width:none;margin-top:34px">소리를 <span class="cool">다시 만들 정보</span>만 보내면 되지 않을까?</div>
+  </section>
+
+  <!-- 3 · IDEA -->
+  <section class="slide" data-note="[40s] 음성을 텍스트(무엇을)+감정(어떻게)으로 분리. 목소리는 통화 전 프로필로 사전 등록 → 전송 불필요. 보낼 건 텍스트 + 24bit 감정뿐.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">02</span> 핵심 아이디어</div>
+    <div class="two-col">
+      <div class="stack">
+        <h2 data-r style="--i:1">음성을 두 성분으로 분리한다</h2>
+        <p class="lead" data-r style="--i:2;font-size:18px">텍스트만 보내면 <span class="warm">감정이 사라집니다</span><br>- 그 감정을 단 <b style="color:var(--ink)">24bit</b>로 함께 보내는 게 핵심</p>
+        <ul class="flist" data-r style="--i:3">
+          <li><span class="ic">TXT</span><div><b><span class="cool">텍스트</span> - 무엇을 말했나</b><span class="sub">Whisper STT로 추출 · 메시지마다 가변</span></div></li>
+          <li><span class="ic warm-ic">EMO</span><div><b><span class="warm">감정</span> - 어떻게 말했나</b><span class="sub">emotion2vec로 추출 · 24bit 고정 코드 (톤·운율 등 준언어 정보)</span></div></li>
+          <li><span class="ic">VOX</span><div><b>화자 목소리 - 미리 등록</b><span class="sub">통화 전 화자 프로필(ref 음성)로 등록 → 전송 불필요</span></div></li>
+        </ul>
+      </div>
+      <div class="stack" data-r style="--i:3;align-items:center">
+        <div class="split">
+          <div class="chip" style="border-color:var(--line)"><div class="big" style="color:var(--ink)">음성</div><small>입력</small></div>
+          <span class="op">→</span>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div class="chip t"><div class="big">텍스트</div><small>가변 · 수십 바이트</small></div>
+            <div class="chip e"><div class="big">감정 24bit</div><small>고정 압축 코드</small></div>
+          </div>
+        </div>
+        <div class="mono" style="color:var(--faint);font-size:15px;text-align:center;margin-top:16px">보낼 것 = <span class="cool">텍스트</span> + <span class="warm">압축된 감정</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · ARCHITECTURE -->
+  <section class="slide" data-note="[45s] 1학기 송신→서버→수신 end-to-end 통합 구현 완료(메신저). 송신 단말: 녹음→ Whisper STT + emotion2vec→FSQ 인코딩(8지수=24bit). ①전송 계층은 gRPC - 링크엔 텍스트+24bit만. 서버는 메시지·감정 코드를 MySQL에 저장했다가 재생 요청 시 FSQ 복원(→1024d) 후 Qwen3-TTS(별도 GPU 도커)에 텍스트+화자 ref+감정을 보내 합성. ②합성 음성은 gRPC 서버사이드 스트리밍으로 프레임 단위 전달 - 통째로 받지 않아 체감 지연 최소화. 핵심 문장: 파형은 링크를 안 지난다.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">03</span> 시스템 전체 구조<span style="margin-left:auto;font-size:12px;letter-spacing:.08em;color:var(--cool);border:1px solid currentColor;border-radius:999px;padding:4px 12px">1학기 · 송신→서버→수신 통합 완료</span></div>
+    <div class="arch" data-r style="--i:1">
+      <svg viewBox="0 30 1120 392" width="100%" style="max-height:430px" font-family="IBM Plex Sans KR">
+        <defs>
+          <marker id="ac" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#0aa3b5"/></marker>
+          <marker id="aw" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#ff7a5c"/></marker>
+          <marker id="af" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#7d96a0"/></marker>
+          <marker id="a2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#3f9fd6"/></marker>
+        </defs>
+
+        <!-- ============ SENDER · 송신 단말 ============ -->
+        <rect x="16" y="36" width="364" height="190" rx="16" fill="#f1f8fa" stroke="#0aa3b5" stroke-width="1.6"/>
+        <rect x="16" y="36" width="364" height="6" rx="3" fill="#0aa3b5"/>
+        <text x="32" y="62" font-family="IBM Plex Mono" font-size="12" letter-spacing=".08em" fill="#5f7a84">SENDER · 송신 단말</text>
+        <!-- 녹음 소스 -->
+        <rect x="30" y="112" width="74" height="34" rx="9" fill="#eef7f9" stroke="#0aa3b5"/>
+        <text x="67" y="133" text-anchor="middle" font-size="12" fill="#123038">녹음</text>
+        <!-- 분기: 위(텍스트) / 아래(감정) -->
+        <path d="M104 122 C124 118 124 99 138 95" fill="none" stroke="#9fb9c0" stroke-width="1.3" marker-end="url(#af)"/>
+        <path d="M104 138 C120 150 110 161 120 165" fill="none" stroke="#9fb9c0" stroke-width="1.3" marker-end="url(#af)"/>
+        <!-- 텍스트 레인 -->
+        <rect x="140" y="78" width="112" height="30" rx="8" fill="#ffffff" stroke="#b9d9de"/>
+        <text x="196" y="97" text-anchor="middle" font-size="12" fill="#123038">Whisper STT</text>
+        <line x1="252" y1="93" x2="259" y2="93" stroke="#0aa3b5" stroke-width="1.5" marker-end="url(#ac)"/>
+        <rect x="261" y="78" width="96" height="30" rx="8" fill="#e3f3f6" stroke="#0aa3b5"/>
+        <text x="309" y="97" text-anchor="middle" font-size="12" fill="#0aa3b5" font-weight="600">텍스트 (가변)</text>
+        <!-- 감정 레인 -->
+        <rect x="122" y="150" width="96" height="30" rx="8" fill="#ffffff" stroke="#b9d9de"/>
+        <text x="170" y="169" text-anchor="middle" font-size="11.5" fill="#123038">emotion2vec</text>
+        <line x1="218" y1="165" x2="225" y2="165" stroke="#0aa3b5" stroke-width="1.5" marker-end="url(#ac)"/>
+        <rect x="227" y="150" width="74" height="30" rx="8" fill="#ffffff" stroke="#ffd0c4"/>
+        <text x="264" y="169" text-anchor="middle" font-size="11" fill="#ff7a5c" font-weight="600">FSQ 인코더</text>
+        <line x1="301" y1="165" x2="309" y2="165" stroke="#ff7a5c" stroke-width="1.5" marker-end="url(#aw)"/>
+        <rect x="311" y="150" width="46" height="30" rx="8" fill="#fff4f1" stroke="#ff7a5c"/>
+        <text x="334" y="169" text-anchor="middle" font-size="12" fill="#ff7a5c" font-weight="700">24bit</text>
+        <text x="170" y="200" text-anchor="middle" font-size="10.5" fill="#577079">1024d → 8d 격자 → 24bit</text>
+
+        <!-- ============ gRPC 링크 (네트워크) ============ -->
+        <path d="M357 93 C372 102 374 118 384 129" fill="none" stroke="#0aa3b5" stroke-width="1.3"/>
+        <path d="M357 165 C372 156 374 140 384 131" fill="none" stroke="#ff7a5c" stroke-width="1.3"/>
+        <line x1="384" y1="131" x2="440" y2="131" stroke="#0aa3b5" stroke-width="2.6" marker-end="url(#ac)"/>
+        <text x="412" y="116" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#5f7a84">gRPC</text>
+        <text x="412" y="151" text-anchor="middle" font-size="11" fill="#0aa3b5" font-weight="600">텍스트+24bit</text>
+
+        <!-- ============ SERVER · gRPC + MySQL ============ -->
+        <rect x="446" y="36" width="284" height="190" rx="16" fill="#f1f8fa" stroke="#3f9fd6" stroke-width="1.6"/>
+        <rect x="446" y="36" width="284" height="6" rx="3" fill="#3f9fd6"/>
+        <text x="460" y="62" font-family="IBM Plex Mono" font-size="12" letter-spacing=".08em" fill="#5f7a84">SERVER · gRPC + MySQL</text>
+        <!-- MySQL 실린더 -->
+        <rect x="462" y="84" width="80" height="58" fill="#e9f1f9" stroke="#3f9fd6"/>
+        <ellipse cx="502" cy="142" rx="40" ry="8" fill="#e9f1f9" stroke="#3f9fd6"/>
+        <ellipse cx="502" cy="84" rx="40" ry="8" fill="#dceaf6" stroke="#3f9fd6"/>
+        <text x="502" y="110" text-anchor="middle" font-size="13" fill="#1e3c45" font-weight="600">MySQL</text>
+        <text x="502" y="126" text-anchor="middle" font-size="10" fill="#577079">데이터 저장</text>
+        <text x="502" y="162" text-anchor="middle" font-size="10" fill="#577079">사용자·대화방·메시지</text>
+        <!-- FSQ 복원 -->
+        <rect x="556" y="80" width="160" height="40" rx="9" fill="#fff4f1" stroke="#ff7a5c"/>
+        <text x="636" y="98" text-anchor="middle" font-size="12.5" fill="#ff7a5c" font-weight="600">FSQ 복원</text>
+        <text x="636" y="113" text-anchor="middle" font-size="10.5" fill="#577079">24bit → 1024d</text>
+        <!-- 화자 ref 보관 -->
+        <rect x="556" y="134" width="160" height="40" rx="9" fill="#ffffff" stroke="#7d96a0"/>
+        <text x="636" y="152" text-anchor="middle" font-size="12" fill="#1e3c45" font-weight="600">화자 ref 음성</text>
+        <text x="636" y="167" text-anchor="middle" font-size="10.5" fill="#577079">사전 등록 · 보관</text>
+
+        <!-- ============ SERVER → RECEIVER (합성 음성 스트림) ============ -->
+        <line x1="730" y1="131" x2="796" y2="131" stroke="#3f9fd6" stroke-width="2.6" marker-end="url(#a2)"/>
+        <text x="763" y="116" text-anchor="middle" font-size="11" fill="#5f7a84">합성 음성</text>
+        <text x="763" y="151" text-anchor="middle" font-size="11" fill="#3f9fd6" font-weight="600">gRPC 스트리밍</text>
+        <text x="763" y="166" text-anchor="middle" font-size="9.5" fill="#577079">프레임 단위 전달</text>
+
+        <!-- ============ RECEIVER · 수신 단말 ============ -->
+        <rect x="800" y="36" width="304" height="190" rx="16" fill="#f1f8fa" stroke="#7d96a0" stroke-width="1.6"/>
+        <rect x="800" y="36" width="304" height="6" rx="3" fill="#7d96a0"/>
+        <text x="814" y="62" font-family="IBM Plex Mono" font-size="12" letter-spacing=".08em" fill="#5f7a84">RECEIVER · 수신 단말</text>
+        <!-- 스피커 아이콘 (중앙 상단) -->
+        <path d="M935 80 h-14 v20 h14 l16 13 v-46 z" fill="#5f7a84"/>
+        <path d="M955 84 q9 13 0 26" fill="none" stroke="#5f7a84" stroke-width="1.8"/>
+        <path d="M964 78 q15 19 0 38" fill="none" stroke="#5f7a84" stroke-width="1.5"/>
+        <text x="952" y="150" text-anchor="middle" font-size="16" fill="#123038" font-weight="600">합성 음성 재생</text>
+        <text x="952" y="171" text-anchor="middle" font-size="11" fill="#577079">원 화자 목소리 + 전달된 감정으로</text>
+        <!-- 출력 파형 -->
+        <path d="M872 196 q10 -11 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" fill="none" stroke="#7d96a0" stroke-width="1.4"/>
+
+        <!-- ============ SERVER ↔ QWEN3-TTS ============ -->
+        <line x1="500" y1="226" x2="500" y2="264" stroke="#3f9fd6" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="492" y="248" text-anchor="end" font-size="9.5" fill="#577079">텍스트·화자 임베딩·감정</text>
+        <line x1="700" y1="264" x2="700" y2="226" stroke="#ff7a5c" stroke-width="2" marker-end="url(#aw)"/>
+        <text x="708" y="248" text-anchor="start" font-size="9.5" fill="#ff7a5c">합성 스트림</text>
+
+        <!-- ============ QWEN3-TTS · GPU 도커 ============ -->
+        <rect x="400" y="266" width="400" height="138" rx="14" fill="#fff4f1" stroke="#ff7a5c" stroke-width="1.6"/>
+        <line x1="400" y1="290" x2="800" y2="290" stroke="#ffd0c4" stroke-width="1"/>
+        <text x="416" y="283" font-family="IBM Plex Mono" font-size="12" letter-spacing=".06em" fill="#5f7a84">API 호출 · 별도 GPU 도커</text>
+        <!-- 입력 칩 -->
+        <rect x="412" y="300" width="104" height="22" rx="7" fill="#ffffff" stroke="#ffd0c4"/>
+        <text x="464" y="315" text-anchor="middle" font-size="10.5" fill="#123038">텍스트</text>
+        <rect x="412" y="329" width="104" height="22" rx="7" fill="#ffffff" stroke="#ffd0c4"/>
+        <text x="464" y="344" text-anchor="middle" font-size="9.5" fill="#123038">화자 임베딩 2048d</text>
+        <rect x="412" y="358" width="104" height="22" rx="7" fill="#ffffff" stroke="#ffd0c4"/>
+        <text x="464" y="373" text-anchor="middle" font-size="10.5" fill="#123038">감정 1024d</text>
+        <!-- Qwen3-TTS (추상화 · 내부 구조는 슬라이드 05에서 상세) -->
+        <path d="M516 311 L528 311" fill="none" stroke="#7d96a0" stroke-width="1.2"/>
+        <path d="M516 340 L528 340" fill="none" stroke="#7d96a0" stroke-width="1.2"/>
+        <path d="M516 369 L528 369" fill="none" stroke="#7d96a0" stroke-width="1.2"/>
+        <line x1="528" y1="311" x2="528" y2="369" stroke="#7d96a0" stroke-width="1.2"/>
+        <line x1="528" y1="340" x2="590" y2="340" stroke="#7d96a0" stroke-width="1.4" marker-end="url(#af)"/>
+        <rect x="592" y="312" width="186" height="58" rx="11" fill="#ffece6" stroke="#ff7a5c" stroke-width="1.6"/>
+        <text x="685" y="335" text-anchor="middle" font-size="13" fill="#c0573c" font-weight="700">Qwen3-TTS</text>
+        <text x="685" y="349" text-anchor="middle" font-size="9" fill="#577079">텍스트·화자·감정 → 음성 합성</text>
+        <text x="685" y="362" text-anchor="middle" font-size="8.5" fill="#9aa8ad">상세 구조 → 슬라이드 05</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 5 · RESULT 1 -->
+  <section class="slide compact-left" data-note="[40s] emotion2vec 1024d → 인코더 → 8차원 연속값 → 각 차원 8레벨 격자에 반올림(스냅) → 격자점 8^8≈1677만 가지 → log2(8^8)=24bit(코드북 없이 격자=코드). 손실 MSE+0.5·KL로 감정 분류분포 직접 보존. [8×8]8D·KL0.5 최종: match 97.64%, val_cos 0.9933, mse 0.0118. 24bit가 sweet spot(이후 비트당 효율 9배 급감 = 임베딩 본질 정보량 한계), 8차원 모두 필수(각 차원 ablate 시 -4%p↑). 데이터 AI Hub 48,148발화·화자단위 split. 출처 Mentzer et al. ICLR2024.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">04</span> 모델 ① · 감정 압축</div>
+    <div class="two-col">
+      <div class="stack">
+        <h2 data-r style="--i:1">1024차원을 <span class="warm">24비트</span>로<br>- <span class="cool">격자에 스냅</span></h2>
+        <ul class="flist" data-r style="--i:2">
+          <li><span class="ic">01</span><div><b>emotion2vec 1024-d → 인코더 → <span class="cool">8차원 연속값</span></b></div></li>
+          <li><span class="ic">02</span><div><b>각 차원을 <span class="cool">8레벨 격자에 반올림(스냅)</span> → 격자점 8⁸ ≈ 1,677만 가지 → <span class="warm">log₂(8⁸) = 24bit</span></b><span class="sub">8차원 × 8레벨 · 학습된 코드북 없이 격자 좌표가 곧 코드</span></div></li>
+          <li><span class="ic warm-ic">03</span><div><b>손실 = MSE + <span class="warm">0.5·KL</span></b><span class="sub">KL이 원본·복원의 감정 분류 분포를 직접 맞춤 - 감정 보존의 핵심</span></div></li>
+        </ul>
+        <div class="mono" data-r style="--i:3;color:var(--muted);font-size:16px !important;margin-top:8px">감정 분류 보존 <b style="color:var(--ink)">97.64%</b> · 복원 코사인 <b style="color:var(--ink)">99.33%</b> · <b style="color:var(--ink)">24bit</b>가 정보량 <span style="white-space:nowrap">sweet&nbsp;spot</span></div>
+      </div>
+      <div data-r style="--i:4;display:flex;flex-direction:column;gap:14px;align-items:center">
+        <!-- FSQ-AE · 대칭 오토인코더 (인코더 ▷ FSQ ◁ 디코더) -->
+        <svg viewBox="0 0 420 156" width="100%" style="max-width:430px" font-family="IBM Plex Sans KR">
+          <defs>
+            <marker id="aef" markerWidth="6.5" markerHeight="6.5" refX="5" refY="3.25" orient="auto"><path d="M0 0 L6.5 3.25 L0 6.5 z" fill="#0aa3b5"/></marker>
+            <marker id="aew" markerWidth="6.5" markerHeight="6.5" refX="5" refY="3.25" orient="auto"><path d="M0 0 L6.5 3.25 L0 6.5 z" fill="#ff7a5c"/></marker>
+          </defs>
+          <!-- 입력 / 출력 (1024d) -->
+          <text x="20" y="22" font-size="11.5" fill="#577079">emotion2vec 1024d</text>
+          <text x="400" y="22" font-size="11.5" fill="#577079" text-anchor="end">복원 1024d</text>
+          <!-- 인코더 (1024 → 8, 좁아짐) -->
+          <path d="M20 30 L150 64 L150 94 L20 124 Z" fill="#e3f3f6" stroke="#0aa3b5" stroke-width="1.5"/>
+          <text x="80" y="84" text-anchor="middle" font-size="15" fill="#0aa3b5" font-weight="600">인코더</text>
+          <!-- 디코더 (8 → 1024, 넓어짐) · 인코더와 대칭 -->
+          <path d="M270 64 L400 30 L400 124 L270 94 Z" fill="#e3f3f6" stroke="#0aa3b5" stroke-width="1.5"/>
+          <text x="340" y="84" text-anchor="middle" font-size="15" fill="#0aa3b5" font-weight="600">디코더</text>
+          <!-- FSQ 중앙 박스 (양자화 ↔ 복원 모두 담당) -->
+          <rect x="176" y="47" width="68" height="64" rx="10" fill="#fff4f1" stroke="#ff7a5c" stroke-width="2"/>
+          <text x="210" y="73" text-anchor="middle" font-size="15" fill="#ff7a5c" font-weight="700">FSQ</text>
+          <text x="210" y="90" text-anchor="middle" font-size="10" fill="#ff7a5c">양자화 ↔ 복원</text>
+          <!-- 24bit 코드 (FSQ가 들고 있는 전송 코드) -->
+          <line x1="210" y1="111" x2="210" y2="118" stroke="#ff7a5c" stroke-width="1.3"/>
+          <text x="210" y="131" text-anchor="middle" font-size="13" fill="#ff7a5c" font-weight="700">24bit</text>
+          <text x="210" y="142" text-anchor="middle" font-size="9" fill="#a08a84">전송 코드</text>
+          <!-- 인코더 → FSQ : 8d 연속 (양자화) -->
+          <line x1="150" y1="79" x2="174" y2="79" stroke="#0aa3b5" stroke-width="1.5" marker-end="url(#aef)"/>
+          <text x="162" y="44" text-anchor="middle" font-size="11" fill="#0aa3b5">8d 연속</text>
+          <!-- FSQ → 디코더 : 8d 격자값 (복원·역양자화) -->
+          <line x1="246" y1="79" x2="270" y2="79" stroke="#ff7a5c" stroke-width="1.5" marker-end="url(#aew)"/>
+          <text x="258" y="44" text-anchor="middle" font-size="11" fill="#ff7a5c">8d 격자값</text>
+          <!-- 캡션 -->
+          <text x="210" y="154" text-anchor="middle" font-size="10.5" fill="#5f7a84">대칭 오토인코더 · 양자화도 복원도 같은 FSQ 격자를 거친다</text>
+        </svg>
+        <svg viewBox="0 0 420 400" width="100%" style="max-height:210px;max-width:240px" font-family="IBM Plex Sans KR">
+          <defs>
+            <marker id="snap" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#ff7a5c"/></marker>
+            <marker id="ax" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#a8c2c9"/></marker>
+          </defs>
+          <!-- 3D 격자 큐브 (등각투영) -->
+          <g stroke="#cfe6ea" stroke-width="1.3" fill="none">
+            <path d="M210 230 L298 278 L210 326 L122 278 Z"/>
+            <path d="M210 126 L298 174 L210 222 L122 174 Z"/>
+            <line x1="210" y1="230" x2="210" y2="126"/>
+            <line x1="298" y1="278" x2="298" y2="174"/>
+            <line x1="210" y1="326" x2="210" y2="222"/>
+            <line x1="122" y1="278" x2="122" y2="174"/>
+          </g>
+          <!-- 축 -->
+          <line x1="210" y1="230" x2="312" y2="286" stroke="#a8c2c9" stroke-width="1.3" marker-end="url(#ax)"/>
+          <line x1="210" y1="230" x2="108" y2="286" stroke="#a8c2c9" stroke-width="1.3" marker-end="url(#ax)"/>
+          <line x1="210" y1="230" x2="210" y2="110" stroke="#a8c2c9" stroke-width="1.3" marker-end="url(#ax)"/>
+          <text x="318" y="300" fill="#5f7a84" font-size="12">차원 1</text>
+          <text x="86" y="300" fill="#5f7a84" font-size="12">차원 3</text>
+          <text x="218" y="108" fill="#5f7a84" font-size="12">차원 2</text>
+          <!-- 격자점 3×3×3 (그림용 · 실제 8레벨) -->
+          <g fill="#9fd5de">
+            <circle cx="210" cy="230" r="3.2"/><circle cx="210" cy="178" r="3.2"/><circle cx="210" cy="126" r="3.2"/>
+            <circle cx="166" cy="254" r="3.2"/><circle cx="166" cy="202" r="3.2"/><circle cx="166" cy="150" r="3.2"/>
+            <circle cx="122" cy="278" r="3.2"/><circle cx="122" cy="226" r="3.2"/><circle cx="122" cy="174" r="3.2"/>
+            <circle cx="254" cy="254" r="3.2"/><circle cx="254" cy="202" r="3.2"/><circle cx="254" cy="150" r="3.2"/>
+            <circle cx="210" cy="278" r="3.2"/><circle cx="210" cy="226" r="3.2"/><circle cx="210" cy="174" r="3.2"/>
+            <circle cx="166" cy="302" r="3.2"/><circle cx="166" cy="250" r="3.2"/><circle cx="166" cy="198" r="3.2"/>
+            <circle cx="298" cy="278" r="3.2"/><circle cx="298" cy="226" r="3.2"/><circle cx="298" cy="174" r="3.2"/>
+            <circle cx="254" cy="302" r="3.2"/><circle cx="254" cy="250" r="3.2"/><circle cx="254" cy="198" r="3.2"/>
+            <circle cx="210" cy="326" r="3.2"/><circle cx="210" cy="274" r="3.2"/><circle cx="210" cy="222" r="3.2"/>
+          </g>
+          <!-- 연속값 → 가장 가까운 격자점 -->
+          <line x1="236" y1="204" x2="216" y2="221" stroke="#ff7a5c" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#snap)"/>
+          <circle cx="210" cy="226" r="7.5" fill="#0aa3b5"/>
+          <circle cx="236" cy="204" r="6" fill="#ff7a5c"/>
+          <text x="210" y="366" font-size="13" text-anchor="middle" fill="#577079"><tspan fill="#ff7a5c">●</tspan> 연속 잠재값  →  <tspan fill="#0aa3b5">◉</tspan> 가장 가까운 격자점</text>
+          <text x="210" y="386" font-size="11.5" text-anchor="middle" fill="#5f7a84">그림은 3차원 × 3레벨 · 실제 8차원 × 8레벨</text>
+        </svg>
+      </div>
+    </div>
+    <div class="cite" data-r style="--i:5">FSQ - Mentzer et al., <b>“Finite Scalar Quantization: VQ-VAE Made Simple”</b> · ICLR 2024 · arXiv:2309.15505</div>
+  </section>
+
+  <!-- 7 · RESULT 2 -->
+  <section class="slide" data-note="[50s] 핵심: 감정 임베딩을 '화자 임베딩'에 더한다. 화자 임베딩은 등록된 ref 음성을 speaker encoder에 통과시켜 얻음(2048d). EmotionProjector(1024→2048)는 zero-init → 학습 시작 시 출력 0이라 baseline과 bit-exact. 더한 결과를 codec 시퀀스 position 6 토큰으로 주입. backbone(talker)은 frozen, EmotionProjector+LoRA만 학습(소수 파라미터). 그래서 같은 텍스트·같은 화자라도 감정 따라 억양·속도가 달라진다.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">05</span> 모델 ② · 감정 조건부 합성</div>
+    <div class="two-col" style="grid-template-columns:1fr 1fr;align-items:start">
+      <div class="stack">
+        <h2 data-r style="--i:1;font-size:30px">감정을 <span class="warm">화자 임베딩</span>에 더해 넣는다</h2>
+        <p data-r style="--i:1;font-size:16px;color:var(--muted);margin-top:-10px;line-height:1.5"><b style="color:var(--ink)">목표</b> · 고차원 <span class="warm">감정 벡터 주입</span>을 통한 감정 표현</p>
+        <ul class="flist" data-r style="--i:2">
+          <li><span class="ic">01</span><div><b>화자 임베딩은 등록된 <span class="cool">ref 음성</span>에서</b><span class="sub">speaker encoder가 ref 음성 → 화자 임베딩(2048d) 추출</span></div></li>
+          <li><span class="ic warm-ic">02</span><div><b>감정을 <span class="warm">더한다</span></b><span class="sub">EmotionProjector(1024→2048, zero-init) 출력을 화자 임베딩에 합산 → 시작 시 baseline과 동일, 안정적 학습</span></div></li>
+          <li><span class="ic">03</span><div><b>backbone은 frozen · 소수 파라미터만 학습</b><span class="sub">talker LM <b style="color:var(--ink)">attention에만 LoRA</b> · 학습 = EmotionProjector + LoRA ≈ 9M</span></div></li>
+        </ul>
+      </div>
+      <div data-r style="--i:3">
+        <svg viewBox="0 0 480 384" width="100%" style="max-height:404px" font-family="IBM Plex Sans KR">
+          <defs>
+            <marker id="ac" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#5f7a84"/></marker>
+            <marker id="aw" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#ff7a5c"/></marker>
+            <marker id="ag" markerWidth="8" markerHeight="8" refX="5.5" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#38b07a"/></marker>
+          </defs>
+          <text x="236" y="15" text-anchor="middle" font-size="12.5" fill="#123038" font-weight="600">Qwen3-TTS 12Hz Custom Tuning Architecture</text>
+
+          <!-- inputs (data vectors) -->
+          <rect x="8" y="46" width="92" height="30" rx="8" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="54" y="65" text-anchor="middle" font-size="12" fill="#1e3c45">Text</text>
+          <text x="54" y="86" text-anchor="middle" font-size="13" fill="#8aa0a7">&#8942;</text>
+          <rect x="8" y="92" width="92" height="32" rx="8" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="54" y="107" text-anchor="middle" font-size="11" fill="#1e3c45">Prompt</text>
+          <text x="54" y="119" text-anchor="middle" font-size="11" fill="#1e3c45">Audio</text>
+          <path d="M100 61 C116 64 116 83 128 87" fill="none" stroke="#9fb9c0" stroke-width="1.4" marker-end="url(#ac)"/>
+          <path d="M100 108 C116 104 116 93 128 90" fill="none" stroke="#9fb9c0" stroke-width="1.4" marker-end="url(#ac)"/>
+
+          <!-- LM block (frozen) -->
+          <rect x="130" y="40" width="212" height="106" rx="13" fill="#eef3f5" stroke="#8aa0a7" stroke-width="1.4"/>
+          <text x="236" y="57" text-anchor="middle" font-size="11" fill="#123038" font-weight="600">Qwen3-TTS LM Block (12Hz)</text>
+          <rect x="140" y="66" width="120" height="70" rx="9" fill="#e2e8eb" stroke="#9fb1b8"/>
+          <text x="200" y="95" text-anchor="middle" font-size="10" fill="#3a4f57" font-weight="600">Main Transformer</text>
+          <text x="200" y="108" text-anchor="middle" font-size="10" fill="#3a4f57" font-weight="600">Body</text>
+          <text x="200" y="123" text-anchor="middle" font-size="9" fill="#6b7f87">(Frozen)</text>
+          <rect x="268" y="72" width="66" height="46" rx="8" fill="#fff4f1" stroke="#ff7a5c" stroke-width="1.3"/>
+          <text x="301" y="89" text-anchor="middle" font-size="9.5" fill="#ff7a5c" font-weight="700">LoRA</text>
+          <text x="301" y="101" text-anchor="middle" font-size="8.5" fill="#ff7a5c">Params</text>
+          <text x="301" y="112" text-anchor="middle" font-size="7.5" fill="#c0573c">(Trainable)</text>
+          <text x="301" y="133" text-anchor="middle" font-size="7.5" fill="#ff7a5c" font-weight="600">TRAINABLE</text>
+
+          <!-- output -->
+          <line x1="342" y1="92" x2="356" y2="92" stroke="#38b07a" stroke-width="1.6" marker-end="url(#ag)"/>
+          <rect x="358" y="68" width="114" height="48" rx="10" fill="#e9f7ef" stroke="#38b07a" stroke-width="1.3"/>
+          <text x="418" y="86" text-anchor="middle" font-size="9.5" fill="#1e3c45" font-weight="600">Generated 12Hz</text>
+          <text x="418" y="108" text-anchor="middle" font-size="9.5" fill="#1e3c45" font-weight="600">Audio Tokens</text>
+          <text x="416" y="130" text-anchor="middle" font-size="8" fill="#577079">&#8594; RVQ decode &#183; 파형 24kHz</text>
+
+          <!-- summed conditioning vector into LM -->
+          <line x1="248" y1="192" x2="248" y2="148" stroke="#ff7a5c" stroke-width="1.8" marker-end="url(#aw)"/>
+          <text x="256" y="169" text-anchor="start" font-size="8.5" fill="#577079">Summed Conditioning</text>
+          <text x="256" y="180" text-anchor="start" font-size="8.5" fill="#577079">Vector (2048) &#183; TRAIN</text>
+
+          <!-- Add Block -->
+          <rect x="210" y="192" width="76" height="34" rx="9" fill="#ffffff" stroke="#ff7a5c" stroke-width="1.4"/>
+          <text x="248" y="213" text-anchor="middle" font-size="11" fill="#ff7a5c" font-weight="700">&#65291; Add Block</text>
+
+          <!-- Speaker Token -->
+          <rect x="14" y="190" width="104" height="40" rx="9" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="66" y="208" text-anchor="middle" font-size="10.5" fill="#1e3c45" font-weight="600">Speaker Token</text>
+          <text x="66" y="222" text-anchor="middle" font-size="9" fill="#577079">고정 &#183; 2048</text>
+          <line x1="118" y1="209" x2="208" y2="209" stroke="#9fb9c0" stroke-width="1.5" marker-end="url(#ac)"/>
+          <text x="162" y="203" text-anchor="middle" font-size="8.5" fill="#577079">2048</text>
+
+          <!-- Emotion Vector -->
+          <rect x="14" y="250" width="104" height="40" rx="9" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="66" y="268" text-anchor="middle" font-size="10.5" fill="#1e3c45" font-weight="600">Emotion Vector</text>
+          <text x="66" y="282" text-anchor="middle" font-size="9" fill="#577079">1024</text>
+          <line x1="118" y1="270" x2="148" y2="270" stroke="#9fb9c0" stroke-width="1.5" marker-end="url(#ac)"/>
+
+          <!-- Linear Projection (trainable) -->
+          <rect x="150" y="250" width="120" height="40" rx="9" fill="#fff4f1" stroke="#ff7a5c" stroke-width="1.3"/>
+          <text x="210" y="266" text-anchor="middle" font-size="10" fill="#ff7a5c" font-weight="600">Linear Projection</text>
+          <text x="210" y="280" text-anchor="middle" font-size="8.5" fill="#c0573c">1024 &#8594; 2048 &#183; 학습</text>
+          <line x1="234" y1="250" x2="234" y2="228" stroke="#ff7a5c" stroke-width="1.5" marker-end="url(#aw)"/>
+          <text x="300" y="244" text-anchor="middle" font-size="8" fill="#577079">2048 (projected)</text>
+
+          <!-- legend -->
+          <line x1="14" y1="312" x2="466" y2="312" stroke="#e1ebee" stroke-width="1"/>
+          <text x="14" y="331" font-size="9" fill="#8aa0a7" font-weight="600" letter-spacing=".08em">LEGEND</text>
+          <rect x="72" y="322" width="12" height="12" rx="3" fill="#eaf3f8" stroke="#9fc3e6"/>
+          <text x="90" y="332" font-size="9.5" fill="#577079">Data Vectors</text>
+          <rect x="178" y="322" width="12" height="12" rx="3" fill="#e2e8eb" stroke="#8aa0a7"/>
+          <text x="196" y="332" font-size="9.5" fill="#577079">Frozen</text>
+          <rect x="258" y="322" width="12" height="12" rx="3" fill="#fff4f1" stroke="#ff7a5c"/>
+          <text x="276" y="332" font-size="9.5" fill="#577079">Trainable (LoRA &#183; Projection)</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · DIAGNOSIS -->
+  <section class="slide" data-note="[40s] Baseline vs Emotion 전 감정 평가. 먼저 못 박기: 코사인 절대값은 거의 동률(0.849→0.857)이나 222쌍 중 52.3%가 향상 방향 - 절반 이상이 개선됐고, 더 유의미한 차이는 Top-1에서 납니다. 이렇게 선제하면 축 절단(0.70 시작) 지적이 사라짐. 핵심 성과: Top-1 감정 일치율 17.1%→23.0% (+5.9pp, 상대 +34%), 무작위(7클래스) ~14% 기준선을 명확히 상회. 기쁨 +14pp로 최대, 놀람·분노도 향상. 한계: fearful(n=3) 등 소수 감정은 데이터 부족으로 Baseline·Emotion 모두 Top-1 0% → 2학기 데이터 확보로 보강. ※(Q 대비) TTS 합성 지연 실측치 준비(예: 발화당 ○○ms). [전환→대역폭] 합성 품질은 보강할 과제지만, 전송량 절감은 이미 확정된 사실입니다 →">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">06</span> 모델 ③ · 평가·진단</div>
+    <h2 data-r style="--i:1;font-size:26px;margin-bottom:8px">Baseline vs <span class="warm">Emotion</span> - 전 감정 평가</h2>
+    <div data-r style="--i:2;display:flex;gap:30px;align-items:flex-start">
+      <div style="flex:1 1 0;min-width:0"><svg viewBox="0 0 560 326" width="100%" font-family="IBM Plex Sans KR">
+<text x="44" y="22" font-size="14" fill="#123038" font-weight="600">평균 코사인 유사도 · ↑</text>
+<rect x="402" y="11" width="13" height="11" rx="2.5" fill="#93c0e8"/><text x="420" y="21" font-size="11" fill="#5f7a84">Baseline</text>
+<rect x="480" y="11" width="13" height="11" rx="2.5" fill="#ff8f76"/><text x="498" y="21" font-size="11" fill="#5f7a84">Emotion</text>
+<line x1="44" y1="272.0" x2="552" y2="272.0" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="275.5" font-size="9.5" fill="#5f7a84" text-anchor="end">0.70</text>
+<line x1="44" y1="229.6" x2="552" y2="229.6" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="233.1" font-size="9.5" fill="#5f7a84" text-anchor="end">0.75</text>
+<line x1="44" y1="187.2" x2="552" y2="187.2" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="190.7" font-size="9.5" fill="#5f7a84" text-anchor="end">0.80</text>
+<line x1="44" y1="144.8" x2="552" y2="144.8" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="148.3" font-size="9.5" fill="#5f7a84" text-anchor="end">0.85</text>
+<line x1="44" y1="102.4" x2="552" y2="102.4" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="105.9" font-size="9.5" fill="#5f7a84" text-anchor="end">0.90</text>
+<line x1="44" y1="60.0" x2="552" y2="60.0" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="63.5" font-size="9.5" fill="#5f7a84" text-anchor="end">0.95</text>
+<line x1="44" y1="272" x2="552" y2="272" stroke="#cbd8dc" stroke-width="1.2"/>
+<rect x="59.3" y="145.6" width="19" height="126.4" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="82.3" y="138.9" width="19" height="133.1" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="68.8" y="141.6" font-size="8" fill="#577079" text-anchor="middle">0.849</text>
+<text x="91.8" y="134.9" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.857</text>
+<text x="80.3" y="288" font-size="10.5" fill="#123038" text-anchor="middle">전체</text>
+<text x="80.3" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=222</text>
+<rect x="131.9" y="195.7" width="19" height="76.3" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="154.9" y="187.2" width="19" height="84.8" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="141.4" y="191.7" font-size="8" fill="#577079" text-anchor="middle">0.790</text>
+<text x="164.4" y="183.2" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.800</text>
+<text x="152.9" y="288" font-size="10.5" fill="#123038" text-anchor="middle">놀람</text>
+<text x="152.9" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=65</text>
+<rect x="204.4" y="110.0" width="19" height="162.0" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="227.4" y="108.3" width="19" height="163.7" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="213.9" y="106.0" font-size="8" fill="#577079" text-anchor="middle">0.891</text>
+<text x="236.9" y="104.3" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.893</text>
+<text x="225.4" y="288" font-size="10.5" fill="#123038" text-anchor="middle">기쁨</text>
+<text x="225.4" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=64</text>
+<rect x="277.0" y="132.1" width="19" height="139.9" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="300.0" y="127.8" width="19" height="144.2" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="286.5" y="128.1" font-size="8" fill="#577079" text-anchor="middle">0.865</text>
+<text x="309.5" y="123.8" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.870</text>
+<text x="298.0" y="288" font-size="10.5" fill="#123038" text-anchor="middle">슬픔</text>
+<text x="298.0" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=49</text>
+<rect x="349.6" y="153.3" width="19" height="118.7" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="372.6" y="136.3" width="19" height="135.7" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="359.1" y="149.3" font-size="8" fill="#577079" text-anchor="middle">0.840</text>
+<text x="382.1" y="132.3" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.860</text>
+<text x="370.6" y="288" font-size="10.5" fill="#123038" text-anchor="middle">혐오</text>
+<text x="370.6" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=21</text>
+<rect x="422.1" y="123.6" width="19" height="148.4" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="445.1" y="115.1" width="19" height="156.9" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="431.6" y="119.6" font-size="8" fill="#577079" text-anchor="middle">0.875</text>
+<text x="454.6" y="111.1" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">0.885</text>
+<text x="443.1" y="288" font-size="10.5" fill="#123038" text-anchor="middle">분노</text>
+<text x="443.1" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=20</text>
+<rect x="494.7" y="154.1" width="19" height="117.9" rx="2" fill="#d6dee1" stroke="#c2ced3" stroke-width=".6"/>
+<rect x="517.7" y="121.1" width="19" height="150.9" rx="2" fill="#cdd6da" stroke="#c2ced3" stroke-width=".6"/>
+<text x="504.2" y="150.1" font-size="8" fill="#9aa8ad" text-anchor="middle">0.839</text>
+<text x="527.2" y="117.1" font-size="8" fill="#9aa8ad" text-anchor="middle">0.878</text>
+<text x="515.7" y="288" font-size="10.5" fill="#9aa8ad" text-anchor="middle">두려움</text>
+<text x="515.7" y="299" font-size="8.5" fill="#c0573c" text-anchor="middle">n=3 · 부족</text>
+</svg></div>
+      <div style="flex:1 1 0;min-width:0"><svg viewBox="0 0 560 326" width="100%" font-family="IBM Plex Sans KR">
+<text x="44" y="22" font-size="14" fill="#123038" font-weight="600">Top-1 감정 일치율 (%) · emotion2vec 분류 · ↑</text>
+<rect x="402" y="11" width="13" height="11" rx="2.5" fill="#93c0e8"/><text x="420" y="21" font-size="11" fill="#5f7a84">Baseline</text>
+<rect x="480" y="11" width="13" height="11" rx="2.5" fill="#ff8f76"/><text x="498" y="21" font-size="11" fill="#5f7a84">Emotion</text>
+<line x1="44" y1="272.0" x2="552" y2="272.0" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="275.5" font-size="9.5" fill="#5f7a84" text-anchor="end">0</text>
+<line x1="44" y1="229.6" x2="552" y2="229.6" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="233.1" font-size="9.5" fill="#5f7a84" text-anchor="end">10</text>
+<line x1="44" y1="187.2" x2="552" y2="187.2" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="190.7" font-size="9.5" fill="#5f7a84" text-anchor="end">20</text>
+<line x1="44" y1="144.8" x2="552" y2="144.8" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="148.3" font-size="9.5" fill="#5f7a84" text-anchor="end">30</text>
+<line x1="44" y1="102.4" x2="552" y2="102.4" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="105.9" font-size="9.5" fill="#5f7a84" text-anchor="end">40</text>
+<line x1="44" y1="60.0" x2="552" y2="60.0" stroke="#e1edef" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="38" y="63.5" font-size="9.5" fill="#5f7a84" text-anchor="end">50</text>
+<line x1="44" y1="272" x2="552" y2="272" stroke="#cbd8dc" stroke-width="1.2"/>
+<rect x="59.3" y="199.5" width="19" height="72.5" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="82.3" y="174.5" width="19" height="97.5" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="68.8" y="195.5" font-size="8" fill="#577079" text-anchor="middle">17.1</text>
+<text x="91.8" y="170.5" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">23.0</text>
+<text x="80.3" y="288" font-size="10.5" fill="#123038" text-anchor="middle">전체</text>
+<text x="80.3" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=222</text>
+<rect x="131.9" y="206.7" width="19" height="65.3" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="154.9" y="187.2" width="19" height="84.8" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="141.4" y="202.7" font-size="8" fill="#577079" text-anchor="middle">15.4</text>
+<text x="164.4" y="183.2" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">20.0</text>
+<text x="152.9" y="288" font-size="10.5" fill="#123038" text-anchor="middle">놀람</text>
+<text x="152.9" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=65</text>
+<rect x="204.4" y="139.7" width="19" height="132.3" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="227.4" y="79.9" width="19" height="192.1" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="213.9" y="135.7" font-size="8" fill="#577079" text-anchor="middle">31.2</text>
+<text x="236.9" y="75.9" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">45.3</text>
+<text x="225.4" y="288" font-size="10.5" fill="#123038" text-anchor="middle">기쁨</text>
+<text x="225.4" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=64</text>
+<rect x="277.0" y="228.8" width="19" height="43.2" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="300.0" y="228.8" width="19" height="43.2" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="286.5" y="224.8" font-size="8" fill="#577079" text-anchor="middle">10.2</text>
+<text x="309.5" y="224.8" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">10.2</text>
+<text x="298.0" y="288" font-size="10.5" fill="#123038" text-anchor="middle">슬픔</text>
+<text x="298.0" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=49</text>
+<rect x="349.6" y="251.6" width="19" height="20.4" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="372.6" y="251.6" width="19" height="20.4" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="359.1" y="247.6" font-size="8" fill="#577079" text-anchor="middle">4.8</text>
+<text x="382.1" y="247.6" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">4.8</text>
+<text x="370.6" y="288" font-size="10.5" fill="#123038" text-anchor="middle">혐오</text>
+<text x="370.6" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=21</text>
+<rect x="422.1" y="229.6" width="19" height="42.4" rx="2" fill="#93c0e8" stroke="#6fa8db" stroke-width=".6"/>
+<rect x="445.1" y="208.4" width="19" height="63.6" rx="2" fill="#ff8f76" stroke="#f4765c" stroke-width=".6"/>
+<text x="431.6" y="225.6" font-size="8" fill="#577079" text-anchor="middle">10.0</text>
+<text x="454.6" y="204.4" font-size="8" fill="#f4765c" text-anchor="middle" font-weight="600">15.0</text>
+<text x="443.1" y="288" font-size="10.5" fill="#123038" text-anchor="middle">분노</text>
+<text x="443.1" y="299" font-size="8.5" fill="#5f7a84" text-anchor="middle">n=20</text>
+<text x="504.2" y="268.0" font-size="8" fill="#9aa8ad" text-anchor="middle">0.0</text>
+<text x="527.2" y="268.0" font-size="8" fill="#9aa8ad" text-anchor="middle">0.0</text>
+<text x="515.7" y="288" font-size="10.5" fill="#9aa8ad" text-anchor="middle">두려움</text>
+<text x="515.7" y="299" font-size="8.5" fill="#c0573c" text-anchor="middle">n=3 · 부족</text>
+<line x1="44" y1="211.4" x2="552" y2="211.4" stroke="#9aa8ad" stroke-width="1.1" stroke-dasharray="5 3"/>
+<text x="550" y="208" font-size="8.5" fill="#7d8a90" text-anchor="end">무작위(7클래스) ~14%</text>
+</svg></div>
+    </div>
+    <div data-r style="--i:3;display:flex;gap:18px;margin-top:10px">
+      <div class="diag" style="flex:1;max-width:none;padding:13px 22px;border-left-color:var(--cool)">
+        <div class="t" style="color:var(--cool)">장점 · Strength</div>
+        <p style="font-size:16px"><b>Top-1 감정 일치율 향상</b> - 전체 <b>222쌍</b> 기준 <b class="cool">17.1% → 23.0%</b> (<b>+5.9pp</b>, 상대 <b>+34%</b>) · 무작위(7클래스) ~14% 기준선을 명확히 상회합니다.</p>
+      </div>
+      <div class="diag" style="flex:1;max-width:none;padding:13px 22px">
+        <div class="t">한계 · Limitation</div>
+        <p style="font-size:16px"><b>데이터 불균형 · 소수 감정 성능 정체</b> - <span class="mono">fearful</span>(n=3) 등 소수 감정은 데이터 부족으로 Baseline·Emotion 모두 <b>Top-1 Match Rate 0.0%</b>에 머물러 있습니다.</p>
+      </div>
+    </div>
+    <div class="mono" data-r style="--i:4;margin-top:16px;text-align:center;color:var(--muted);font-size:15px;line-height:1.55">우리는 통화의 <b style="color:var(--ink)">실시간성을 대체하지 않습니다</b> - <b style="color:var(--cool)">통화가 불가능한 대역</b>에서 <b style="color:var(--ink)">음성의 경험</b>을 가능하게 합니다</div>
+    <div class="mono" data-r style="--i:5;margin-top:8px;text-align:center;color:var(--faint);font-size:12px">※ 평가 프로토콜: 합성 음성 → <span style="color:var(--cool)">emotion2vec</span> 재추출 → 원본 발화와 비교</div>
+  </section>
+
+  <!-- 7B · RESULT 3 · BANDWIDTH -->
+  <section class="slide" data-note="[50s] 한 발화 = 텍스트+24bit. ①차트(실시간 소통 시 초당 필요 대역폭 bps) 위→아래: Opus 16,000, VoLTE 12,650, Codec2 700 - 전부 파형. 우리 ~128bps = (텍스트 45B + 감정 3B = 48B = 384bit) ÷ 3초, 텍스트 메시지(~120bps)와 감정 3B 차이. 핵심: 감정은 +24bit(3B)뿐 = 한글 한 글자어치, 나머진 어차피 보낼 텍스트. vs VoLTE ≈ 1/100. ②펀치: 텍스트에 3바이트 얹으면 사라졌던 감정·억양이 돌아온다(목소리는 사전 등록 화자). ③우측: 1만원이면 통화 7시간 vs 우리 약 한 달 - 같은 요금 약 100배, 비율(~1/100) 불변. ※시연 08은 빠른 발화라 170bps 실측.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">07</span> 성과 · 대역폭</div>
+    <h2 data-r style="--i:1;font-size:30px">한 발화 = <span class="cool">텍스트</span> + <span class="warm">감정 24bit</span> - 전화의 약 <span class="cool">1/100</span></h2>
+
+    <div class="two-col" style="align-items:center;grid-template-columns:1.18fr .82fr;gap:46px;margin-top:30px">
+
+      <!-- ◀ 좌: 통합 차트 -->
+      <div data-r style="--i:2;display:flex;flex-direction:column;gap:12px;font-size:15px">
+        <div style="font-size:15px;color:var(--muted);letter-spacing:-.01em">실시간 소통 시 <b style="color:var(--ink)">초당 필요 대역폭</b></div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span></span><span></span>
+          <span class="tag" style="text-align:right">bps</span>
+          <span class="tag" style="text-align:center">목소리</span>
+          <span class="tag" style="text-align:center">감정</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span>음성 메시지 <span class="tag">Opus</span></span>
+          <div style="height:13px"><div style="width:100%;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
+          <span class="mono" style="text-align:right">16,000</span>
+          <span style="text-align:center">✓</span><span style="text-align:center">✓</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span>VoLTE 통화</span>
+          <div style="height:13px"><div style="width:79%;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
+          <span class="mono" style="text-align:right">12,650</span>
+          <span style="text-align:center">✓</span><span style="text-align:center">✓</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span>초저대역폭 <span class="tag">Codec2</span></span>
+          <div style="height:13px"><div style="width:4.4%;height:100%;border-radius:7px;background:#e8b34a"></div></div>
+          <span class="mono" style="text-align:right">700</span>
+          <span style="text-align:center">✓</span><span style="text-align:center">△</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--cool);border-radius:12px;padding:8px 10px;margin:0 -10px">
+          <span style="font-weight:700;color:var(--cool)">우리 <span class="tag" style="color:var(--warm)">+24bit</span></span>
+          <div style="height:13px"><div style="width:0.8%;min-width:5px;height:100%;border-radius:7px;background:var(--cool)"></div></div>
+          <span class="mono" style="text-align:right;font-weight:700;color:var(--cool)">~128</span>
+          <span style="text-align:center;color:var(--cool);font-weight:700">✓</span><span style="text-align:center;color:var(--cool);font-weight:700">✓</span>
+        </div>
+        <div style="display:grid;grid-template-columns:152px 1fr 72px 48px 48px;gap:10px;align-items:center">
+          <span>텍스트 메시지</span>
+          <div style="height:13px"><div style="width:0.75%;min-width:4px;height:100%;border-radius:7px;background:#9fb9c0"></div></div>
+          <span class="mono" style="text-align:right">~120</span>
+          <span style="text-align:center;color:var(--faint)">✗</span><span style="text-align:center;color:var(--faint)">✗</span>
+        </div>
+        <div class="mono" style="margin-top:16px;padding:10px 14px;background:var(--panel);border:1px solid var(--cool);border-radius:10px;font-size:14px;color:var(--muted);line-height:1.5">
+          <b style="color:var(--cool)">우리 ≈ 128 bps</b> = (텍스트 <b style="color:var(--ink)">45B</b> + 감정 <b style="color:var(--warm)">3B</b> = 48B = 384 bit) ÷ <b style="color:var(--ink)">3초</b> 발화
+        </div>
+        <p style="font-size:20px;margin-top:14px"><span class="cool">텍스트 메시지</span>에 <span class="warm">3바이트</span>를 얹으면, <span class="warm">사라졌던 감정과 억양</span>이 돌아옵니다.</p>
+      </div>
+
+      <!-- ▶ 우: 같은 1만원 비교 -->
+      <div class="chip t" data-r style="--i:3;text-align:left;padding:26px 30px;position:relative;overflow:hidden">
+        <svg viewBox="0 0 104 132" width="44" fill="none" stroke="#0aa3b5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;top:16px;right:18px;opacity:.78">
+          <rect x="30" y="6" width="62" height="104" rx="11"/>
+          <line x1="48" y1="18" x2="74" y2="18"/>
+          <rect x="44" y="27" width="36" height="13" rx="2"/>
+          <g fill="#0aa3b5" stroke="none">
+            <circle cx="50" cy="53" r="2.5"/><circle cx="61" cy="53" r="2.5"/><circle cx="72" cy="53" r="2.5"/>
+            <circle cx="50" cy="65" r="2.5"/><circle cx="61" cy="65" r="2.5"/><circle cx="72" cy="65" r="2.5"/>
+            <circle cx="50" cy="77" r="2.5"/><circle cx="61" cy="77" r="2.5"/><circle cx="72" cy="77" r="2.5"/>
+            <circle cx="50" cy="89" r="2.5"/><circle cx="61" cy="89" r="2.5"/><circle cx="72" cy="89" r="2.5"/>
+          </g>
+          <line x1="48" y1="101" x2="74" y2="101"/>
+          <path d="M10 30 q0-9 9-9 q9 0 9 9 l0 7 -18 0 z"/>
+          <path d="M10 84 q0 9 9 9 q9 0 9-9 l0-7 -18 0 z"/>
+          <line x1="19" y1="37" x2="19" y2="77"/>
+          <path d="M19 93 q-7 5 -1 11 q7 5 1 11 q-6 4 6 7" stroke-width="2.2"/>
+        </svg>
+        <div class="tag">같은 데이터 요금 1만원으로</div>
+        <div style="display:flex;align-items:baseline;gap:12px;margin-top:20px">
+          <span style="font-size:15px;color:var(--muted);width:48px">통화</span>
+          <span class="mono" style="font-size:30px;font-weight:600;color:var(--muted)">7<span style="font-size:16px">시간</span></span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:12px;margin-top:6px">
+          <span style="font-size:15px;color:var(--cool);width:48px;font-weight:700">우리</span>
+          <span class="mono" style="font-size:48px;font-weight:700;color:var(--cool);line-height:1.05">약 한 달<span style="font-size:17px;color:var(--faint);font-weight:500"> ≈ 29일</span></span>
+        </div>
+        <div style="margin-top:18px"><span style="display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(10,163,181,.12);color:var(--cool);font-weight:700;font-size:15px">같은 요금으로 약 100배 더 오래</span></div>
+        <div style="font-size:13px;color:var(--faint);margin-top:14px;line-height:1.5">쉬지 않고 말한다고 가정 · 요금이 얼마든 <b style="color:var(--muted)">비율(약 1/100)은 불변</b></div>
+      </div>
+    </div>
+
+    <div class="mono" data-r style="--i:4;font-size:12.5px;color:var(--faint);line-height:1.8;margin-top:18px">※ 초당 필요 대역폭(bps) = 실시간 대화 시 초당 망 용량 · 텍스트 메시지는 감정 제외(텍스트만) · 코덱은 공개 스펙값<br>※ 1만원 = 데이터 40MB(250원/MB) 가정 · 시연 08은 빠른 발화라 ~170bps 실측</div>
+  </section>
+
+  <!-- 9 · DEMO -->
+  <section class="slide" style="padding-top:46px;padding-bottom:30px" data-note="[시연 · 뒷부분 동영상 1:09 · 재생(말하기 시간 미포함)] 메신저 round-trip 영상: 송신부에서 음성→텍스트+24bit 감정코드 추출 → 전송 → 수신부에서 원 화자 목소리로 합성·재생. → [음성 50s] 같은 발화를 ①원본(16kHz PCM 256kbps) ②우리 복원(≈170bps) ③초저대역폭 코덱(Codec2 700bps)으로 비교. 핵심: 우리는 메시지당 텍스트+24bit만으로 원본에 가깝게 복원, 기존 초저대역폭 코덱은 더 쓰고도 음질 붕괴. 질문 대비: 화자 ref는 사전 1회 등록이라 전송량 불포함 / bps는 코덱 페이로드 기준(전송 계층 제외). ※ 170bps = 이 발화(2.5초·15음절) 실측. ※ 미디어는 docs/assets에 미리 넣어둔다.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">08</span> TONE · 시연 · 메신저 </div>
+    <div data-r class="demo-frame" style="--i:1">
+      <div class="demo-stage">
+        <!-- 좌측 감정 컬럼 (TONE UI 감정 색·표정) -->
+        <div class="emo-col">
+          <div class="emo">
+            <svg class="ef" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#F2D89E"/><g fill="none" stroke="#3D2A0E" stroke-width="3" stroke-linecap="round"><path d="M28 44 Q34 36 40 44"/><path d="M60 44 Q66 36 72 44"/><path d="M30 60 Q50 80 70 60"/></g></svg>
+            <span class="el" style="color:#5C400D">기쁨</span>
+          </div>
+          <div class="emo">
+            <svg class="ef" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#BBCFE5"/><circle cx="34" cy="46" r="3" fill="#1B2945"/><circle cx="66" cy="46" r="3" fill="#1B2945"/><path d="M30 74 Q50 62 70 74" fill="none" stroke="#1B2945" stroke-width="3" stroke-linecap="round"/></svg>
+            <span class="el" style="color:#283F66">슬픔</span>
+          </div>
+          <div class="emo">
+            <svg class="ef" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#B0DECD"/><g fill="none" stroke="#1F4838" stroke-width="3"><circle cx="34" cy="44" r="5"/><circle cx="66" cy="44" r="5"/><ellipse cx="50" cy="70" rx="6" ry="8"/></g></svg>
+            <span class="el" style="color:#2D6852">놀람</span>
+          </div>
+          <div class="emo">
+            <svg class="ef" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#F2B5A5"/><g fill="none" stroke="#7B341F" stroke-width="3" stroke-linecap="round"><path d="M24 32 L42 40"/><path d="M76 32 L58 40"/><path d="M34 70 Q50 64 66 70"/></g><circle cx="34" cy="50" r="2.6" fill="#7B341F"/><circle cx="66" cy="50" r="2.6" fill="#7B341F"/></svg>
+            <span class="el" style="color:#94402C">분노</span>
+          </div>
+        </div>
+        <!-- 시연 동영상 -->
+        <div class="demo-video">
+          <video controls preload="metadata" playsinline>
+            <source src="assets/demo_roundtrip.mp4" type="video/mp4">
+          </video>
+        </div>
+        <!-- 우측 감정 컬럼 (TONE UI 감정 색·표정) -->
+        <div class="emo-col">
+          <div class="emo">
+            <svg class="ef" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#CDC4DE"/><g fill="none" stroke="#2D1F47" stroke-width="3" stroke-linecap="round"><ellipse cx="34" cy="44" rx="4.5" ry="5.5"/><ellipse cx="66" cy="44" rx="4.5" ry="5.5"/><path d="M34 72 Q42 66 50 70 Q58 74 66 70"/></g></svg>
+            <span class="el" style="color:#3B2E5E">두려움</span>
+          </div>
+          <div class="emo">
+            <svg class="ef" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#CDD5AE"/><g fill="none" stroke="#3E4424" stroke-width="3" stroke-linecap="round"><path d="M26 44 L42 44"/><path d="M58 44 L74 44"/><path d="M32 70 L42 64 L52 70 L62 64 L70 70"/></g></svg>
+            <span class="el" style="color:#545E33">혐오</span>
+          </div>
+          <div class="emo">
+            <svg class="ef" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#CFC5B5"/><circle cx="34" cy="46" r="2.6" fill="#5D5241"/><circle cx="66" cy="46" r="2.6" fill="#5D5241"/><path d="M34 70 L66 70" fill="none" stroke="#5D5241" stroke-width="3" stroke-linecap="round"/></svg>
+            <span class="el" style="color:#4A4232">중립</span>
+          </div>
+          <div class="emo">
+            <svg class="ef" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#F0CCB5"/><circle cx="34" cy="46" r="2.6" fill="#6E371F"/><circle cx="66" cy="46" r="2.6" fill="#6E371F"/><text x="50" y="80" text-anchor="middle" font-size="30" font-weight="700" fill="#6E371F" font-family="IBM Plex Sans KR">?</text></svg>
+            <span class="el" style="color:#8A4828">기타</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="same-text" data-r style="--i:2;margin-top:8px">동일 발화 <b>“와 진짜 태원이는 진짜 너무 대단한데?”</b> - 원본 vs <b style="color:var(--cool)">우리 복원</b> vs <b style="color:var(--warm)">초저대역폭 코덱</b></div>
+    <div class="demo-row" data-r style="--i:3">
+      <div class="player orig">
+        <div class="phead">
+          <span class="prole">원본 녹음</span>
+          <span class="prate">≈ 256 kbps</span>
+        </div>
+        <div class="pspec">16kHz PCM</div>
+        <audio controls preload="metadata"><source src="assets/demo_original_16k.wav" type="audio/wav"></audio>
+      </div>
+      <div class="player ours">
+        <div class="phead">
+          <span class="prole">우리 복원</span>
+          <span class="prate">≈ 170 bps</span>
+        </div>
+        <div class="pspec">텍스트 + 24bit</div>
+        <audio controls preload="metadata"><source src="assets/demo_ours.wav" type="audio/wav"></audio>
+      </div>
+      <div class="player codec">
+        <div class="phead">
+          <span class="prole">초저대역폭 코덱</span>
+          <span class="prate">≈ 700 bps</span>
+        </div>
+        <div class="pspec">Codec2</div>
+        <audio controls preload="metadata"><source src="assets/demo_codec2.wav" type="audio/wav"></audio>
+      </div>
+    </div>
+    <div class="demo-note" data-r style="--i:4"><span class="dot"></span> 메시지당 <span class="cool">텍스트 + 24bit</span>만으로 <span class="warm">원본에 가깝게</span> 복원 - 기존 초저대역폭 코덱은 더 쓰고도 음질이 무너집니다</div>
+    <div data-r style="--i:5;margin-top:12px;text-align:center">
+      <img src="assets/fsq_code_out.png" alt="이 발화의 감정 압축 · emotion2vec 1024-d → FSQ [1,7,3,2,7,2,2,2] = 3 B · surprised 0.99" style="width:520px;max-width:82%;border:1px solid var(--cool);border-radius:10px;box-shadow:0 10px 26px -18px rgba(10,163,181,.45)">
+    </div>
+    <div data-r style="--i:6;font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:6px;padding-left:19px">※ 화자 ref 음성은 사전 1회 등록 · 전송량 불포함 · 비트레이트는 이 발화(2.5초) 실측</div>
+  </section>
+
+  <!-- 10 · ROADMAP -->
+  <section class="slide" data-note="[30s] 데이터셋 확보 → TTS 재학습(약한 감정·화자 다양성 해결) → 주관평가(MOS) → STEP3 페이로드 압축: 가변 한글 텍스트는 엔트로피 코딩, 감정 벡터는 24bit로 비트패킹 → 발화당 ~20B(정보율 ~70bps) → 다자 대화방·실시간 스트리밍 → 배포.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">09</span> 2학기 계획</div>
+    <h2 data-r style="--i:1;font-size:28px;margin-bottom:14px">완성으로 가는 다섯 걸음</h2>
+    <div class="road">
+      <div class="step" data-r style="--i:2"><div class="mk">STEP 1</div><div class="body"><h4>TTS 재학습</h4><p>다양한 화자·표현 감정이 담긴 음성 데이터를 수집하고, 이를 토대로 TTS 재학습 - <b style="color:var(--muted)">슬픔·혐오·두려움 등 아직 약한 감정</b>까지 표현하고 <b style="color:var(--muted)">화자에 종속되지 않는 감정 전달</b></p></div></div>
+      <div class="step" data-r style="--i:3"><div class="mk">STEP 2</div><div class="body"><h4>주관 평가 (MOS · 청취 실험)</h4><p>객관 지표(분류 일치율·복원 코사인)를 넘어, <b style="color:var(--muted)">사람 청취 기반 MOS·감정 전달 정확도</b>로 실제 품질을 검증</p></div></div>
+      <div class="step" data-r style="--i:4"><div class="mk">STEP 3</div><div class="body"><h4>페이로드 압축 - 비트패킹 &amp; 한글 압축</h4><p>감정 코드는 비트 단위로 빈틈없이 패킹하고, 가변 한글 텍스트는 압축해 <b style="color:var(--muted)">발화당 전송량을 한계까지 절감</b></p></div></div>
+      <div class="step" data-r style="--i:5"><div class="mk">STEP 4</div><div class="body"><h4>(opt) 실시간 스트리밍</h4><p>서버 경유 gRPC/WebSocket 기반 <b style="color:var(--muted)">실시간 통신 고도화</b></p></div></div>
+      <div class="step" data-r style="--i:6"><div class="mk">STEP 5</div><div class="body"><h4>시연 가능한 서비스 형태로 완성</h4><p>단말 앱과 서버를 패키징해, 사용자가 직접 써보는 <b style="color:var(--muted)">시연 가능한 서비스 형태로 완성</b></p></div></div>
+    </div>
+  </section>
+
+  <!-- 11 · CLOSE + TEAM -->
+  <section class="slide" data-note="[20s] 한 줄 요약 + 팀 + 감사. 감정 24bit 압축 · 감정 따라 달라지는 음성 합성 · 전화의 ~1/100 대역폭. 팀 선풍기, Q&A.">
+    <div class="eyebrow" data-r style="--i:0"><span class="num">10</span> 정리 &amp; Team · 선풍기 🌀</div>
+    <div class="close-sum" data-r style="--i:1;font-size:30px;max-width:none;white-space:nowrap">감정은 <b class="warm">24비트</b>로 압축, 감정 따라 <b class="cool">달라지는 음성</b>을 합성<br>- 전화의 <b class="cool">~1/100</b> 대역폭으로</div>
+    <div class="team" style="margin-top:28px">
+      <div class="member lead" data-r style="--i:2">
+        <img src="https://github.com/Pachyhead.png" alt="이종찬">
+        <div class="nm">👑 이종찬</div>
+        <div class="hd">@Pachyhead</div>
+        <div class="rl">Leader</div>
+      </div>
+      <div class="member" data-r style="--i:3">
+        <img src="https://github.com/zxxxv.png" alt="최재웅">
+        <div class="nm">최재웅</div>
+        <div class="hd">@zxxxv</div>
+        <div class="rl">Member</div>
+      </div>
+      <div class="member" data-r style="--i:4">
+        <img src="https://github.com/user-attachments/assets/66b8985c-2e1e-4b3a-865d-488d0899a6bf" alt="임경택">
+        <div class="nm">임경택</div>
+        <div class="hd">@KyeongTaek</div>
+        <div class="rl">Member</div>
+      </div>
+      <div class="member" data-r style="--i:5">
+        <img src="https://github.com/TaeWonM.png" alt="민태원">
+        <div class="nm">민태원</div>
+        <div class="hd">@TWMin</div>
+        <div class="rl">Member</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · CLOSING · 감사합니다 / Q&A -->
+  <section class="slide" data-note="[10s] 마무리 인사 + 질의응답. 팀 선풍기 - 질문 받습니다.">
+    <img class="fan-hero" src="assets/fan.gif" alt="선풍기 팀 마스코트" data-r style="--i:2">
+    <div class="title-wrap">
+      <div class="kicker" data-r style="--i:0">Team · 선풍기 🌀 · 충북대학교 컴퓨터공학과</div>
+      <h1 data-r style="--i:1">감사합니다<br><span class="warm">Q</span> &amp; <span class="cool">A</span></h1>
+      <div class="title-meta" data-r style="--i:4">
+        <div class="blk"><small>Repository</small><div class="mono" style="font-size:15px">github.com/Pachyhead/capstone_design_2026</div></div>
+      </div>
+    </div>
+  </section>
+
+  </div>
+</div>
+
+<div class="notes" id="notes"><div class="nt">발표 노트</div><div class="nb" id="ntBody"></div></div>
+
+<div class="nav">
+  <button id="prev" aria-label="이전">‹</button>
+  <button id="next" aria-label="다음">›</button>
+</div>
+<div class="counter"><b id="cur">01</b> / <span id="tot">12</span></div>
+<div class="hintbar">← → 이동 · N 발표노트 · F 전체화면</div>
+
+<script>
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const prog=document.getElementById('prog');
+  const cur=document.getElementById('cur');
+  const tot=document.getElementById('tot');
+  const notes=document.getElementById('notes');
+  const ntBody=document.getElementById('ntBody');
+  let i=0;
+  tot.textContent=String(slides.length).padStart(2,'0');
+
+  /* 16:9 무대를 화면에 맞게 스케일 (비율 유지) */
+  function fit(){
+    const s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+    stage.style.setProperty('--s', s);
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('fullscreenchange', fit);
+
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    document.body.dataset.slide=i;
+    prog.style.width=((i+1)/slides.length*100)+'%';
+    cur.textContent=String(i+1).padStart(2,'0');
+    ntBody.textContent=slides[i].dataset.note||'-';
+  }
+  function next(){show(i+1)}
+  function prev(){show(i-1)}
+
+  document.getElementById('next').onclick=next;
+  document.getElementById('prev').onclick=prev;
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){show(0);}
+    else if(e.key==='End'){show(slides.length-1);}
+    else if(e.key.toLowerCase()==='n'){notes.classList.toggle('show');}
+    else if(e.key.toLowerCase()==='f'){
+      if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+  });
+
+  fit();
+  show(0);
+</script>
+</body>
+</html>

@@ -119,7 +119,7 @@ function AvatarPicker({
       className="bg-white rounded-[14px] p-5"
       style={{ boxShadow: '0 1px 0 rgba(20,19,15,0.04)' }}
     >
-      <div className="grid grid-cols-9 gap-2">
+      <div className="grid grid-cols-8 gap-2">
         {AVATAR_EMOTIONS.map((emotion) => {
           const isSelected =
             selected.type === 'emotion' && selected.emotion === emotion;

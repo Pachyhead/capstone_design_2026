@@ -36,11 +36,20 @@ def SendVoice(sender_id, audio_path):
 
     return status.accepted
 
-def Send(sender_id, receiver_id, message, emo_type, emotion_vector):
+def Send(sender_id, receiver_id, message, emo_type, emotion_indices): # deprecated. 호환성을 위해 남겨둠.
     stub = set_connection()
 
-    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id=sender_id, receiver_id=receiver_id, message=message, emo_type=emo_type, emotion_vector=list(emotion_vector)) # 서비스를 호출할 SpeechUploadRequest 정의
+    uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id=sender_id, receiver_id=receiver_id, message=message, emo_type=emo_type, emotion_vector=list(emotion_indices)) # 서비스를 호출할 SpeechUploadRequest 정의
     status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
+
+    return status.accepted
+
+def SendPacket(packet: bytes) -> bool:
+    """ 비트패킹된 패킷을 gRPC로 전송 """
+    stub = set_connection()
+
+    uploadRequest = server_communicate_pb2.SpeechUploadPacketRequest(packet=packet)
+    status = stub.SendPacket(uploadRequest) # 서버 메서드 호출(rpc 호출)
 
     return status.accepted
 

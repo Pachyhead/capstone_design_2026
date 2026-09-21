@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from datetime import datetime
 from google.protobuf.timestamp_pb2 import Timestamp
 
+from src.utils.bitpacking import decode_packet
+
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
     """Provides methods that implement functionality of server_communicate server."""
     def __init__(self, handler):
@@ -27,7 +29,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
         )
         return server_communicate_pb2.UploadStatus(accepted=success)
 
-    def Send(self, request, context): # rpc에 대한 SpeechUploadRequest 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달.
+    def Send(self, request, context): # rpc에 대한 SpeechUploadRequest 요청 전달. 제한 시간 한도 등 rpc 관련 정보 제공하는 ServicerContext 객체 전달. --> deprecated. 호환성을 위해 남겨둠.
         """Codelab Hint: implement Send here."""
         success = self.handler.save_incoming_speech(
             sender_id = request.sender_id,
@@ -35,6 +37,18 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
             message = request.message,
             emo_type = request.emo_type,
             emotion_vector = list(request.emotion_vector)
+        )
+        return server_communicate_pb2.UploadStatus(accepted=success)
+
+    def SendPacket(self, request, context):
+        send_id, receiver_id, emo_type, emotion_indices, message = decode_packet(request.packet)
+
+        success = self.handler.save_incoming_speech(
+            sender_id = send_id,
+            receiver_id = receiver_id,
+            message = message,
+            emo_type = emo_type,
+            emotion_vector = list(emotion_indices)
         )
         return server_communicate_pb2.UploadStatus(accepted=success)
 
