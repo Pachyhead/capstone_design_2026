@@ -75,45 +75,49 @@ def apply_lora_to_talker(
     dropout: float = 0.05,
     target_suffixes: Tuple[str, ...] = ("q_proj", "k_proj", "v_proj", "o_proj"),
     include_mlp: bool = False,
+    include_code_predictor: bool = False,
 ) -> List[str]:
     """Wrap target Linear layers inside model.talker.model.layers[*].
 
-    Sub-talker (model.talker.code_predictor) is NOT touched -- it stays frozen.
+    Sub-talker attention is optionally wrapped with include_code_predictor=True.
     Speaker encoder, embeddings, lm_head are NOT touched -- they stay frozen.
 
     Args:
         model: Qwen3TTSForConditionalGeneration
         r, alpha, dropout: LoRA hyperparameters
         target_suffixes: attention sub-layer names. Standard Qwen names.
-        include_mlp: if True, also wrap (gate_proj, up_proj, down_proj) in mlp
+        include_mlp: also wrap Talker MLP projections
+        include_code_predictor: also wrap Sub-talker attention projections
 
     Returns:
         list of fully-qualified module paths that were replaced.
     """
-    talker_main = model.talker.model  # Qwen3TTSTalkerModel
-
-    if include_mlp:
-        target_suffixes = tuple(target_suffixes) + ("gate_proj", "up_proj", "down_proj")
+    targets = [("talker.model", model.talker.model, include_mlp)]
+    if include_code_predictor:
+        targets.append(("talker.code_predictor.model", model.talker.code_predictor.model, False))
 
     replaced = []
-    for layer_idx, layer in enumerate(talker_main.layers):
-        # attention sub-layers
-        attn = getattr(layer, "self_attn", None)
-        for name in target_suffixes:
-            host = None
-            if attn is not None and hasattr(attn, name):
-                host = attn
-            elif include_mlp and hasattr(layer, "mlp") and hasattr(layer.mlp, name):
-                host = layer.mlp
-            if host is None:
-                continue
-            base = getattr(host, name)
-            if not isinstance(base, nn.Linear):
-                continue
-            new_layer = LoRALinear(base, r=r, alpha=alpha, dropout=dropout)
-            new_layer = new_layer.to(device=base.weight.device, dtype=base.weight.dtype)
-            setattr(host, name, new_layer)
-            replaced.append(f"talker.model.layers.{layer_idx}.{type(host).__name__.lower()}.{name}")
+    for prefix, decoder, wrap_mlp in targets:
+        suffixes = tuple(target_suffixes)
+        if wrap_mlp:
+            suffixes += ("gate_proj", "up_proj", "down_proj")
+        for layer_idx, layer in enumerate(decoder.layers):
+            for name in suffixes:
+                host_name = None
+                if hasattr(layer, "self_attn") and hasattr(layer.self_attn, name):
+                    host_name = "self_attn"
+                elif wrap_mlp and hasattr(layer, "mlp") and hasattr(layer.mlp, name):
+                    host_name = "mlp"
+                if host_name is None:
+                    continue
+                host = getattr(layer, host_name)
+                base = getattr(host, name)
+                if not isinstance(base, nn.Linear):
+                    continue
+                adapter = LoRALinear(base, r=r, alpha=alpha, dropout=dropout)
+                adapter = adapter.to(device=base.weight.device, dtype=base.weight.dtype)
+                setattr(host, name, adapter)
+                replaced.append(f"{prefix}.layers.{layer_idx}.{host_name}.{name}")
     return replaced
 
 

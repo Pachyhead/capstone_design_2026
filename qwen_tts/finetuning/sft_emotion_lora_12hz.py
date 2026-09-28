@@ -3,7 +3,8 @@
 
 Differences from Stage-1 (sft_emotion_12hz.py):
 - Adds LoRA adapters (rank-r) to talker.model.layers[*].self_attn.{q,k,v,o}_proj.
-  Sub-talker (code_predictor), speaker_encoder, embeddings, lm_head all stay frozen.
+  Optional --lora_include_code_predictor also adapts Sub-talker attention.
+  Speaker encoder, embeddings and output heads stay frozen.
 - Trainable params: ~7M (LoRA, rank=16 default) + ~2M (EmotionProjector) = ~9M.
 - LoRA is zero-initialized on the B side -> at step 0 the LoRA-augmented forward
   is bit-exact w.r.t. baseline. Combined with EmotionProjector zero-init, the
@@ -91,6 +92,8 @@ def train():
     parser.add_argument("--lora_dropout", type=float, default=0.05)
     parser.add_argument("--lora_include_mlp", action="store_true",
                         help="Also wrap MLP gate/up/down_proj. ~2x more LoRA params.")
+    parser.add_argument("--lora_include_code_predictor", action="store_true",
+                        help="Also train Sub-talker attention LoRA (experiment B).")
     # logging
     parser.add_argument("--log_every", type=int, default=10)
     parser.add_argument("--no_tensorboard", action="store_true")
@@ -132,8 +135,14 @@ def train():
         alpha=args.lora_alpha,
         dropout=args.lora_dropout,
         include_mlp=args.lora_include_mlp,
+        include_code_predictor=args.lora_include_code_predictor,
     )
     accelerator.print(f"LoRA applied to {len(replaced)} layers (first few: {replaced[:3]})")
+
+    sub_count = sum("code_predictor" in name for name in replaced)
+    accelerator.print(f"LoRA modules: talker={len(replaced) - sub_count}, subtalker={sub_count}")
+    if args.lora_include_code_predictor and sub_count == 0:
+        raise RuntimeError("Sub-talker LoRA requested but no modules were wrapped")
 
     # ---- Freeze everything except LoRA + EmotionProjector ----
     n_trainable, n_emo, n_lora = _freeze_for_lora_stage(base_model)
@@ -281,6 +290,7 @@ def train():
                         "alpha": args.lora_alpha,
                         "dropout": args.lora_dropout,
                         "include_mlp": args.lora_include_mlp,
+                        "include_code_predictor": args.lora_include_code_predictor,
                         "init_model_path": args.init_model_path,
                         "epoch": epoch,
                     },

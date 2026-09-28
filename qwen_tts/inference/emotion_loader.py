@@ -73,6 +73,7 @@ def load_emotion_projector(model, checkpoint_dir: str, device: torch.device = No
             alpha=lcfg["alpha"],
             dropout=0.0,                       # disable dropout at inference
             include_mlp=lcfg.get("include_mlp", False),
+            include_code_predictor=lcfg.get("include_code_predictor", False),
         )
         lora_state = load_file(str(lora_weight))
         loaded, missing = load_lora_state(model, lora_state)
