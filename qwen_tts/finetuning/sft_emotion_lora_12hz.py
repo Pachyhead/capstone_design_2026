@@ -73,6 +73,27 @@ def _freeze_for_lora_stage(model):
     return n_trainable, n_emo, n_lora
 
 
+
+def _optimizer_groups(model, lr, subtalker_lr):
+    """Partition trainable parameters; frozen parameters never enter AdamW."""
+    main_params, sub_params = [], []
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+        if name.startswith("talker.code_predictor."):
+            if "lora_A" not in name and "lora_B" not in name:
+                raise ValueError(f"Unexpected trainable Sub-talker parameter: {name}")
+            sub_params.append(param)
+        else:
+            main_params.append(param)
+    groups = []
+    if main_params:
+        groups.append({"params": main_params, "lr": lr, "name": "talker_projector"})
+    if sub_params:
+        groups.append({"params": sub_params, "lr": subtalker_lr, "name": "subtalker"})
+    return groups
+
+
 def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("--init_model_path", default="Qwen/Qwen3-TTS-12Hz-1.7B-Base")
@@ -81,7 +102,9 @@ def train():
     parser.add_argument("--data_root", required=True)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--lr", type=float, default=1e-4,
-                        help="LoRA + EmotionProjector LR. 1e-4 default (lower than Stage-1's 2e-4 since now we have more params)")
+                        help="Talker LoRA and EmotionProjector learning rate")
+    parser.add_argument("--subtalker_lr", type=float, default=5e-6,
+                        help="Sub-talker LoRA learning rate (only when enabled)")
     parser.add_argument("--num_epochs", type=int, default=2)
     parser.add_argument("--emotion_dim", type=int, default=1024)
     parser.add_argument("--weight_decay", type=float, default=0.01)
@@ -99,6 +122,8 @@ def train():
     parser.add_argument("--no_tensorboard", action="store_true")
     parser.add_argument("--attn_impl", type=str, default="sdpa", choices=["sdpa", "flash_attention_2", "eager"])
     args = parser.parse_args()
+    if not (0 < args.lr < float("inf")) or not (0 < args.subtalker_lr < float("inf")):
+        parser.error("--lr and --subtalker_lr must be finite and positive")
 
     accel_kwargs = dict(gradient_accumulation_steps=args.grad_accum, mixed_precision="bf16")
     if not args.no_tensorboard:
@@ -164,7 +189,11 @@ def train():
 
     # ---- Optimizer over LoRA + EmotionProjector ----
     trainable_params = [p for p in base_model.parameters() if p.requires_grad]
-    optimizer = AdamW(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
+    groups = _optimizer_groups(base_model, args.lr, args.subtalker_lr)
+    optimizer = AdamW(groups, lr=args.lr, weight_decay=args.weight_decay)
+    for group in groups:
+        accelerator.print(f"Optimizer {group['name']}: lr={group['lr']:g}, "
+                          f"parameters={sum(p.numel() for p in group['params']):,}")
 
     model, optimizer, train_dataloader = accelerator.prepare(base_model, optimizer, train_dataloader)
     model.train()
@@ -247,6 +276,7 @@ def train():
                     lora_b_mean_norm = (sum(lora_b_norms) / max(len(lora_b_norms), 1)) if lora_b_norms else 0.0
                     accelerator.log(
                         {
+                            **{f"train/lr_{g['name']}": g["lr"] for g in optimizer.param_groups},
                             "train/loss": loss.item(),
                             "train/talker_loss": outputs.loss.item(),
                             "train/subtalker_loss": sub_talker_loss.item(),
@@ -291,6 +321,8 @@ def train():
                         "dropout": args.lora_dropout,
                         "include_mlp": args.lora_include_mlp,
                         "include_code_predictor": args.lora_include_code_predictor,
+                        "lr": args.lr,
+                        "subtalker_lr": args.subtalker_lr,
                         "init_model_path": args.init_model_path,
                         "epoch": epoch,
                     },
