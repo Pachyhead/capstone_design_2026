@@ -1,0 +1,124 @@
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
+from google.protobuf.internal import containers as _containers
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from typing import (
+    ClassVar as _ClassVar,
+    Iterable as _Iterable,
+    Mapping as _Mapping,
+    Optional as _Optional,
+    Union as _Union,
+)
+
+DESCRIPTOR: _descriptor.FileDescriptor
+
+class SpeechReferenceRequest(_message.Message):
+    __slots__ = ("sender_id", "audio_content")
+    SENDER_ID_FIELD_NUMBER: _ClassVar[int]
+    AUDIO_CONTENT_FIELD_NUMBER: _ClassVar[int]
+    sender_id: str
+    audio_content: bytes
+    def __init__(
+        self, sender_id: _Optional[str] = ..., audio_content: _Optional[bytes] = ...
+    ) -> None: ...
+
+class SpeechUploadRequest(_message.Message):
+    __slots__ = ("sender_id", "receiver_id", "message", "emo_type", "emotion_vector")
+    SENDER_ID_FIELD_NUMBER: _ClassVar[int]
+    RECEIVER_ID_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    EMO_TYPE_FIELD_NUMBER: _ClassVar[int]
+    EMOTION_VECTOR_FIELD_NUMBER: _ClassVar[int]
+    sender_id: str
+    receiver_id: str
+    message: str
+    emo_type: int
+    emotion_vector: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(
+        self,
+        sender_id: _Optional[str] = ...,
+        receiver_id: _Optional[str] = ...,
+        message: _Optional[str] = ...,
+        emo_type: _Optional[int] = ...,
+        emotion_vector: _Optional[_Iterable[int]] = ...,
+    ) -> None: ...
+
+class UploadStatus(_message.Message):
+    __slots__ = ("accepted",)
+    ACCEPTED_FIELD_NUMBER: _ClassVar[int]
+    accepted: bool
+    def __init__(self, accepted: bool = ...) -> None: ...
+
+class UserIdentifier(_message.Message):
+    __slots__ = ("user_id",)
+    USER_ID_FIELD_NUMBER: _ClassVar[int]
+    user_id: str
+    def __init__(self, user_id: _Optional[str] = ...) -> None: ...
+
+class MetadataItem(_message.Message):
+    __slots__ = (
+        "message_id",
+        "sender_id",
+        "receiver_id",
+        "message",
+        "emo_type",
+        "send_time",
+    )
+    MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
+    SENDER_ID_FIELD_NUMBER: _ClassVar[int]
+    RECEIVER_ID_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    EMO_TYPE_FIELD_NUMBER: _ClassVar[int]
+    SEND_TIME_FIELD_NUMBER: _ClassVar[int]
+    message_id: str
+    sender_id: str
+    receiver_id: str
+    message: str
+    emo_type: int
+    send_time: _timestamp_pb2.Timestamp
+    def __init__(
+        self,
+        message_id: _Optional[str] = ...,
+        sender_id: _Optional[str] = ...,
+        receiver_id: _Optional[str] = ...,
+        message: _Optional[str] = ...,
+        emo_type: _Optional[int] = ...,
+        send_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...,
+    ) -> None: ...
+
+class MetadataList(_message.Message):
+    __slots__ = ("items",)
+    ITEMS_FIELD_NUMBER: _ClassVar[int]
+    items: _containers.RepeatedCompositeFieldContainer[MetadataItem]
+    def __init__(
+        self, items: _Optional[_Iterable[_Union[MetadataItem, _Mapping]]] = ...
+    ) -> None: ...
+
+class MetadataResponse(_message.Message):
+    __slots__ = ("lists",)
+    LISTS_FIELD_NUMBER: _ClassVar[int]
+    lists: _containers.RepeatedCompositeFieldContainer[MetadataList]
+    def __init__(
+        self, lists: _Optional[_Iterable[_Union[MetadataList, _Mapping]]] = ...
+    ) -> None: ...
+
+class MessageIdentifier(_message.Message):
+    __slots__ = ("message_id",)
+    MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
+    message_id: str
+    def __init__(self, message_id: _Optional[str] = ...) -> None: ...
+
+class AudioFrame(_message.Message):
+    __slots__ = ("audio_content", "message_id", "is_final")
+    AUDIO_CONTENT_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
+    IS_FINAL_FIELD_NUMBER: _ClassVar[int]
+    audio_content: bytes
+    message_id: str
+    is_final: bool
+    def __init__(
+        self,
+        audio_content: _Optional[bytes] = ...,
+        message_id: _Optional[str] = ...,
+        is_final: bool = ...,
+    ) -> None: ...
