@@ -21,6 +21,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "fastapi>=0.136.1",
     "uvicorn>=0.47.0",
+    "visqol-python>=3.8.0",
 ]
 
 [tool.setuptools]
@@ -33,6 +34,7 @@ py-modules = [
     "sender",
     "speaker",
     "user",
+    "utils",
 ]
 
 [tool.setuptools.packages.find]
@@ -51,4 +53,5 @@ known-first-party = [
     "speaker",
     "tone_core",
     "user",
+    "utils",
 ]

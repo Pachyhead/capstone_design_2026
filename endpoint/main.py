@@ -1,6 +1,6 @@
 """Serve the sender and receiver features from one endpoint application."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from threading import Lock
 
@@ -12,6 +12,7 @@ from config import PROJECT_ROOT
 from grpc_getting_started.server_communicate_sender import SendVoice
 from receiver import Receiver
 from sender import Sender
+from utils import measure_audio_codec_sizes
 
 _STORAGE = PROJECT_ROOT / "storage"
 _STORAGE.mkdir(parents=True, exist_ok=True)
@@ -19,7 +20,7 @@ _FRONTEND_DIST = PROJECT_ROOT.parent / "tone" / "dist"
 
 
 @asynccontextmanager
-async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
+async def _lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
     with (
         Sender(
             storage=_STORAGE,
@@ -59,12 +60,9 @@ if _FRONTEND_DIST.exists():
 
 
 @app.post("/set_my_id")
-def set_my_id(
-    value: int | None = None, my_id: int | None = None
-) -> list[list[dict[str, object]]]:
+def set_my_id(value: int | None = None) -> list[list[dict[str, object]]]:
     """Set the local user ID for both roles and return pending messages."""
-    selected_id = value if value is not None else my_id
-    if selected_id is None:
+    if value is None:
         raise HTTPException(
             status_code=400, detail="value is required. range is [0, 3]"
         )
@@ -72,8 +70,8 @@ def set_my_id(
     sender: Sender = app.state.sender
     receiver: Receiver = app.state.receiver
     with app.state.sender_lock:
-        sender.user_id = selected_id
-        receiver.user_id = selected_id
+        sender.user_id = value
+        receiver.user_id = value
         return receiver.get_pending_messages()
 
 
@@ -167,3 +165,16 @@ def play_voice(message_id: str | None = None) -> bool:
         raise HTTPException(status_code=400, detail="message id is required.")
     receiver: Receiver = app.state.receiver
     return receiver.play_voice(message_id)
+
+
+@app.post("/measure_audio_codec_sizes")
+def measure_latest_audio_codec_sizes() -> dict[str, object]:
+    """Measure codec sizes for the newest WAV file in endpoint storage."""
+    latest_wav = max(
+        _STORAGE.glob("*.wav"),
+        key=lambda path: (path.stat().st_mtime_ns, path.name),
+        default=None,
+    )
+    if latest_wav is None:
+        raise HTTPException(status_code=404, detail="No WAV file found in storage")
+    return measure_audio_codec_sizes(str(latest_wav))
