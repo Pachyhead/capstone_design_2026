@@ -15,6 +15,8 @@ import json
 from .server_communicate_connect import set_connection
 import datetime
 
+from typing import Generator
+
 def merge_wav_byte(wav_bytes_list, storage: Path | None = None, output_filename="combined") -> Path:
     if not storage: raise ValueError(f"storage path is not specified")
     try:
@@ -84,23 +86,17 @@ def GetPendingMessages(user_id):
 
     return chatroom_lists # list list dict
 
-def GetVoice(message_id):
+def GetVoice(message_id) -> tuple[Generator, str]:
+    """gRPC 서버에서 음성 청크 받기 (generator 반환)"""
     stub = set_connection()
     
     message_identifier = server_communicate_pb2.MessageIdentifier(message_id=message_id)
     audio_frames = stub.GetVoice(message_identifier) # 서버 메서드 호출(음성 가져옴)
 
-    wav_bytes_list = []
-    for audio_frame in audio_frames:
-        if audio_frame.audio_content:
-            wav_bytes_list.append(audio_frame.audio_content)
-
-        if audio_frame.is_final:
-            print("Received final chunk from server.")
-    return wav_bytes_list, message_id
+    return audio_frames, message_id
 
 
-def run():
+def run(): # Legacy. 스트리밍이 필요한 경우 endpoint/main.py의 play_voice() 사용
     """
     Codelab Hint: Logic for your gRPC receive Client will be added here.
     Steps include:

@@ -35,10 +35,20 @@ class Receiver(User):
         return wav_path
 
     def play_voice(self, message_id: str) -> bool:
-        """Fetch and play a voice message on the endpoint's speaker."""
-        file = self._get_voice(message_id)
+        """
+        Fetch and play a voice message on the endpoint's speaker.
+        - 스트리밍 재생 + 파일 저장 병렬 진행
+        """
+        # file = self._get_voice(message_id)
         try:
-            self.speaker.play_wav(file)
+            audio_frames, _ = GetVoice(message_id)
+            fpath = self.storage / f"{message_id}.wav"
+
+            # self.speaker.play_wav(file)
+
+            # 청크 도착 즉시 재생
+            self.speaker.play_wav_streaming(audio_frames, fpath)
+            
             return True
         except Exception as error:  # noqa: BLE001 - preserve the receiver's False result
             self.logger.error("Error during playback: %s", error)
