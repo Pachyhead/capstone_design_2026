@@ -46,59 +46,51 @@ class AudioSpeaker:
 
     def play_wav_streaming(self, audio_frames: Generator, file_path: Path | str = None) -> None:
         """
-        - 청크 도착 시 즉시 스피커 출력
-        - 동시에 파일 저장
+        - 첫 청크(WAV 헤더) 수신 시 sample_rate 추출 후 stream 초기화
+        - 이후 청크: 즉시 스피커 출력 + 동시 파일 저장
         """
-        mem_file = io.BytesIO() # RAM에 가상 파일 생성(속도 빠름)
+        mem_file = io.BytesIO()
         stream = None
+        is_first_chunk = True
 
         try:
             for audio_frame in audio_frames:
                 if not audio_frame.audio_content:
+                    if audio_frame.is_final:
+                        break
                     continue
-                
-                # 첫 청크인 경우, WAV 헤더를 파싱하여 해당 포맷(channels, samplerate, dtype)에 맞게 stream 시작
-                if stream is None:
+
+                # 첫 청크: WAV 헤더 파싱
+                if is_first_chunk:
                     wav_header = audio_frame.audio_content
-                    sample_rate, channels, sampwidth = self._parse_wav_header(wav_header)
+                    sample_rate, channels, _ = self._parse_wav_header(wav_header)
 
-                    if sampwidth == 16:
-                        np_dtype = np.int16
-                    elif sampwidth == 32:
-                        np_dtype = np.int32
-                    else:
-                        np_dtype = np.int16
-
-                    # RAM 파일에 헤더 저장
-                    mem_file.write(wav_header)
-
-                    # RawStream 시작(즉시 재생 시작)
-                    stream = sd.RawStream(
+                    stream = sd.RawOutputStream(
                         channels=channels,
                         samplerate=sample_rate,
-                        dtype=np.int16
+                        dtype='int16'
                     )
                     stream.start()
+                    is_first_chunk = False
+                    continue  # 헤더는 버림
 
-                else:
-                    # 이후 청크인 경우, 즉시 재생하며 동시에 파일 저장
-                    stream.write(audio_frame.audio_content) # 지연시간 낮춤(TTFB 개선)
-                    mem_file.write(audio_frame.audio_content)
-                
+                # 이후 청크: 즉시 재생 + 동시 저장
+                stream.write(audio_frame.audio_content)
+                mem_file.write(audio_frame.audio_content)
+
                 if audio_frame.is_final:
                     print("Received final chunk from server.")
                     break
-        
+
         finally:
             if stream:
                 stream.stop()
                 stream.close()
-            
-            # 스트리밍 끝난 후 디스크로 딱 한번 내보냄
+
             if file_path:
                 with open(str(file_path), "wb") as f:
-                    f.write(mem_file.getvalue()) # RAM에 있던 데이터를 실제 디스크 파일로 저장
-            
+                    f.write(mem_file.getvalue())
+
             mem_file.close()
 
 
