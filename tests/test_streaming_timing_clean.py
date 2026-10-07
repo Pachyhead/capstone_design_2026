@@ -7,6 +7,8 @@
 import time
 import io
 import struct
+import threading
+import queue
 from pathlib import Path
 from unittest.mock import Mock
 import sounddevice as sd
@@ -14,14 +16,17 @@ import librosa
 import numpy as np
 
 
-def _create_wav_header(sample_rate, num_channels, pcm_size=0xFFFFFFF0):
-    """WAV 헤더 생성"""
+def _create_wav_header(sample_rate, num_channels, pcm_size):
+    """올바른 WAV 헤더 생성 (실제 PCM 크기 기반)"""
     bits_per_sample = 16
     byte_rate = sample_rate * num_channels * bits_per_sample // 8
     block_align = num_channels * bits_per_sample // 8
 
+    # RIFF 크기 = 파일 크기 - 8 (RIFF 태그 + 크기 필드 제외)
+    riff_size = 36 + pcm_size
+
     return (
-        b"RIFF" + struct.pack("<I", pcm_size) + b"WAVE"
+        b"RIFF" + struct.pack("<I", riff_size) + b"WAVE"
         + b"fmt " + struct.pack("<IHHIIHH", 16, 1, num_channels, sample_rate, byte_rate, block_align, bits_per_sample)
         + b"data" + struct.pack("<I", pcm_size)
     )
@@ -37,7 +42,7 @@ def load_wav_and_create_chunks(wav_file_path, chunk_ms=320, network_delay_ms=0):
         network_delay_ms: 모든 청크 간 네트워크 지연 (ms)
 
     Yields:
-        AudioFrame-like objects
+        AudioFrame-like objects with correct WAV header
     """
     audio_data, sample_rate = librosa.load(str(wav_file_path), sr=None, mono=True)
     audio_data = (audio_data * 32767).astype(np.int16)
@@ -45,17 +50,19 @@ def load_wav_and_create_chunks(wav_file_path, chunk_ms=320, network_delay_ms=0):
     num_channels = 1
     total_frames = len(audio_data)
 
-    wav_header = _create_wav_header(sample_rate, num_channels)
+    # ✅ 올바른 WAV 헤더 생성 (실제 PCM 크기 기반)
+    pcm_size = len(audio_data) * 2  # 2 bytes per int16 sample
+    wav_header = _create_wav_header(sample_rate, num_channels, pcm_size)
 
     print(f"   📊 WAV: {sample_rate}Hz, {num_channels}ch, {total_frames} frames")
     if network_delay_ms > 0:
         print(f"   🌐 지연: {network_delay_ms}ms/청크")
 
-    # 첫 청크: WAV 헤더
+    # 첫 청크: 올바른 WAV 헤더
     frame = Mock()
     frame.audio_content = wav_header
     frame.is_final = False
-    print(f"   🎬 청크 1: 헤더")
+    print(f"   🎬 청크 1: 헤더 (size={pcm_size} bytes)")
     yield frame
 
     if network_delay_ms > 0:
@@ -92,10 +99,26 @@ class MockSpeaker:
     """Mock Speaker - 실제 재생"""
 
     def play_wav_streaming(self, audio_frames, file_path=None):
-        """스트리밍 재생"""
+        """Thread-based streaming: 청크 수신과 재생을 분리"""
         mem_file = io.BytesIO()
         stream = None
         is_first_chunk = True
+        stream_start_time = None
+        write_queue = queue.Queue(maxsize=10)
+        write_error = None
+        writer = None
+
+        def writer_thread():
+            """별도 스레드에서 stream.write() 처리"""
+            nonlocal write_error
+            try:
+                while True:
+                    chunk_data = write_queue.get()
+                    if chunk_data is None:
+                        break
+                    stream.write(chunk_data)
+            except Exception as e:
+                write_error = e
 
         try:
             for audio_frame in audio_frames:
@@ -116,23 +139,44 @@ class MockSpeaker:
                     stream.start()
                     stream_start_time = time.time()
                     print(f"   🔊 RawOutputStream 준비됨")
+
+                    # writer 스레드 시작
+                    writer = threading.Thread(target=writer_thread, daemon=False)
+                    writer.start()
+
                     is_first_chunk = False
+                    # ✅ WAV 헤더를 메모리에 저장 (파일 저장용)
+                    mem_file.write(audio_frame.audio_content)
                     continue
 
-                stream.write(audio_frame.audio_content)
+                write_queue.put(audio_frame.audio_content)
                 mem_file.write(audio_frame.audio_content)
 
                 if audio_frame.is_final:
                     break
 
+        finally:
+            # writer 스레드 종료 신호
+            write_queue.put(None)
+
+            # writer 스레드가 완료될 때까지 대기
+            if writer and writer.is_alive():
+                writer.join(timeout=5)
+
+            if write_error:
+                raise write_error
+
             if stream:
                 stream.stop()
                 stream.close()
 
-        finally:
+            # ✅ 파일 저장: 메모리 버퍼의 헤더 + PCM을 그대로 저장
             if file_path:
-                with open(str(file_path), "wb") as f:
-                    f.write(mem_file.getvalue())
+                wav_bytes = mem_file.getvalue()
+                if len(wav_bytes) > 44:  # WAV 헤더 최소 크기
+                    with open(str(file_path), "wb") as f:
+                        f.write(wav_bytes)
+
             mem_file.close()
 
         return stream_start_time

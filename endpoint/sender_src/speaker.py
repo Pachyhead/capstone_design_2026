@@ -1,6 +1,10 @@
 """Play received WAV files on the local endpoint."""
 
 import wave
+import time
+import struct
+import threading
+import queue
 from pathlib import Path
 
 import numpy as np
@@ -46,13 +50,32 @@ class AudioSpeaker:
 
     def play_wav_streaming(self, audio_frames: Generator, file_path: Path | str = None) -> None:
         """
-        - 첫 청크(WAV 헤더) 수신 시 sample_rate 추출 후 stream 초기화
-        - 이후 청크: 즉시 스피커 출력 + 동시 파일 저장
+        Thread-based streaming: 청크 수신과 재생을 분리하여 끊김 방지
+        - 메인 스레드: 청크 수신 → 큐에 저장
+        - 별도 스레드: 큐에서 꺼내서 stream에 쓰기 (블로킹 I/O 분리)
         """
         mem_file = io.BytesIO()
         stream = None
         is_first_chunk = True
+        sample_rate = None
+        channels = None
 
+        write_queue = queue.Queue(maxsize=10)  # 버퍼: 최대 10개 청크
+        write_error = None
+
+        def writer_thread():
+            """별도 스레드에서 stream.write() 처리"""
+            nonlocal write_error
+            try:
+                while True:
+                    chunk_data = write_queue.get()
+                    if chunk_data is None:  # 종료 신호
+                        break
+                    stream.write(chunk_data)
+            except Exception as e:
+                write_error = e
+
+        writer = None
         try:
             for audio_frame in audio_frames:
                 if not audio_frame.audio_content:
@@ -60,7 +83,7 @@ class AudioSpeaker:
                         break
                     continue
 
-                # 첫 청크: WAV 헤더 파싱
+                # 첫 청크: WAV 헤더 파싱 + stream 생성
                 if is_first_chunk:
                     wav_header = audio_frame.audio_content
                     sample_rate, channels, _ = self._parse_wav_header(wav_header)
@@ -71,11 +94,18 @@ class AudioSpeaker:
                         dtype='int16'
                     )
                     stream.start()
-                    is_first_chunk = False
-                    continue  # 헤더는 버림
 
-                # 이후 청크: 즉시 재생 + 동시 저장
-                stream.write(audio_frame.audio_content)
+                    # writer 스레드 시작
+                    writer = threading.Thread(target=writer_thread, daemon=False)
+                    writer.start()
+
+                    is_first_chunk = False
+                    # WAV 헤더를 메모리에 저장 (파일 저장용)
+                    mem_file.write(audio_frame.audio_content)
+                    continue
+
+                # 이후 청크: 큐에 추가 + 메모리에 저장
+                write_queue.put(audio_frame.audio_content)
                 mem_file.write(audio_frame.audio_content)
 
                 if audio_frame.is_final:
@@ -83,13 +113,26 @@ class AudioSpeaker:
                     break
 
         finally:
+            # 모든 청크 수신 완료 → writer 스레드 종료 신호
+            write_queue.put(None)
+
+            # writer 스레드가 모든 데이터를 처리할 때까지 대기
+            if writer and writer.is_alive():
+                writer.join(timeout=5)
+
+            if write_error:
+                raise write_error
+
             if stream:
                 stream.stop()
                 stream.close()
 
+            # 파일 저장: 메모리 버퍼의 헤더 + PCM을 그대로 저장
             if file_path:
-                with open(str(file_path), "wb") as f:
-                    f.write(mem_file.getvalue())
+                wav_bytes = mem_file.getvalue()
+                if len(wav_bytes) > 44:  # WAV 헤더 최소 크기
+                    with open(str(file_path), "wb") as f:
+                        f.write(wav_bytes)
 
             mem_file.close()
 
@@ -101,10 +144,9 @@ class AudioSpeaker:
     
     def _parse_wav_header(self, wav_header: bytes) -> tuple:
         """WAV 헤더에서 sample_rate, channels 추출"""
-        import struct
-
         channels = struct.unpack('<H', wav_header[22:24])[0]
         sample_rate = struct.unpack('<I', wav_header[24:28])[0]
         bits_per_sample = struct.unpack('<H', wav_header[34:36])[0]
-        
+
         return sample_rate, channels, bits_per_sample
+
