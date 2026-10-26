@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import server_communicate_pb2 as server__communicate__pb2
+from grpc_getting_started import server_communicate_pb2 as grpc__getting__started_dot_server__communicate__pb2
 
 GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in server_communicate_pb2_grpc.py depends on'
+        + ' but the generated code in grpc_getting_started/server_communicate_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -38,28 +38,28 @@ class SpeechRelayStub(object):
         """
         self.SendVoice = channel.unary_unary(
                 '/SpeechRelay/SendVoice',
-                request_serializer=server__communicate__pb2.SpeechReferenceRequest.SerializeToString,
-                response_deserializer=server__communicate__pb2.UploadStatus.FromString,
+                request_serializer=grpc__getting__started_dot_server__communicate__pb2.SpeechReferenceRequest.SerializeToString,
+                response_deserializer=grpc__getting__started_dot_server__communicate__pb2.UploadStatus.FromString,
                 _registered_method=True)
         self.Send = channel.unary_unary(
                 '/SpeechRelay/Send',
-                request_serializer=server__communicate__pb2.SpeechUploadRequest.SerializeToString,
-                response_deserializer=server__communicate__pb2.UploadStatus.FromString,
+                request_serializer=grpc__getting__started_dot_server__communicate__pb2.SpeechUploadRequest.SerializeToString,
+                response_deserializer=grpc__getting__started_dot_server__communicate__pb2.UploadStatus.FromString,
                 _registered_method=True)
         self.SendPacket = channel.unary_unary(
                 '/SpeechRelay/SendPacket',
-                request_serializer=server__communicate__pb2.SpeechUploadPacketRequest.SerializeToString,
-                response_deserializer=server__communicate__pb2.UploadStatus.FromString,
+                request_serializer=grpc__getting__started_dot_server__communicate__pb2.SpeechUploadPacketRequest.SerializeToString,
+                response_deserializer=grpc__getting__started_dot_server__communicate__pb2.UploadStatus.FromString,
                 _registered_method=True)
         self.GetPendingMessages = channel.unary_unary(
                 '/SpeechRelay/GetPendingMessages',
-                request_serializer=server__communicate__pb2.UserIdentifier.SerializeToString,
-                response_deserializer=server__communicate__pb2.MetadataResponse.FromString,
+                request_serializer=grpc__getting__started_dot_server__communicate__pb2.UserIdentifier.SerializeToString,
+                response_deserializer=grpc__getting__started_dot_server__communicate__pb2.MetadataResponse.FromString,
                 _registered_method=True)
         self.GetVoice = channel.unary_stream(
                 '/SpeechRelay/GetVoice',
-                request_serializer=server__communicate__pb2.MessageIdentifier.SerializeToString,
-                response_deserializer=server__communicate__pb2.AudioFrame.FromString,
+                request_serializer=grpc__getting__started_dot_server__communicate__pb2.MessageIdentifier.SerializeToString,
+                response_deserializer=grpc__getting__started_dot_server__communicate__pb2.AudioFrame.FromString,
                 _registered_method=True)
 
 
@@ -110,28 +110,28 @@ def add_SpeechRelayServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SendVoice': grpc.unary_unary_rpc_method_handler(
                     servicer.SendVoice,
-                    request_deserializer=server__communicate__pb2.SpeechReferenceRequest.FromString,
-                    response_serializer=server__communicate__pb2.UploadStatus.SerializeToString,
+                    request_deserializer=grpc__getting__started_dot_server__communicate__pb2.SpeechReferenceRequest.FromString,
+                    response_serializer=grpc__getting__started_dot_server__communicate__pb2.UploadStatus.SerializeToString,
             ),
             'Send': grpc.unary_unary_rpc_method_handler(
                     servicer.Send,
-                    request_deserializer=server__communicate__pb2.SpeechUploadRequest.FromString,
-                    response_serializer=server__communicate__pb2.UploadStatus.SerializeToString,
+                    request_deserializer=grpc__getting__started_dot_server__communicate__pb2.SpeechUploadRequest.FromString,
+                    response_serializer=grpc__getting__started_dot_server__communicate__pb2.UploadStatus.SerializeToString,
             ),
             'SendPacket': grpc.unary_unary_rpc_method_handler(
                     servicer.SendPacket,
-                    request_deserializer=server__communicate__pb2.SpeechUploadPacketRequest.FromString,
-                    response_serializer=server__communicate__pb2.UploadStatus.SerializeToString,
+                    request_deserializer=grpc__getting__started_dot_server__communicate__pb2.SpeechUploadPacketRequest.FromString,
+                    response_serializer=grpc__getting__started_dot_server__communicate__pb2.UploadStatus.SerializeToString,
             ),
             'GetPendingMessages': grpc.unary_unary_rpc_method_handler(
                     servicer.GetPendingMessages,
-                    request_deserializer=server__communicate__pb2.UserIdentifier.FromString,
-                    response_serializer=server__communicate__pb2.MetadataResponse.SerializeToString,
+                    request_deserializer=grpc__getting__started_dot_server__communicate__pb2.UserIdentifier.FromString,
+                    response_serializer=grpc__getting__started_dot_server__communicate__pb2.MetadataResponse.SerializeToString,
             ),
             'GetVoice': grpc.unary_stream_rpc_method_handler(
                     servicer.GetVoice,
-                    request_deserializer=server__communicate__pb2.MessageIdentifier.FromString,
-                    response_serializer=server__communicate__pb2.AudioFrame.SerializeToString,
+                    request_deserializer=grpc__getting__started_dot_server__communicate__pb2.MessageIdentifier.FromString,
+                    response_serializer=grpc__getting__started_dot_server__communicate__pb2.AudioFrame.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -161,8 +161,8 @@ class SpeechRelay(object):
             request,
             target,
             '/SpeechRelay/SendVoice',
-            server__communicate__pb2.SpeechReferenceRequest.SerializeToString,
-            server__communicate__pb2.UploadStatus.FromString,
+            grpc__getting__started_dot_server__communicate__pb2.SpeechReferenceRequest.SerializeToString,
+            grpc__getting__started_dot_server__communicate__pb2.UploadStatus.FromString,
             options,
             channel_credentials,
             insecure,
@@ -188,8 +188,8 @@ class SpeechRelay(object):
             request,
             target,
             '/SpeechRelay/Send',
-            server__communicate__pb2.SpeechUploadRequest.SerializeToString,
-            server__communicate__pb2.UploadStatus.FromString,
+            grpc__getting__started_dot_server__communicate__pb2.SpeechUploadRequest.SerializeToString,
+            grpc__getting__started_dot_server__communicate__pb2.UploadStatus.FromString,
             options,
             channel_credentials,
             insecure,
@@ -215,8 +215,8 @@ class SpeechRelay(object):
             request,
             target,
             '/SpeechRelay/SendPacket',
-            server__communicate__pb2.SpeechUploadPacketRequest.SerializeToString,
-            server__communicate__pb2.UploadStatus.FromString,
+            grpc__getting__started_dot_server__communicate__pb2.SpeechUploadPacketRequest.SerializeToString,
+            grpc__getting__started_dot_server__communicate__pb2.UploadStatus.FromString,
             options,
             channel_credentials,
             insecure,
@@ -242,8 +242,8 @@ class SpeechRelay(object):
             request,
             target,
             '/SpeechRelay/GetPendingMessages',
-            server__communicate__pb2.UserIdentifier.SerializeToString,
-            server__communicate__pb2.MetadataResponse.FromString,
+            grpc__getting__started_dot_server__communicate__pb2.UserIdentifier.SerializeToString,
+            grpc__getting__started_dot_server__communicate__pb2.MetadataResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -269,8 +269,8 @@ class SpeechRelay(object):
             request,
             target,
             '/SpeechRelay/GetVoice',
-            server__communicate__pb2.MessageIdentifier.SerializeToString,
-            server__communicate__pb2.AudioFrame.FromString,
+            grpc__getting__started_dot_server__communicate__pb2.MessageIdentifier.SerializeToString,
+            grpc__getting__started_dot_server__communicate__pb2.AudioFrame.FromString,
             options,
             channel_credentials,
             insecure,
