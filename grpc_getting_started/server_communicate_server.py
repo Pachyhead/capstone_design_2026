@@ -116,7 +116,13 @@ def serve(): # grpc 서버 시작하는 부분
     load_dotenv() # load .env file's variables to os.environ
     serv_port = os.environ.get('SERV_PORT', '')
     listen_addr = f"0.0.0.0:{serv_port}" # get request from anywhere
-    server.add_insecure_port(listen_addr)
+    # 서버 인증서와 개인키로 TLS 포트 열기 (평문 포트 제거)
+    with open(os.environ.get('SERVER_KEY_PATH', ''), 'rb') as f:
+        server_key = f.read()
+    with open(os.environ.get('SERVER_CERT_PATH', ''), 'rb') as f:
+        server_cert = f.read()
+    server_credentials = grpc.ssl_server_credentials([(server_key, server_cert)])
+    server.add_secure_port(listen_addr, server_credentials)
     print(f"Starting server on {listen_addr}")
     server.start()
     server.wait_for_termination()
