@@ -4,3 +4,4 @@ protobuf==6.33.6
 setuptools==82.0.1
 typing-extensions==4.15.0
 python-dotenv==1.2.2
+bitarray==3.12.3
