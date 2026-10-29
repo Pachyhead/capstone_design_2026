@@ -102,15 +102,7 @@ def GetVoice(message_id):
 
     message_identifier = server_communicate_pb2.MessageIdentifier(message_id=message_id)
     audio_frames = stub.GetVoice(message_identifier)  # 서버 메서드 호출(음성 가져옴)
-
-    wav_bytes_list = []
-    for audio_frame in audio_frames:
-        if audio_frame.audio_content:
-            wav_bytes_list.append(audio_frame.audio_content)
-
-        if audio_frame.is_final:
-            print("Received final chunk from server.")
-    return wav_bytes_list, message_id
+    return audio_frames, message_id
 
 
 def run():

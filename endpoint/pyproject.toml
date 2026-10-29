@@ -30,7 +30,7 @@ py-modules = [
     "config",
     "logger",
     "receiver",
-    "recoder",
+    "recorder",
     "sender",
     "speaker",
     "user",

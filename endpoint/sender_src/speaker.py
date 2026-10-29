@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import sounddevice as sd
+from fastapi import HTTPException
 
 import io # RAM 가상 파일을 활용하기 위해 임포트
 from typing import Generator # Generator 타입 힌팅을 위해 임포트
@@ -48,7 +49,7 @@ class AudioSpeaker:
 
             print("Playback finished.")
 
-    def play_wav_streaming(self, audio_frames: Generator, file_path: Path | str = None) -> None:
+    def play_wav_streaming(self, audio_frames: Generator, file_path: Path | str = None):
         """
         Thread-based streaming: 청크 수신과 재생을 분리하여 끊김 방지
         - 메인 스레드: 청크 수신 → 큐에 저장
@@ -78,13 +79,10 @@ class AudioSpeaker:
         writer = None
         try:
             for audio_frame in audio_frames:
-                if not audio_frame.audio_content:
-                    if audio_frame.is_final:
-                        break
-                    continue
-
                 # 첫 청크: WAV 헤더 파싱 + stream 생성
                 if is_first_chunk:
+                    if audio_frame.is_final:
+                        raise HTTPException(status_code=500, detail="failed to make audio frame in TTS Server")
                     wav_header = audio_frame.audio_content
                     sample_rate, channels, _ = self._parse_wav_header(wav_header)
 
@@ -110,7 +108,11 @@ class AudioSpeaker:
 
                 if audio_frame.is_final:
                     print("Received final chunk from server.")
-                    break
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
         finally:
             # 모든 청크 수신 완료 → writer 스레드 종료 신호

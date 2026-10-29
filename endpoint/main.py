@@ -141,7 +141,9 @@ def send_ref() -> dict[str, str]:
     with app.state.sender_lock:
         _result, _duration, filepath = sender.recoder.stop_recording(encording=False)
         sender_id = str(sender.user_id)
-    SendVoice(sender_id, filepath)
+    if not SendVoice(sender_id, filepath):
+        raise HTTPException(status_code=500, detail="not found ref audio file")
+
     return {"message": "reference sent", "file": str(filepath)}
 
 
@@ -164,7 +166,9 @@ def play_voice(message_id: str | None = None) -> bool:
     if message_id is None:
         raise HTTPException(status_code=400, detail="message id is required.")
     receiver: Receiver = app.state.receiver
-    return receiver.play_voice(message_id)
+    receiver.play_voice(message_id)
+        
+    return True
 
 
 @app.post("/measure_audio_codec_sizes")

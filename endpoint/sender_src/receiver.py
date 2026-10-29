@@ -5,7 +5,6 @@ from pathlib import Path
 from grpc_getting_started.server_communicate_receiver import (
     GetPendingMessages,
     GetVoice,
-    merge_wav_byte,
 )
 from speaker import AudioSpeaker
 from user import User
@@ -26,15 +25,7 @@ class Receiver(User):
 
         return messages
 
-    def _get_voice(self, message_id: str) -> Path:
-        stream, message_id = GetVoice(message_id)
-        wav_path = merge_wav_byte(stream, self.storage, message_id)
-        if not wav_path:
-            raise ValueError("wav path is empty")
-
-        return wav_path
-
-    def play_voice(self, message_id: str) -> bool:
+    def play_voice(self, message_id: str):
         """
         Fetch and play a voice message on the endpoint's speaker.
         - 스트리밍 재생 + 파일 저장 병렬 진행
@@ -49,8 +40,7 @@ class Receiver(User):
             # 청크 도착 즉시 재생
             self.speaker.play_wav_streaming(audio_frames, fpath)
             
-            return True
         except Exception as error:  # noqa: BLE001 - preserve the receiver's False result
             self.logger.error("Error during playback: %s", error)
             self.speaker.stop_speaker()
-            return False
+            raise
