@@ -13,6 +13,7 @@ from grpc_getting_started.server_communicate_sender import SendVoice
 from receiver import Receiver
 from sender import Sender
 from utils import measure_audio_codec_sizes
+from grpc_getting_started import server_communicate_pb2
 
 _STORAGE = PROJECT_ROOT / "storage"
 _STORAGE.mkdir(parents=True, exist_ok=True)
@@ -111,11 +112,20 @@ def stop_recording() -> dict[str, str | float]:
     if not result:
         raise HTTPException(status_code=500, detail="encoding failed")
 
+    payload = server_communicate_pb2.SpeechUploadRequest(
+        sender_id=str(sender.user_id),
+        receiver_id=str(sender.peer_id),
+        message=result.text,
+        emo_type=result.emotion_label_idx,
+        emotion_vector=result.emotion_indices
+    )
+
     return {
         "text": result.text,
         "emotion": result.emotion_label.name.lower(),
         "duration": round(duration, 1),
         "audio_url": f"/storage/{file_path.name}",
+        "payload_bytes": payload.ByteSize()
     }
 
 

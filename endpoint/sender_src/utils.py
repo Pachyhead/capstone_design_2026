@@ -53,7 +53,7 @@ def measure_audio_codec_sizes(
     ]
 
     # 목표 ViSQOL 점수
-    target_quality = 4.5
+    target_quality = 4.3
 
     results: dict[str, object] = {}
     visqol_api = VisqolApi()
@@ -80,6 +80,14 @@ def measure_audio_codec_sizes(
                 str(reference_wav),
             ]
         )
+
+        source_size = input_path.stat().st_size
+
+        results["wav"] = {
+            "bitrate_kbps": None,
+            "size_bytes": source_size,
+            "quality": None,
+        }
 
         for codec in codecs:
             candidates = []

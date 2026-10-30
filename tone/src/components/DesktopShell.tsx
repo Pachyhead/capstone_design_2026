@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { SideRail } from '@/components/SideRail';
+import { MetricsDock } from '@/components/MetricsDock';
 
 interface Props {
   children: ReactNode;
@@ -13,6 +14,7 @@ export function DesktopShell({ children, variant = 'light' }: Props) {
     <div className="flex h-screen w-screen overflow-hidden" style={{ background: bg }}>
       <SideRail variant={variant} />
       <main className="flex-1 min-w-0 h-full flex">{children}</main>
+      <MetricsDock variant={variant} />
     </div>
   );
 }

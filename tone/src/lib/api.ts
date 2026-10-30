@@ -1,4 +1,5 @@
 import type { Emotion } from '@/types';
+import { recordApiCall, setLastRecording } from '@/lib/metrics';
 
 const BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 
@@ -18,14 +19,17 @@ async function post<T = unknown>(
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
   }
   const label = `[api] POST ${path}${params ? ` ${JSON.stringify(params)}` : ''}`;
+  const started = performance.now();
   let res: Response;
   try {
     res = await fetch(url.toString(), { method: 'POST' });
   } catch (err) {
+    recordApiCall({ path, status: 0, ms: performance.now() - started, at: Date.now() });
     console.error(`${label} — network error:`, err);
     throw err;
   }
   const text = await res.text();
+  recordApiCall({ path, status: res.status, ms: performance.now() - started, at: Date.now() });
   let parsed: unknown = text;
   try {
     parsed = JSON.parse(text);
@@ -47,6 +51,7 @@ export interface RecordResult {
   emotion: Emotion;
   duration: number;
   audio_url?: string;
+  payload_bytes?: number;
 }
 
 export interface StartRecordingResult {
@@ -61,6 +66,20 @@ export interface EmotionLabelResult {
 export interface PlayVoiceResult {
   duration: number;
 }
+
+// /measure_audio_codec_sizes: smallest bitrate per codec meeting ViSQOL >= 4.5, null if none does.
+export interface CodecCandidate {
+  bitrate_kbps: number;
+  size_bytes: number;
+  quality: number;
+}
+
+export type CodecName = 'mp3' | 'aac' | 'opus';
+
+// wav: size of the measured source file (no bitrate/quality).
+export type CodecSizes = Record<CodecName, CodecCandidate | null> & {
+  wav?: { size_bytes: number };
+};
 
 export interface ReceivedMessage {
   message_id: string;
@@ -128,10 +147,15 @@ export const api = {
     }
   },
   startRecording: () => post<StartRecordingResult>('/start_recording'),
-  stopRecording: () => post<RecordResult>('/stop_recording'),
+  stopRecording: async () => {
+    const result = await post<RecordResult>('/stop_recording');
+    setLastRecording(result);
+    return result;
+  },
   send: (message: string) => post('/send', { message }),
   sendRef: () => post('/send_ref'),
   getEmotionLabel: () => post<EmotionLabelResult>('/get_emotion_label'),
   playVoice: (messageId: string) =>
     post<PlayVoiceResult>('/play_voice', { message_id: messageId }),
+  measureCodecSizes: () => post<CodecSizes>('/measure_audio_codec_sizes'),
 };
