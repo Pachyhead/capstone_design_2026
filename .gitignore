@@ -235,3 +235,7 @@ sender/sender_src/grpc_getting_started/DataBase/*
 notebooks/
 
 .new_venv
+
+# grpc_getting_started
+grpc_getting_started/certs/*
+!grpc_getting_started/certs/ca.pem
