@@ -67,18 +67,17 @@ export interface PlayVoiceResult {
   duration: number;
 }
 
-// /measure_audio_codec_sizes: smallest bitrate per codec meeting ViSQOL >= 4.5, null if none does.
-export interface CodecCandidate {
+// /measure_audio_codec_sizes: each codec's size at its service bitrate (bitrate × duration).
+export interface CodecSize {
   bitrate_kbps: number;
   size_bytes: number;
-  quality: number;
 }
 
-export type CodecName = 'mp3' | 'aac' | 'opus';
+export type CodecName = 'opus' | 'volte' | 'codec2';
 
-// wav: size of the measured source file (no bitrate/quality).
-export type CodecSizes = Record<CodecName, CodecCandidate | null> & {
-  wav?: { size_bytes: number };
+// wav: size of the measured source file.
+export type CodecSizes = Record<CodecName, CodecSize> & {
+  wav: { size_bytes: number };
 };
 
 export interface ReceivedMessage {

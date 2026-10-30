@@ -8,7 +8,11 @@ interface Props {
 }
 
 const OPEN_KEY = 'tone:metricsDock:open';
-const CODECS: CodecName[] = ['mp3', 'aac', 'opus'];
+const CODECS: { name: CodecName; label: string; note: string }[] = [
+  { name: 'opus', label: 'Opus', note: '광대역 음성 권장값 (RFC 7587)' },
+  { name: 'volte', label: 'VoLTE', note: 'AMR-WB 모드' },
+  { name: 'codec2', label: 'Codec2', note: '700C 모드 · 오픈소스' },
+];
 
 interface Theme {
   card: string;
@@ -137,7 +141,7 @@ function MetricsCard({ theme: t }: { theme: Theme }) {
       </Section>
 
       <Section
-        title="코덱 비교 (ViSQOL ≥ 4.5)"
+        title="전송 크기 비교"
         theme={t}
         action={
           <button
@@ -166,7 +170,7 @@ function MetricsCard({ theme: t }: { theme: Theme }) {
           <CodecBars codec={codec} payloadBytes={lastRecording?.payload_bytes} theme={t} />
         ) : (
           codecState !== 'error' && (
-            <Empty theme={t}>최근 WAV 파일로 mp3·aac·opus 크기를 측정해요 (수십 초 소요)</Empty>
+            <Empty theme={t}>최근 WAV 파일 길이로 코덱별 전송 크기를 계산해요</Empty>
           )
         )}
       </Section>
@@ -179,8 +183,8 @@ function MetricsCard({ theme: t }: { theme: Theme }) {
 }
 
 interface SizeRow {
-  name: string;
-  size: number | null;
+  label: string;
+  size: number;
   note: string;
   accent?: boolean;
 }
@@ -195,48 +199,43 @@ function CodecBars({
   theme: Theme;
 }) {
   const rows: SizeRow[] = [
-    ...(codec.wav ? [{ name: 'wav', size: codec.wav.size_bytes, note: '원본' }] : []),
-    ...CODECS.map((name) => {
-      const c = codec[name];
-      return {
-        name,
-        size: c?.size_bytes ?? null,
-        note: c ? `${c.bitrate_kbps} kbps · ViSQOL ${c.quality.toFixed(2)}` : '목표 음질 미달',
-      };
-    }),
+    { label: 'WAV', size: codec.wav.size_bytes, note: '원본' },
+    ...CODECS.map(({ name, label, note }) => ({
+      label,
+      size: codec[name].size_bytes,
+      note: `${codec[name].bitrate_kbps} kbps · ${note}`,
+    })),
     ...(payloadBytes !== undefined
-      ? [{ name: 'tone', size: payloadBytes, note: '텍스트 + 감정 벡터', accent: true }]
+      ? [{ label: 'TONE', size: payloadBytes, note: '텍스트 + 감정 벡터', accent: true }]
       : []),
   ];
   // sizes span B to hundreds of KB, so bar length is log10(size) / log10(max)
-  const maxLog = Math.log10(Math.max(...rows.map((r) => r.size ?? 1)));
+  const maxLog = Math.log10(Math.max(...rows.map((r) => r.size)));
 
   return (
     <div className="flex flex-col gap-3">
       {rows.map((r) => (
-        <div key={r.name} className="flex flex-col gap-1">
+        <div key={r.label} className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-[11px]">
-            <span className="w-9 font-medium uppercase">{r.name}</span>
+            <span className="w-12 font-medium">{r.label}</span>
             <div className="flex-1 h-[8px] rounded-full overflow-hidden" style={{ background: t.track }}>
-              {r.size !== null && (
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${(Math.log10(r.size) / maxLog) * 100}%`,
-                    background: r.accent ? t.accent : t.bar,
-                  }}
-                />
-              )}
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${(Math.log10(r.size) / maxLog) * 100}%`,
+                  background: r.accent ? t.accent : t.bar,
+                }}
+              />
             </div>
-            <span className="w-[56px] text-right font-mono">{r.size !== null ? formatBytes(r.size) : '—'}</span>
+            <span className="w-[56px] text-right font-mono">{formatBytes(r.size)}</span>
           </div>
-          <div className="pl-11 text-[10px]" style={{ color: t.hint }}>
+          <div className="pl-14 text-[10px]" style={{ color: t.hint }}>
             {r.note}
           </div>
         </div>
       ))}
       <div className="text-[10px]" style={{ color: t.hint }}>
-        최근 WAV 파일 기준 · 막대 길이는 로그 스케일
+        최근 WAV 파일 기준 · 코덱은 비트레이트 × 길이 · 막대 길이는 로그 스케일
       </div>
     </div>
   );

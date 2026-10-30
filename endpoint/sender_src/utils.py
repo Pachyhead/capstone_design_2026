@@ -1,182 +1,41 @@
-"""Compare compressed audio sizes at a target ViSQOL quality score."""
+"""Estimate speech payload sizes at representative service bitrates."""
 
-import shutil
-import subprocess
-import tempfile
 from pathlib import Path
 
-from visqol import VisqolApi
+from scipy.io import wavfile
+
+# 음성 서비스에서 쓰이는 대표 비트레이트 (kbps)
+# - opus: RFC 7587 광대역 음성 권장 범위 16~20 kbps의 하한
+# - volte: AMR-WB 12.65 kbps 모드 (GSMA HD Voice 필수 모드 세트)
+# - codec2: Codec 2 700C 모드
+SERVICE_BITRATES_KBPS = {
+    "opus": 16,
+    "volte": 12.65,
+    "codec2": 0.7,
+}
 
 
 def measure_audio_codec_sizes(
     wav_path: str,
 ) -> dict[str, object]:
-    """Find the smallest MP3, AAC, and Opus files meeting the quality target."""
+    """Return the WAV size and each codec's size at its service bitrate."""
     input_path = Path(wav_path)
 
     if not input_path.is_file():
         raise FileNotFoundError(f"File not found: {input_path}")
 
-    if shutil.which("ffmpeg") is None:
-        raise RuntimeError("ffmpeg is not installed.")
+    rate, samples = wavfile.read(input_path)
+    seconds = len(samples) / rate
 
-    # 비교할 코덱
-    codecs = [
-        {
-            "name": "mp3",
-            "encoder": "libmp3lame",
-            "extension": "mp3",
-        },
-        {
-            "name": "aac",
-            "encoder": "aac",
-            "extension": "m4a",
-        },
-        {
-            "name": "opus",
-            "encoder": "libopus",
-            "extension": "opus",
-        },
-    ]
+    results: dict[str, object] = {
+        "wav": {"size_bytes": input_path.stat().st_size},
+    }
 
-    # 각 코덱에서 시험할 bitrate
-    bitrates = [
-        32,
-        48,
-        64,
-        80,
-        96,
-        128,
-        160,
-        192,
-        256,
-    ]
-
-    # 목표 ViSQOL 점수
-    target_quality = 4.3
-
-    results: dict[str, object] = {}
-    visqol_api = VisqolApi()
-    visqol_api.create(mode="audio")
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir = Path(temp_dir)
-
-        # ViSQOL Audio Mode용 48 kHz reference WAV
-        reference_wav = temp_dir / "reference.wav"
-
-        _run(
-            [
-                "ffmpeg",
-                "-y",
-                "-loglevel",
-                "error",
-                "-i",
-                str(input_path),
-                "-ar",
-                "48000",
-                "-c:a",
-                "pcm_s16le",
-                str(reference_wav),
-            ]
-        )
-
-        source_size = input_path.stat().st_size
-
-        results["wav"] = {
-            "bitrate_kbps": None,
-            "size_bytes": source_size,
-            "quality": None,
+    # 고정 비트레이트 코덱: 크기 = 비트레이트 × 길이 / 8
+    for name, bitrate_kbps in SERVICE_BITRATES_KBPS.items():
+        results[name] = {
+            "bitrate_kbps": bitrate_kbps,
+            "size_bytes": round(bitrate_kbps * 1000 * seconds / 8),
         }
 
-        for codec in codecs:
-            candidates = []
-
-            for bitrate in bitrates:
-                compressed_path = (
-                    temp_dir / f"{codec['name']}_{bitrate}.{codec['extension']}"
-                )
-
-                decoded_wav = temp_dir / f"{codec['name']}_{bitrate}_decoded.wav"
-
-                # 1. WAV -> 압축 코덱
-                _run(
-                    [
-                        "ffmpeg",
-                        "-y",
-                        "-loglevel",
-                        "error",
-                        "-i",
-                        str(input_path),
-                        "-c:a",
-                        codec["encoder"],
-                        "-b:a",
-                        f"{bitrate}k",
-                        str(compressed_path),
-                    ]
-                )
-
-                size = compressed_path.stat().st_size
-
-                # 2. 압축 파일 -> WAV
-                _run(
-                    [
-                        "ffmpeg",
-                        "-y",
-                        "-loglevel",
-                        "error",
-                        "-i",
-                        str(compressed_path),
-                        "-ar",
-                        "48000",
-                        "-c:a",
-                        "pcm_s16le",
-                        str(decoded_wav),
-                    ]
-                )
-
-                # 3. 원본 WAV와 decoded WAV의 음질 비교
-                quality = float(
-                    visqol_api.measure(str(reference_wav), str(decoded_wav)).moslqo
-                )
-
-                candidates.append(
-                    {
-                        "bitrate_kbps": bitrate,
-                        "size_bytes": size,
-                        "quality": quality,
-                    }
-                )
-
-            # 목표 음질을 만족하는 후보만 남긴다.
-            valid_candidates = [
-                candidate
-                for candidate in candidates
-                if candidate["quality"] >= target_quality
-            ]
-
-            if valid_candidates:
-                # 실제 파일 크기가 가장 작은 후보 선택
-                best = min(
-                    valid_candidates,
-                    key=lambda candidate: candidate["size_bytes"],
-                )
-
-                results[codec["name"]] = best
-            else:
-                results[codec["name"]] = None
-
     return results
-
-
-def _run(command: list[str]) -> None:
-    try:
-        subprocess.run(
-            command,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Command failed:\n{' '.join(command)}\n\n{e.stderr}") from e
