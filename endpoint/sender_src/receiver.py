@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import config  # noqa: F401 - 저장소 루트를 sys.path에 추가
 from grpc_getting_started.server_communicate_receiver import (
     GetPendingMessages,
     GetVoice,

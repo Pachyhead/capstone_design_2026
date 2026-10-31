@@ -25,8 +25,10 @@ import numpy as np
 from dotenv import load_dotenv
 from google.protobuf.timestamp_pb2 import Timestamp
 
+from sender_src import config  # noqa: F401 - 저장소 루트를 sys.path에 추가
 from grpc_getting_started import server_communicate_pb2 as pb2
 from grpc_getting_started import server_communicate_pb2_grpc as pb2_grpc
+from src.utils.bitpacking import decode_packet
 
 _USER_IDS = range(4)
 _VALID_IDS = {str(i) for i in _USER_IDS}
@@ -105,6 +107,27 @@ class MockRelay(pb2_grpc.SpeechRelayServicer):
                 datetime.now(timezone.utc),
             )
         print(f"[Send] saved as {message_id}")
+        return pb2.UploadStatus(accepted=True)
+
+    def SendPacket(self, request, context):
+        # 엔드포인트 sender.send()가 쓰는 비트패킹 경로. 실제 relay의 디코딩과 같은 규칙으로 검사한다
+        try:
+            sender, receiver, emo_type, indices, text = decode_packet(request.packet)
+        except Exception as error:  # noqa: BLE001 - 깨진 패킷은 거부
+            print(f"[SendPacket] decode failed: {error}")
+            return pb2.UploadStatus(accepted=False)
+
+        print(
+            f"[SendPacket] {len(request.packet)} bytes: {sender} -> {receiver} "
+            f"emo_type={emo_type} indices={indices} text={text!r}"
+        )
+        if {str(sender), str(receiver)} - _VALID_IDS or len(indices) != 8:
+            print("[SendPacket] rejected")
+            return pb2.UploadStatus(accepted=False)
+
+        with self.lock:
+            message_id = self._add(sender, receiver, text, emo_type, datetime.now(timezone.utc))
+        print(f"[SendPacket] saved as {message_id}")
         return pb2.UploadStatus(accepted=True)
 
     def GetPendingMessages(self, request, context):
