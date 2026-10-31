@@ -189,9 +189,17 @@ def main() -> None:
     port = os.environ.get("SERV_PORT") or "50051"
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb2_grpc.add_SpeechRelayServicer_to_server(MockRelay(wav), server)
-    server.add_insecure_port(f"127.0.0.1:{port}")
+    # SERV_TLS=0일 때만 평문. 기본값은 TLS이며, 인증서는 gen_mock_certs.sh가 만든 테스트 체인을 쓴다
+    tls = os.environ.get("SERV_TLS", "1") != "0"
+    if tls:
+        cert_dir = Path(__file__).resolve().parent / "mock_certs"
+        key = (cert_dir / "server.key").read_bytes()
+        cert = (cert_dir / "server.pem").read_bytes()
+        server.add_secure_port(f"127.0.0.1:{port}", grpc.ssl_server_credentials([(key, cert)]))
+    else:
+        server.add_insecure_port(f"127.0.0.1:{port}")
     server.start()
-    print(f"Mock relay listening on 127.0.0.1:{port}")
+    print(f"Mock relay listening on 127.0.0.1:{port} ({'TLS' if tls else 'plaintext'})")
     server.wait_for_termination()
 
 
