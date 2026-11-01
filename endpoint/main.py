@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import PROJECT_ROOT
+from grpc_getting_started.server_communicate_connect import close_connection
 from grpc_getting_started.server_communicate_sender import SendVoice
 from receiver import Receiver
 from sender import Sender
@@ -35,7 +36,10 @@ async def _lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
         application.state.receiver = receiver
         application.state.sender_lock = Lock()
         application.state.last_audio_file = None
-        yield
+        try:
+            yield
+        finally:
+            close_connection()  # 공유 gRPC 채널 종료
 
 
 app = FastAPI(lifespan=_lifespan)
