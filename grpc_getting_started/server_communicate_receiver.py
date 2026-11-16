@@ -12,7 +12,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import io
 import json
-from .server_communicate_connect import set_connection
+from .server_communicate_connect import RPC_TIMEOUT, STREAM_TIMEOUT, set_connection
 import datetime
 
 from typing import Generator
@@ -65,7 +65,7 @@ def GetPendingMessages(user_id):
     stub = set_connection()
 
     user_identifier = server_communicate_pb2.UserIdentifier(user_id=user_id) # 서비스를 호출할 userIdentifier 정의
-    chatroom_items = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)   
+    chatroom_items = stub.GetPendingMessages(user_identifier, timeout=RPC_TIMEOUT) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)   
 
     # 구조체 부분 제거
     chatroom_lists = []
@@ -91,7 +91,7 @@ def GetVoice(message_id) -> tuple[Generator, str]:
     stub = set_connection()
     
     message_identifier = server_communicate_pb2.MessageIdentifier(message_id=message_id)
-    audio_frames = stub.GetVoice(message_identifier) # 서버 메서드 호출(음성 가져옴)
+    audio_frames = stub.GetVoice(message_identifier, timeout=STREAM_TIMEOUT) # 서버 메서드 호출(음성 가져옴)
 
     return audio_frames, message_id
 

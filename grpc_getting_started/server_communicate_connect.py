@@ -9,6 +9,11 @@ from . import server_communicate_pb2_grpc
 _channel = None
 _channel_lock = threading.Lock()
 
+# RPC 타임아웃(초). 서버에 닿지 않을 때 요청이 무한정 기다리지 않도록 한다 (재시도 시간 포함)
+RPC_TIMEOUT = 10      # 목록 조회, 패킷 전송
+UPLOAD_TIMEOUT = 30   # 레퍼런스 음성 업로드
+STREAM_TIMEOUT = 120  # TTS 음성 스트리밍 (서버 합성 시간 포함, 실서버 첫 데이터 6~8초)
+
 # 유휴 후 끊긴 연결에 대한 재시도 (UNAVAILABLE). 읽기 RPC에만 적용한다.
 # SendPacket/SendVoice는 재시도하면 같은 메시지가 두 번 저장될 수 있어서 제외한다.
 _RETRY_SERVICE_CONFIG = json.dumps({

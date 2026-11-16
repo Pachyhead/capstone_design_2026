@@ -11,7 +11,7 @@ import os
 from dotenv import load_dotenv
 import numpy as np
 import json
-from .server_communicate_connect import set_connection
+from .server_communicate_connect import RPC_TIMEOUT, UPLOAD_TIMEOUT, set_connection
 
 def load_vector():
     data = np.load('../000001.npy')
@@ -32,7 +32,7 @@ def SendVoice(sender_id, audio_path):
         audio_content = f.read()
 
     uploadRequest = server_communicate_pb2.SpeechReferenceRequest(sender_id=sender_id, audio_content=audio_content) # 서비스를 호출할 SpeechReferenceRequest 정의
-    status = stub.SendVoice(uploadRequest) # 서버 메서드 호출(rpc 호출)
+    status = stub.SendVoice(uploadRequest, timeout=UPLOAD_TIMEOUT) # 서버 메서드 호출(rpc 호출)
 
     return status.accepted
 
@@ -40,7 +40,7 @@ def Send(sender_id, receiver_id, message, emo_type, emotion_indices): # deprecat
     stub = set_connection()
 
     uploadRequest = server_communicate_pb2.SpeechUploadRequest(sender_id=sender_id, receiver_id=receiver_id, message=message, emo_type=emo_type, emotion_vector=list(emotion_indices)) # 서비스를 호출할 SpeechUploadRequest 정의
-    status = stub.Send(uploadRequest) # 서버 메서드 호출(rpc 호출)
+    status = stub.Send(uploadRequest, timeout=RPC_TIMEOUT) # 서버 메서드 호출(rpc 호출)
 
     return status.accepted
 
@@ -49,7 +49,7 @@ def SendPacket(packet: bytes) -> bool:
     stub = set_connection()
 
     uploadRequest = server_communicate_pb2.SpeechUploadPacketRequest(packet=packet)
-    status = stub.SendPacket(uploadRequest) # 서버 메서드 호출(rpc 호출)
+    status = stub.SendPacket(uploadRequest, timeout=RPC_TIMEOUT) # 서버 메서드 호출(rpc 호출)
 
     return status.accepted
 
@@ -57,7 +57,7 @@ def GetPendingMessages(user_id):
     stub = set_connection()
 
     user_identifier = server_communicate_pb2.UserIdentifier(user_id=user_id) # 서비스를 호출할 userIdentifier 정의
-    chatroom_items = stub.GetPendingMessages(user_identifier) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)   
+    chatroom_items = stub.GetPendingMessages(user_identifier, timeout=RPC_TIMEOUT) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)   
 
     # 구조체 부분 제거
     chatroom_lists = []
