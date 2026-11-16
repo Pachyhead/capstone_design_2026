@@ -23,7 +23,6 @@ from threading import Lock
 
 import grpc
 import numpy as np
-from dotenv import load_dotenv
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from sender_src import config  # noqa: F401 - 저장소 루트를 sys.path에 추가
@@ -191,12 +190,12 @@ def main() -> None:
     # 로그를 파일/파이프로 받으면 Windows에서 stdout이 cp949가 되어 이모지 print가 실패한다
     sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 
-    load_dotenv()
+    # .env는 sender_src.config가 저장소 루트에서 읽어 둔다
     port = os.environ.get("SERV_PORT") or "50051"
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb2_grpc.add_SpeechRelayServicer_to_server(MockRelay(wav), server)
-    # SERV_TLS=0일 때만 평문. 기본값은 TLS이며, 인증서는 gen_mock_certs.sh가 만든 테스트 체인을 쓴다
-    tls = os.environ.get("SERV_TLS", "1") != "0"
+    # SERV_TLS=1일 때만 TLS. 기본값은 평문이며, TLS 인증서는 gen_mock_certs.sh가 만든 테스트 체인을 쓴다
+    tls = os.environ.get("SERV_TLS", "0") == "1"
     if tls:
         cert_dir = Path(__file__).resolve().parent / "mock_certs"
         key = (cert_dir / "server.key").read_bytes()

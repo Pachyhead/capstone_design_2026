@@ -9,7 +9,7 @@ from . import server_communicate_pb2
 from . import server_communicate_pb2_grpc
 
 import os
-from dotenv import load_dotenv
+from .env_config import load_env
 
 from datetime import datetime
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -115,22 +115,22 @@ def serve(): # grpc 서버 시작하는 부분
         server,
     )
 
-    load_dotenv() # load .env file's variables to os.environ
+    load_env() # 저장소 루트 .env를 os.environ으로 읽음
     serv_port = os.environ.get('SERV_PORT', '')
     listen_addr = f"0.0.0.0:{serv_port}" # get request from anywhere
-    # # SERV_TLS=0일 때만 평문. 값이 없으면 TLS (실수로 평문으로 떨어지지 않게 기본값은 TLS)
-    # if os.environ.get('SERV_TLS', '1') != '0':
-    #     with open(os.environ.get('SERVER_KEY_PATH', ''), 'rb') as f:
-    #         server_key = f.read()
-    #     with open(os.environ.get('SERVER_CERT_PATH', ''), 'rb') as f:
-    #         server_cert = f.read()
-    #     server_credentials = grpc.ssl_server_credentials([(server_key, server_cert)])
-    #     server.add_secure_port(listen_addr, server_credentials)
-    # else:
-    #     server.add_insecure_port(listen_addr)
+    # SERV_TLS=1일 때만 TLS. 값이 없으면 평문 (인증서가 준비되지 않아도 오류 없이 뜨도록 기본값은 평문)
+    tls = os.environ.get('SERV_TLS', '0') == '1'
+    if tls:
+        with open(os.environ.get('SERVER_KEY_PATH', ''), 'rb') as f:
+            server_key = f.read()
+        with open(os.environ.get('SERVER_CERT_PATH', ''), 'rb') as f:
+            server_cert = f.read()
+        server_credentials = grpc.ssl_server_credentials([(server_key, server_cert)])
+        server.add_secure_port(listen_addr, server_credentials)
+    else:
+        server.add_insecure_port(listen_addr)
 
-    server.add_insecure_port(listen_addr)
-    print(f"Starting server on {listen_addr}")
+    print(f"Starting server on {listen_addr} ({'TLS' if tls else 'plaintext'})")
     server.start()
     server.wait_for_termination()
 
