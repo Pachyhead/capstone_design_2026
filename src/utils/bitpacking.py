@@ -1,10 +1,11 @@
 from bitarray import bitarray # 비트 조작 라이브러리
 from bitarray.util import int2ba, ba2int
 
-def encode_packet(send_id: int, receiver_id: int, emo_type: int, emotion_indices: list[int], message: str) -> bytes:
+def encode_packet(send_id: int, receiver_id: int, emo_type: int, emotion_indices: list[int], message: str | bytes) -> bytes:
     """
     비트패킹: [프레임 크기(16bits)] [헤더(40bits)] [메시지(Variable)]
     헤더: [send_id(6bits)] [receiver_id(6bits)] [emo_type(4bits)] [emotion_vec(24bits)]
+    message는 str(UTF-8로 인코딩) 또는 bytes(그대로 실음, 예: compress_text 결과)를 받는다.
     """
     header = bitarray(40) # 헤더 크기 5bytes
     header.setall(False) # 비트 0으로 초기화
@@ -19,7 +20,7 @@ def encode_packet(send_id: int, receiver_id: int, emo_type: int, emotion_indices
         emo_pck.extend(int2ba(val, length=size))
     header[16:40] = emo_pck # 감정벡터 크기 24bits
 
-    message_bytes = message.encode('utf-8') # 메세지를 bytes로 변환
+    message_bytes = message if isinstance(message, bytes) else message.encode('utf-8') # 메세지를 bytes로 변환
 
     frame_size = 5 + len(message_bytes) # 헤더 크기 + 메시지 크기
 
@@ -34,7 +35,7 @@ def encode_packet(send_id: int, receiver_id: int, emo_type: int, emotion_indices
     return packet.tobytes()
 
 def decode_packet(data: bytes) -> tuple:
-    """비트패킹 패킷 역해석"""
+    """비트패킹 패킷 역해석. 메시지는 bytes 그대로 반환한다 (텍스트 복원은 호출자가 decompress_text로 수행)"""
     packet = bitarray()
     packet.frombytes(data) # bitarray 형태로 변환
 
@@ -51,7 +52,6 @@ def decode_packet(data: bytes) -> tuple:
     for i in range(0, len(emo_pck), 3):
         emotion_indices.append(ba2int(emo_pck[i:i+3]))
 
-    message_bytes = message_bits.tobytes()
-    message = message_bytes.decode('utf-8') # 메시지 다시 문자열로 되돌림
+    message = message_bits.tobytes() # 메시지 bytes 그대로 반환 (압축 플래그 포함 가능)
 
     return (send_id, receiver_id, emo_type, emotion_indices, message)

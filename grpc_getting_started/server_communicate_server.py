@@ -15,6 +15,7 @@ from datetime import datetime
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from src.utils.bitpacking import decode_packet
+from src.utils.text_compress import decompress_text
 
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
     """Provides methods that implement functionality of server_communicate server."""
@@ -42,6 +43,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
 
     def SendPacket(self, request, context):
         send_id, receiver_id, emo_type, emotion_indices, message = decode_packet(request.packet)
+        message = decompress_text(message) # bytes -> 텍스트 복원 (엔드포인트 compress_text의 역연산)
 
         success = self.handler.save_incoming_speech(
             sender_id = send_id,
@@ -116,7 +118,16 @@ def serve(): # grpc 서버 시작하는 부분
     load_dotenv() # load .env file's variables to os.environ
     serv_port = os.environ.get('SERV_PORT', '')
     listen_addr = f"0.0.0.0:{serv_port}" # get request from anywhere
-    server.add_insecure_port(listen_addr)
+    # SERV_TLS=0일 때만 평문. 값이 없으면 TLS (실수로 평문으로 떨어지지 않게 기본값은 TLS)
+    if os.environ.get('SERV_TLS', '1') != '0':
+        with open(os.environ.get('SERVER_KEY_PATH', ''), 'rb') as f:
+            server_key = f.read()
+        with open(os.environ.get('SERVER_CERT_PATH', ''), 'rb') as f:
+            server_cert = f.read()
+        server_credentials = grpc.ssl_server_credentials([(server_key, server_cert)])
+        server.add_secure_port(listen_addr, server_credentials)
+    else:
+        server.add_insecure_port(listen_addr)
     print(f"Starting server on {listen_addr}")
     server.start()
     server.wait_for_termination()
