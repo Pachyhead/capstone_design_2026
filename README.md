@@ -17,6 +17,13 @@
   <img src="https://img.shields.io/badge/▶%20발표%20보기-Open%20Slides-34d3c0?style=for-the-badge&labelColor=0a0d13" alt="발표 보기" height="40" />
 </a>
 
+<br />
+
+<br />
+
+<p align="center">
+  <img src="./docs/포스터.png" width="500" alt="포스터">
+</p>
 
 <br />
 
