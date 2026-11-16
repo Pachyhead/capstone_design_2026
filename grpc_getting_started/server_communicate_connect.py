@@ -1,5 +1,6 @@
 import grpc
 from dotenv import load_dotenv
+import json
 import os
 import threading
 from . import server_communicate_pb2_grpc
@@ -7,6 +8,28 @@ from . import server_communicate_pb2_grpc
 # 프로세스당 채널 하나를 만들어 재사용한다 (호출마다 TCP+TLS 핸드셰이크를 하지 않도록)
 _channel = None
 _channel_lock = threading.Lock()
+
+# 유휴 후 끊긴 연결에 대한 재시도 (UNAVAILABLE). 읽기 RPC에만 적용한다.
+# SendPacket/SendVoice는 재시도하면 같은 메시지가 두 번 저장될 수 있어서 제외한다.
+_RETRY_SERVICE_CONFIG = json.dumps({
+    "methodConfig": [{
+        "name": [
+            {"service": "SpeechRelay", "method": "GetPendingMessages"},
+            {"service": "SpeechRelay", "method": "GetVoice"},
+        ],
+        "retryPolicy": {
+            "maxAttempts": 3,
+            "initialBackoff": "0.2s",
+            "maxBackoff": "2s",
+            "backoffMultiplier": 2,
+            "retryableStatusCodes": ["UNAVAILABLE"],
+        },
+    }]
+})
+_CHANNEL_OPTIONS = [
+    ("grpc.enable_retries", 1),
+    ("grpc.service_config", _RETRY_SERVICE_CONFIG),
+]
 
 
 def _build_channel():
@@ -19,8 +42,8 @@ def _build_channel():
         with open(os.environ.get('CA_CERT_PATH', ''), 'rb') as f:
             ca_cert = f.read()
         credentials = grpc.ssl_channel_credentials(root_certificates=ca_cert)
-        return grpc.secure_channel(server_addr, credentials)
-    return grpc.insecure_channel(server_addr)
+        return grpc.secure_channel(server_addr, credentials, options=_CHANNEL_OPTIONS)
+    return grpc.insecure_channel(server_addr, options=_CHANNEL_OPTIONS)
 
 
 def set_connection(): # set connection to server
