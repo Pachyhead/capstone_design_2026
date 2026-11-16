@@ -13,7 +13,7 @@ from .dbobjects import Base, UserTable, ChatTable
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from dotenv import load_dotenv
+from .env_config import load_env
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.mysql import insert
 import numpy as np
@@ -21,7 +21,7 @@ from sqlalchemy import or_, and_
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-load_dotenv()
+load_env() # 저장소 루트 .env (DB_PASSWORD 등)
 
 users: dict[int, str] = {
     0: "종찬",

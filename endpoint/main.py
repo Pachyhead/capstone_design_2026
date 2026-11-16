@@ -4,8 +4,9 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from threading import Lock
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+import grpc
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import PROJECT_ROOT
@@ -44,6 +45,24 @@ async def _lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(lifespan=_lifespan)
 app.mount("/storage", StaticFiles(directory=_STORAGE), name="storage")
+
+# 서버에 연결할 수 없거나 시간 초과면 503, 그 밖의 gRPC 오류는 502로 응답한다
+_RELAY_UNREACHABLE = {grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED}
+
+
+@app.exception_handler(grpc.RpcError)
+async def _grpc_error_handler(request: Request, exc: grpc.RpcError) -> JSONResponse:
+    code = exc.code() if hasattr(exc, "code") else grpc.StatusCode.UNKNOWN
+    details = exc.details() if hasattr(exc, "details") else ""
+    if code in _RELAY_UNREACHABLE:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": f"relay server unavailable ({code.name})", "grpc_details": details},
+        )
+    return JSONResponse(
+        status_code=502,
+        content={"detail": f"relay server error ({code.name})", "grpc_details": details},
+    )
 
 
 @app.get("/")
