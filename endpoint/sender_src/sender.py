@@ -6,6 +6,7 @@ import config  # noqa: F401 - 저장소 루트를 sys.path에 추가
 from grpc_getting_started.server_communicate_sender import SendPacket
 from recorder import AudioRecorder
 from src.utils.bitpacking import encode_packet
+from src.utils.text_compress import compress_text
 from tone_core.config import SenderConfig
 from tone_core.sender import EncodeResult, SenderEncode
 from user import User
@@ -33,7 +34,7 @@ class Sender(User):
             receiver_id=self.peer_id,
             emo_type=int(self.temp_result.emotion_label),
             emotion_indices=list(self.temp_result.emotion_indices),
-            message=message,
+            message=compress_text(message),
         )
 
     def send(self, message: str) -> str:

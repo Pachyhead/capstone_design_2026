@@ -14,6 +14,7 @@ connects to it with SERV_IP=127.0.0.1.
 import argparse
 import os
 import struct
+import sys
 import uuid
 from concurrent import futures
 from datetime import datetime, timedelta, timezone
@@ -29,6 +30,7 @@ from sender_src import config  # noqa: F401 - 저장소 루트를 sys.path에 �
 from grpc_getting_started import server_communicate_pb2 as pb2
 from grpc_getting_started import server_communicate_pb2_grpc as pb2_grpc
 from src.utils.bitpacking import decode_packet
+from src.utils.text_compress import decompress_text
 
 _USER_IDS = range(4)
 _VALID_IDS = {str(i) for i in _USER_IDS}
@@ -113,6 +115,7 @@ class MockRelay(pb2_grpc.SpeechRelayServicer):
         # 엔드포인트 sender.send()가 쓰는 비트패킹 경로. 실제 relay의 디코딩과 같은 규칙으로 검사한다
         try:
             sender, receiver, emo_type, indices, text = decode_packet(request.packet)
+            text = decompress_text(text)  # 실제 relay와 같은 복원 규칙
         except Exception as error:  # noqa: BLE001 - 깨진 패킷은 거부
             print(f"[SendPacket] decode failed: {error}")
             return pb2.UploadStatus(accepted=False)
@@ -184,6 +187,9 @@ def main() -> None:
     parser.add_argument("--wav", type=Path, help="WAV file for GetVoice (default: 2 s tone)")
     args = parser.parse_args()
     wav = args.wav.read_bytes() if args.wav else _tone_wav()
+
+    # 로그를 파일/파이프로 받으면 Windows에서 stdout이 cp949가 되어 이모지 print가 실패한다
+    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 
     load_dotenv()
     port = os.environ.get("SERV_PORT") or "50051"

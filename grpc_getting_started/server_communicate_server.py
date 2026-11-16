@@ -15,6 +15,7 @@ from datetime import datetime
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from src.utils.bitpacking import decode_packet
+from src.utils.text_compress import decompress_text
 
 class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb2_grpc.SpeechRelayServicer 서브클래스화
     """Provides methods that implement functionality of server_communicate server."""
@@ -42,6 +43,7 @@ class SpeechRelayServicer(server_communicate_pb2_grpc.SpeechRelayServicer): # pb
 
     def SendPacket(self, request, context):
         send_id, receiver_id, emo_type, emotion_indices, message = decode_packet(request.packet)
+        message = decompress_text(message) # bytes -> 텍스트 복원 (엔드포인트 compress_text의 역연산)
 
         success = self.handler.save_incoming_speech(
             sender_id = send_id,
