@@ -33,7 +33,7 @@ class TestBitpacking:
         assert decoded[1] == receiver_id  # receiver_id
         assert decoded[2] == emo_type  # emo_type
         assert decoded[3] == emotion_indices  # emotion_indices
-        assert decoded[4] == message  # message
+        assert decoded[4] == message.encode("utf-8")  # message
 
     def test_round_trip_empty_message(self):
         """빈 메시지 라운드트립 테스트"""
@@ -50,7 +50,7 @@ class TestBitpacking:
         assert decoded[1] == receiver_id
         assert decoded[2] == emo_type
         assert decoded[3] == emotion_indices
-        assert decoded[4] == message
+        assert decoded[4] == message.encode("utf-8")
 
     def test_round_trip_long_message(self):
         """긴 메시지 라운드트립 테스트"""
@@ -67,7 +67,7 @@ class TestBitpacking:
         assert decoded[1] == receiver_id
         assert decoded[2] == emo_type
         assert decoded[3] == emotion_indices
-        assert decoded[4] == message
+        assert decoded[4] == message.encode("utf-8")
 
     def test_round_trip_korean_message(self):
         """한글 메시지 라운드트립 테스트 (UTF-8 인코딩)"""
@@ -84,7 +84,7 @@ class TestBitpacking:
         assert decoded[1] == receiver_id
         assert decoded[2] == emo_type
         assert decoded[3] == emotion_indices
-        assert decoded[4] == message
+        assert decoded[4] == message.encode("utf-8")
 
     def test_special_characters_in_message(self):
         """메시지에 특수문자 포함 테스트"""
@@ -97,7 +97,7 @@ class TestBitpacking:
         packet = encode_packet(send_id, receiver_id, emo_type, emotion_indices, message)
         decoded = decode_packet(packet)
 
-        assert decoded[4] == message
+        assert decoded[4] == message.encode("utf-8")
 
     def test_newline_in_message(self):
         """메시지에 줄바꿈 포함 테스트"""
@@ -110,7 +110,7 @@ class TestBitpacking:
         packet = encode_packet(send_id, receiver_id, emo_type, emotion_indices, message)
         decoded = decode_packet(packet)
 
-        assert decoded[4] == message
+        assert decoded[4] == message.encode("utf-8")
 
     def test_packet_size_consistency(self):
         """패킷 크기 일관성 테스트"""
@@ -128,3 +128,23 @@ class TestBitpacking:
         # 실제 패킷 크기 (프레임 크기는 헤더+메시지만, 프레임 크기 필드 자체는 포함 안 함)
         expected_size = frame_size + 2  # +2는 프레임 크기 필드 자체
         assert len(packet) == expected_size
+
+    def test_round_trip_compressed_korean(self):
+        """compress_text 결과(bytes)를 실어 보내고 decompress_text로 복원"""
+        from src.utils.text_compress import compress_text, decompress_text
+
+        message = "안녕하세요. 압축 왕복 테스트입니다."
+        packet = encode_packet(1, 2, 3, [0, 1, 2, 3, 4, 5, 6, 7], compress_text(message))
+        decoded = decode_packet(packet)
+
+        assert decompress_text(decoded[4]) == message
+
+    def test_round_trip_compressed_fallback_utf8(self):
+        """cp949로 표현할 수 없는 문자는 UTF-8 플래그로 저장되어 복원된다"""
+        from src.utils.text_compress import compress_text, decompress_text
+
+        message = "이모지 😀 포함"
+        packet = encode_packet(1, 2, 3, [0, 1, 2, 3, 4, 5, 6, 7], compress_text(message))
+        decoded = decode_packet(packet)
+
+        assert decompress_text(decoded[4]) == message
