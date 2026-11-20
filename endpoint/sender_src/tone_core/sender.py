@@ -1,13 +1,23 @@
 import numpy as np
 import torch
 
-# from preprocess_pipeline.stt import WhisperSTT
-import mlx_whisper
+from preprocess_pipeline.stt import WhisperSTT
 from preprocess_pipeline.emotion import EmotionExtractor
 from fsq_ae.load import load_fsq_ae
 
 from .types import EncodeResult, EmotionLabel
 from .config import SenderConfig
+
+
+def _apply_whisper_device(pcfg, device: str) -> None:
+    if device.startswith("cuda"):
+        pcfg.whisper_device = "cuda"
+        _, _, idx = device.partition(":")
+        pcfg.whisper_device_index = int(idx) if idx else 0
+    else:
+        pcfg.whisper_device = "cpu"
+        if pcfg.whisper_compute_type in ("float16", "int8_float16"):
+            pcfg.whisper_compute_type = "int8"
 
 
 class SenderEncode:
@@ -21,24 +31,16 @@ class SenderEncode:
     @classmethod
     def from_config(cls, cfg: SenderConfig) -> "SenderEncode":
         cfg.preprocess_cfg.emotion_device = cfg.device
-        cfg.preprocess_cfg.whisper_device = cfg.device
+        _apply_whisper_device(cfg.preprocess_cfg, cfg.device)
 
         fsq_model, _, fsq_norm = load_fsq_ae(cfg.fsq_ckpt, cfg.device)
-        # stt = WhisperSTT(cfg.preprocess_cfg)
-        stt = cfg.preprocess_cfg.whisper_model_name
+        stt = WhisperSTT(cfg.preprocess_cfg)
         emotion_encoder = EmotionExtractor(cfg.preprocess_cfg)
         return cls(stt, emotion_encoder, fsq_model, fsq_norm, cfg.device)
 
     @torch.inference_mode()
     def encode(self, audio: np.ndarray[np.float32], sample_rate=16000) -> EncodeResult:
-        # text = self.stt.transcribe(audio)
-        result = mlx_whisper.transcribe(
-            audio,
-            path_or_hf_repo=self.stt,
-            language="ko",  # 한국어 음성이면 지정
-            verbose=False,
-        )
-        text = result["text"]
+        text = self.stt.transcribe(audio)
         emo_vec_1024d, _, es = self.emotion.extract(audio, sample_rate)
 
         x = torch.as_tensor(emo_vec_1024d, dtype=torch.float32, device=self.device)
