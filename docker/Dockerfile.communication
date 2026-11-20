@@ -1,0 +1,14 @@
+FROM python:3.11.15-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+
+COPY ./docker/requirement/requirements.communication.txt .
+
+RUN pip install -r requirements.communication.txt
+
+CMD [ "python3", "-m", "grpc_getting_started.server_communicate_server" ]

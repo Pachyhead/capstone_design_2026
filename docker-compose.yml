@@ -2,10 +2,12 @@ services:
   qwen_api:
     build:
       context: .
-      dockerfile: qwen_tts_api/Dockerfile
+      dockerfile: docker/Dockerfile.api
     container_name: qwen_api
     volumes:
-     - .:/app
+     - ./qwen_tts_api:/app/qwen_tts_api
+     - ./qwen_tts:/app/qwen_tts
+     - ./DataBase:/app/DataBase
     ports:
       - "8080:8080"
     deploy:
@@ -27,3 +29,32 @@ services:
       - ./DataBase/data:/var/lib/mysql
       - ./DataBase/init.sql:/docker-entrypoint-initdb.d/init-db.sql
       - ./DataBase/my.cnf:/etc/mysql/conf.d/my.cnf
+  
+  communication_container:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.communication
+    container_name: communication
+    volumes:
+     - ./grpc_getting_started:/app/grpc_getting_started
+     - ./endpoint:/app/endpoint
+     - ./receiver:/app/receiver
+     - ./sender:/app/sender
+     - ./src:/app/src
+     - ./DataBase:/app/DataBase
+     - /home/cap/data/models:/home/cap/data/models 
+    environment:
+      PYTHONPATH: /app/src
+    env_file:
+      - ./.env  
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]

@@ -35,7 +35,7 @@ class DBManager:
         db_user = "root"
         db_password = os.environ.get("DB_PASSWORD")
         if not db_password: raise ValueError(f"db password not found")
-        db_host = "localhost"
+        db_host = "db"
         db_port = "3306"
         db_name = "db"
         
@@ -46,7 +46,7 @@ class DBManager:
         self.Session = scoped_session(self.session_factory)
 
     def _convert_path(self, path: str) -> str:
-        base_path = "/home/cap/capstone_design_2026"
+        base_path = "/app"
 
         relative_path = os.path.relpath(path, base_path)
 
@@ -169,7 +169,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
         emotion_folder = PROJECT_ROOT / "DataBase" / "emotion_vectors"
         emotion_folder.mkdir(exist_ok=True, parents=True)
         self.emotion_folder = emotion_folder
-        
+
         self.dbmanager = DBManager()
 
         fsq_path = "/home/cap/data/models/skip_kl_8d_8L_kl05_1e-4.pt"
@@ -239,7 +239,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
         user_row = self.dbmanager.get_user_by_id(sender_id) # type: ignore
         if not user_row: raise ValueError(f"Such User ID Not Found")
 
-        API_URL = "http://localhost:8080/stream"
+        API_URL = "http://qwen_api:8080/stream"
 
         payload = {
             "target_text" : chat_row.massage,
