@@ -102,7 +102,7 @@ def detect_backend() -> str:
 
 
 def create_stt(config: Config) -> STTBackend:
-    """config.whisper_backend 가 "auto" 면 플랫폼으로 판단, 아니면 지정한 백엔드를 강제한다."""
+    """config.whisper_backend 가 "auto" 면 플랫폼으로 판단, 아니면 지정한 백엔드를 강제"""
     name = config.whisper_backend
     if name == "auto":
         name = detect_backend()
