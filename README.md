@@ -19,6 +19,15 @@
 
 <br />
 
+<a href="https://huggingface.co/TWMin/capstone_design_2026">
+  <img src="https://img.shields.io/badge/🤗%20Hugging%20Face-Model-yellow" alt="Hugging Face">
+</a>
+
+<p><sub>프로젝트에서 학습한 모델은 <b>Hugging Face</b>에서 확인이 가능합니다.</sub></p>
+
+
+<br />
+
 <br />
 
 <p align="center">
