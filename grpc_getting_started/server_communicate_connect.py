@@ -48,7 +48,7 @@ def _build_channel():
             ca_cert = f.read()
         credentials = grpc.ssl_channel_credentials(root_certificates=ca_cert)
         return grpc.secure_channel(server_addr, credentials, options=_CHANNEL_OPTIONS)
-    return grpc.insecure_channel(server_addr, options=_CHANNEL_OPTIONS)
+    return grpc.insecure_channel(server_addr, options=_CHANNEL_OPTIONS) # 평문 채널(기본값)
 
 
 def set_connection(): # set connection to server
