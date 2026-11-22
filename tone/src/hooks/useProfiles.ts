@@ -10,14 +10,14 @@ export interface Profile {
   backendId: BackendId;
 }
 
-const PROFILES_KEY = 'tone:profiles:v2';
-const ACTIVE_KEY = 'tone:activeProfileId:v2';
+const PROFILES_KEY = 'tone:profiles:v3';
+const ACTIVE_KEY = 'tone:activeProfileId:v3';
 
 const DEFAULT_PROFILES: Profile[] = [
   { id: 'jongchan', name: '종찬', avatar: { type: 'emotion', emotion: 'neutral' }, backendId: 0 },
   { id: 'jaewoong', name: '재웅', avatar: { type: 'emotion', emotion: 'happy' }, backendId: 1 },
   { id: 'kyungtaek', name: '경택', avatar: { type: 'emotion', emotion: 'surprised' }, backendId: 2 },
-  { id: 'taewon', name: '태원', avatar: { type: 'emotion', emotion: 'sad' }, backendId: 3 },
+  { id: 'taewon', name: '게스트', avatar: { type: 'emotion', emotion: 'sad' }, backendId: 3 },
 ];
 
 interface Store {

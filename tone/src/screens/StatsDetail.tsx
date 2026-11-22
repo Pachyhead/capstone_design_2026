@@ -1,6 +1,7 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
-import { conversations, messages, previousPeriodDelta } from '@/data/mock';
+import { conversations } from '@/data/mock';
+import { useStatsMessages } from '@/hooks/useStatsMessages';
 import { paletteFor } from '@/tokens/emotions';
 import { EMOTION_LABELS } from '@/types';
 import { BubbleCluster } from '@/components/BubbleCluster';
@@ -11,9 +12,6 @@ import {
   type AuthorFilter,
 } from '@/data/statsCompute';
 
-const PERIODS = ['하루', '주', '월', '년'] as const;
-type Period = (typeof PERIODS)[number];
-
 type Author = 'me' | 'them';
 
 export function StatsDetail() {
@@ -22,13 +20,12 @@ export function StatsDetail() {
   const location = useLocation();
   const fromChat = location.pathname.startsWith('/chat/');
   const conv = conversations.find((c) => c.id === id) ?? conversations[0];
-  const deltas = previousPeriodDelta[conv.id] ?? [];
-  const [period, setPeriod] = useState<Period>('월');
+  const messages = useStatsMessages();
   const [authors, setAuthors] = useState<AuthorFilter>(() => new Set<Author>(['me', 'them']));
 
   const filtered = useMemo(
     () => filterByAuthor(messages, conv.id, authors),
-    [conv.id, authors],
+    [messages, conv.id, authors],
   );
   const distribution = useMemo(() => computeDistribution(filtered), [filtered]);
   const flow = useMemo(() => computeHourlyFlow(filtered), [filtered]);
@@ -36,7 +33,6 @@ export function StatsDetail() {
   const sortedEmotions = (Object.entries(distribution) as [keyof typeof EMOTION_LABELS, number][])
     .sort(([, a], [, b]) => b - a);
   const minor = sortedEmotions.slice(6);
-  const isCombined = authors.has('me') && authors.has('them');
 
   const toggleAuthor = (a: Author) => {
     setAuthors((prev) => {
@@ -62,28 +58,11 @@ export function StatsDetail() {
             {conv.name}와의 대화
           </div>
           <div className="text-[12px] text-hint mt-[4px]">
-            {filtered.length} 메시지 · 2026년 5월
+            {filtered.length} 메시지
           </div>
         </div>
 
         <AuthorToggle authors={authors} onToggle={toggleAuthor} />
-
-        <div
-          className="flex gap-1 p-[3px] rounded-[10px]"
-          style={{ background: 'rgba(20,19,15,0.05)' }}
-        >
-          {PERIODS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-[14px] py-[7px] text-[12px] rounded-[8px] transition-colors ${
-                period === p ? 'bg-white text-ink font-medium' : 'text-muted hover:text-ink'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
 
         <button
           type="button"
@@ -190,47 +169,6 @@ export function StatsDetail() {
             </div>
           </section>
 
-          <section
-            className="bg-white rounded-[16px] p-6 col-span-2"
-            style={{ boxShadow: '0 1px 0 rgba(20,19,15,0.04)' }}
-          >
-            <div className="flex items-baseline justify-between gap-2 mb-4">
-              <h2 className="text-[12px] text-hint tracking-wider font-medium">지난 달 대비</h2>
-              {!isCombined && (
-                <span className="text-[11px] text-hint">전체 기준</span>
-              )}
-            </div>
-            <div className="flex flex-col">
-              {deltas.map((d, i) => {
-                const palette = paletteFor(d.emotion);
-                const isUp = d.delta > 0;
-                const arrowColor = isUp ? '#2D6852' : '#94402C';
-                return (
-                  <div
-                    key={d.emotion}
-                    className="flex items-center gap-3 py-[11px]"
-                    style={{ borderTop: i > 0 ? '0.5px solid rgba(20,19,15,0.06)' : 'none' }}
-                  >
-                    <span
-                      className="text-[14px] font-semibold w-4 text-center flex-shrink-0"
-                      style={{ color: arrowColor }}
-                    >
-                      {isUp ? '↑' : '↓'}
-                    </span>
-                    <div
-                      className="w-[10px] h-[10px] rounded-full flex-shrink-0"
-                      style={{ background: palette.main }}
-                    />
-                    <span className="flex-1 text-[13px] text-ink">{EMOTION_LABELS[d.emotion]}</span>
-                    <span className="text-[12px] font-mono" style={{ color: arrowColor }}>
-                      {isUp ? '+' : '−'}
-                      {Math.abs(Math.round(d.delta * 100))}%
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
         </div>
       </div>
     </div>

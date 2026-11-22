@@ -53,8 +53,8 @@ export const conversations: Conversation[] = [
   },
   {
     id: 'taewon',
-    name: '태원',
-    initial: '태',
+    name: '게스트',
+    initial: '게',
     language: '한국어',
     lastSeen: '오늘',
     unread: 0,
@@ -134,7 +134,7 @@ export const messages: Message[] = [
     sentAt: '1:31',
   },
 
-  // ---- 태원 (fear 망설임) ----
+  // ---- 게스트 (fear 망설임) ----
   {
     id: 'tw-1',
     conversationId: 'taewon',

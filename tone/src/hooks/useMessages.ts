@@ -18,7 +18,7 @@ function formatSentAt(raw: string | undefined): string {
   return m ? `${m[1]}:${m[2]}` : raw.slice(0, 5);
 }
 
-function backendToMessage(
+export function backendToMessage(
   rec: ReceivedMessage,
   conversationId: string,
   myBackendId?: BackendId,

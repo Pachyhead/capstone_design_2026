@@ -1,4 +1,4 @@
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { paletteFor } from '@/tokens/emotions';
 import { EmotionAvatar } from '@/components/EmotionAvatar';
 import { Avatar } from '@/components/Avatar';
@@ -6,17 +6,14 @@ import { EMOTION_LABELS, AVATAR_EMOTIONS } from '@/types';
 import { useUserAvatar, type UserAvatar } from '@/hooks/useUserAvatar';
 import { useVoiceProfile } from '@/hooks/useVoiceProfile';
 import { useProfiles } from '@/hooks/useProfiles';
-import type { ShellContext } from '@/App';
 
 export function Me() {
-  const { mode, setMode } = useOutletContext<ShellContext>();
   const [avatar, setAvatar] = useUserAvatar();
-  const { activeProfile, profiles, clearActive, updateProfileAvatar } = useProfiles();
+  const { activeProfile, clearActive, updateProfileAvatar } = useProfiles();
   const navigate = useNavigate();
 
   const displayName = activeProfile?.name ?? '프로필 미선택';
   const handle = activeProfile ? `@${activeProfile.id}` : '';
-  const friendCount = Math.max(profiles.length - 1, 0);
 
   const handleAvatarChange = (next: UserAvatar) => {
     setAvatar(next);
@@ -70,35 +67,12 @@ export function Me() {
           </section>
 
           <section>
-            <p className="text-[12px] text-hint tracking-wider mb-2 font-medium">보기 모드</p>
-            <div
-              className="bg-white rounded-[14px] grid grid-cols-2"
-              style={{ boxShadow: '0 1px 0 rgba(20,19,15,0.04)' }}
-            >
-              <ModeCard
-                label="텍스트 모드"
-                desc="텍스트 우선. 라이트 테마, 감정 색·강도 시각화."
-                selected={mode === 'text'}
-                onSelect={() => setMode('text')}
-              />
-              <ModeCard
-                label="음성 모드"
-                desc="음성 우선. 다크 테마, 자동재생."
-                selected={mode === 'voice'}
-                onSelect={() => setMode('voice')}
-                divider
-              />
-            </div>
-          </section>
-
-          <section>
             <p className="text-[12px] text-hint tracking-wider mb-2 font-medium">설정</p>
             <div
               className="bg-white rounded-[14px] overflow-hidden"
               style={{ boxShadow: '0 1px 0 rgba(20,19,15,0.04)' }}
             >
-              <MenuRow label="친구" meta={`${friendCount}명`} />
-              <MenuRow label="통계" divider onClick={() => navigate('/stats')} />
+              <MenuRow label="통계" onClick={() => navigate('/stats')} />
             </div>
           </section>
         </div>
@@ -247,43 +221,6 @@ function VoiceProfileCard() {
         </div>
       </div>
     </div>
-  );
-}
-
-function ModeCard({
-  label,
-  desc,
-  selected,
-  onSelect,
-  divider = false,
-}: {
-  label: string;
-  desc: string;
-  selected: boolean;
-  onSelect: () => void;
-  divider?: boolean;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      className="flex items-start gap-3 p-5 text-left transition-colors hover:bg-cream"
-      style={
-        divider
-          ? { borderLeft: '0.5px solid rgba(20,19,15,0.06)' }
-          : undefined
-      }
-    >
-      <div
-        className="w-[18px] h-[18px] rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0 box-border mt-[2px]"
-        style={{ borderColor: selected ? '#14130F' : '#C8BCAA' }}
-      >
-        {selected && <div className="w-2 h-2 rounded-full bg-ink" />}
-      </div>
-      <div className="flex-1">
-        <div className="text-[14px] text-ink font-medium leading-tight">{label}</div>
-        <div className="text-[12px] text-muted mt-1 leading-snug">{desc}</div>
-      </div>
-    </button>
   );
 }
 

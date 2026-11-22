@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { conversations } from '@/data/mock';
 import { useMessages } from '@/hooks/useMessages';
 import { paletteFor } from '@/tokens/emotions';
@@ -12,7 +12,6 @@ import { BubbleCluster } from '@/components/BubbleCluster';
 import { computeDistribution } from '@/data/statsCompute';
 import { EMOTION_LABELS } from '@/types';
 import type { Conversation, Emotion, Message } from '@/types';
-import type { ShellContext } from '@/App';
 import { api, audioUrl } from '@/lib/api';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useInbox } from '@/hooks/useInbox';
@@ -25,7 +24,6 @@ function nowHHMM(): string {
 
 export function ChatDetail() {
   const { id } = useParams<{ id: string }>();
-  const { mode, setMode } = useOutletContext<ShellContext>();
   const conversation = conversations.find((c) => c.id === id) ?? conversations[0];
   const { thread, append } = useMessages(conversation.backendId, conversation.id);
   const { activeProfile } = useProfiles();
@@ -137,61 +135,32 @@ export function ChatDetail() {
     });
   };
 
-  const view =
-    mode === 'voice' ? (
-      <VoiceModeView
-        conversation={conversation}
-        thread={filteredThread}
-        mode={mode}
-        setMode={setMode}
-        searchOpen={searchOpen}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onSearchToggle={toggleSearch}
-        matchCount={matchCount}
-        highlight={trimmedQuery}
-        onPressStart={handlePressStart}
-        onPressEnd={handlePressEnd}
-        draft={draft}
-        onDraftTextChange={handleDraftTextChange}
-        onConfirmSend={handleConfirmSend}
-        onCancelDraft={handleCancelDraft}
-        sending={sending}
-        onRefreshInbox={handleRefreshInbox}
-        refreshing={refreshing}
-      />
-    ) : (
-      <TextModeView
-        conversation={conversation}
-        thread={filteredThread}
-        mode={mode}
-        setMode={setMode}
-        searchOpen={searchOpen}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onSearchToggle={toggleSearch}
-        matchCount={matchCount}
-        highlight={trimmedQuery}
-        onPressStart={handlePressStart}
-        onPressEnd={handlePressEnd}
-        draft={draft}
-        onDraftTextChange={handleDraftTextChange}
-        onConfirmSend={handleConfirmSend}
-        onCancelDraft={handleCancelDraft}
-        sending={sending}
-        onRefreshInbox={handleRefreshInbox}
-        refreshing={refreshing}
-      />
-    );
-
-  return view;
+  return (
+    <TextModeView
+      conversation={conversation}
+      thread={filteredThread}
+      searchOpen={searchOpen}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onSearchToggle={toggleSearch}
+      matchCount={matchCount}
+      highlight={trimmedQuery}
+      onPressStart={handlePressStart}
+      onPressEnd={handlePressEnd}
+      draft={draft}
+      onDraftTextChange={handleDraftTextChange}
+      onConfirmSend={handleConfirmSend}
+      onCancelDraft={handleCancelDraft}
+      sending={sending}
+      onRefreshInbox={handleRefreshInbox}
+      refreshing={refreshing}
+    />
+  );
 }
 
 interface ModeViewProps {
   conversation: Conversation;
   thread: Message[];
-  mode: 'text' | 'voice';
-  setMode: (m: 'text' | 'voice') => void;
   searchOpen: boolean;
   searchQuery: string;
   onSearchChange: (q: string) => void;
@@ -268,8 +237,6 @@ function HighlightedText({
 function TextModeView({
   conversation,
   thread,
-  mode,
-  setMode,
   searchOpen,
   searchQuery,
   onSearchChange,
@@ -291,8 +258,6 @@ function TextModeView({
       <ChatHeader
         conversation={conversation}
         variant="light"
-        mode={mode}
-        setMode={setMode}
         onSearchToggle={onSearchToggle}
         searchOpen={searchOpen}
         onRefreshInbox={onRefreshInbox}
@@ -383,130 +348,9 @@ function TextModeView({
 }
 
 // -----------------------------------------------------------------------------
-// Voice mode — dark theme
-// -----------------------------------------------------------------------------
-function VoiceModeView({
-  conversation,
-  thread,
-  mode,
-  setMode,
-  searchOpen,
-  searchQuery,
-  onSearchChange,
-  onSearchToggle,
-  matchCount,
-  highlight,
-  onPressStart,
-  onPressEnd,
-  draft,
-  onDraftTextChange,
-  onConfirmSend,
-  onCancelDraft,
-  sending,
-  onRefreshInbox,
-  refreshing,
-}: ModeViewProps) {
-  return (
-    <div className="flex flex-col h-full w-full min-w-0" style={{ background: '#3A2A1A' }}>
-      <ChatHeader
-        conversation={conversation}
-        variant="dark"
-        mode={mode}
-        setMode={setMode}
-        onSearchToggle={onSearchToggle}
-        searchOpen={searchOpen}
-        onRefreshInbox={onRefreshInbox}
-        refreshing={refreshing}
-      />
-      {searchOpen && (
-        <SearchBar
-          variant="dark"
-          query={searchQuery}
-          onChange={onSearchChange}
-          onClose={onSearchToggle}
-          matchCount={matchCount}
-          hasQuery={!!highlight}
-        />
-      )}
-      <EmotionArc messages={thread} variant="dark" />
-
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="px-10 py-8 flex flex-col gap-3">
-          {searchOpen && highlight && thread.length === 0 && (
-            <div className="self-center text-[13px] py-4" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              "{highlight}"에 대한 결과가 없어요
-            </div>
-          )}
-          {thread.map((m) => {
-            const palette = paletteFor(m.emotion.primary);
-            const isMine = m.authorId === 'me';
-            return (
-              <div
-                key={m.id}
-                className={`max-w-[640px] flex flex-col ${isMine ? 'self-end items-end' : 'self-start items-start'}`}
-              >
-                {!isMine && m.authorName && (
-                  <span className="text-[11px] text-hint ml-3 mb-[3px]">{m.authorName}</span>
-                )}
-                <div
-                  className={`px-4 py-3 ${
-                    isMine ? 'rounded-[16px_4px_16px_16px]' : 'rounded-[4px_16px_16px_16px]'
-                  }`}
-                  style={{ background: isMine ? '#8E6E48' : '#785A38' }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <PlayButton emotion={m.emotion.primary} size={28} variant="dark" messageId={m.id} />
-                    <EmotionWaveform
-                      emotion={m.emotion.primary}
-                      energy={m.energy}
-                      height={22}
-                      variant="dark"
-                    />
-                  </div>
-                  <p
-                    className="text-[12px] leading-snug m-0 mb-1"
-                    style={{ color: 'rgba(255,255,255,0.65)' }}
-                  >
-                    "
-                    <HighlightedText
-                      text={m.text}
-                      query={highlight}
-                      baseColor="rgba(255,255,255,0.65)"
-                      highlightBg="rgba(242,216,158,0.35)"
-                      highlightColor="#F2D89E"
-                    />
-                    "
-                  </p>
-                  <p className="text-[12px] font-medium m-0" style={{ color: palette.main }}>
-                    {EMOTION_LABELS[m.emotion.primary]}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <ChatComposer
-        variant="dark"
-        onPressStart={onPressStart}
-        onPressEnd={onPressEnd}
-        draft={draft}
-        onDraftTextChange={onDraftTextChange}
-        onConfirmSend={onConfirmSend}
-        onCancelDraft={onCancelDraft}
-        sending={sending}
-      />
-    </div>
-  );
-}
-
-// -----------------------------------------------------------------------------
 function ChatHeader({
   conversation,
   variant,
-  mode,
-  setMode,
   onSearchToggle,
   searchOpen,
   onRefreshInbox,
@@ -514,8 +358,6 @@ function ChatHeader({
 }: {
   conversation: Conversation;
   variant: 'light' | 'dark';
-  mode: 'text' | 'voice';
-  setMode: (m: 'text' | 'voice') => void;
   onSearchToggle: () => void;
   searchOpen: boolean;
   onRefreshInbox: () => void;
@@ -572,8 +414,6 @@ function ChatHeader({
           onClose={() => setShowProfile(false)}
         />
       )}
-
-      <ModeToggle isDark={isDark} mode={mode} setMode={setMode} />
 
       <button
         type="button"
@@ -657,50 +497,6 @@ function ChatHeader({
         </svg>
       </button>
     </header>
-  );
-}
-
-function ModeToggle({
-  isDark,
-  mode,
-  setMode,
-}: {
-  isDark: boolean;
-  mode: 'text' | 'voice';
-  setMode: (m: 'text' | 'voice') => void;
-}) {
-  const trackBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(20,19,15,0.05)';
-  const activeBg = isDark ? '#F2D89E' : '#14130F';
-  const activeFg = isDark ? '#14130F' : '#FAF6EF';
-  const idleFg = isDark ? 'rgba(255,255,255,0.55)' : '#6B5F4F';
-
-  return (
-    <div
-      className="flex items-center rounded-[10px] p-[3px] flex-shrink-0"
-      role="tablist"
-      aria-label="보기 모드"
-      style={{ background: trackBg }}
-    >
-      {(['text', 'voice'] as const).map((m) => {
-        const isActive = mode === m;
-        return (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => setMode(m)}
-            className="text-[11px] font-medium tracking-wider px-[10px] py-[4px] rounded-[8px] transition-colors"
-            style={{
-              background: isActive ? activeBg : 'transparent',
-              color: isActive ? activeFg : idleFg,
-            }}
-          >
-            {m === 'text' ? '텍스트' : '음성'}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 

@@ -1,21 +1,28 @@
 import { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { conversations, messages } from '@/data/mock';
+import { conversations } from '@/data/mock';
 import { BubbleCluster } from '@/components/BubbleCluster';
 import { computeDistribution } from '@/data/statsCompute';
+import { useProfiles } from '@/hooks/useProfiles';
+import { useStatsMessages } from '@/hooks/useStatsMessages';
 
 export function StatsList() {
+  const { activeProfile } = useProfiles();
+  const myBackendId = activeProfile?.backendId;
+  const messages = useStatsMessages();
   const rows = useMemo(
     () =>
-      conversations.map((conv) => {
-        const convMessages = messages.filter((m) => m.conversationId === conv.id);
-        return {
-          conv,
-          messageCount: convMessages.length,
-          distribution: computeDistribution(convMessages),
-        };
-      }),
-    [],
+      conversations
+        .filter((conv) => conv.backendId !== myBackendId)
+        .map((conv) => {
+          const convMessages = messages.filter((m) => m.conversationId === conv.id);
+          return {
+            conv,
+            messageCount: convMessages.length,
+            distribution: computeDistribution(convMessages),
+          };
+        }),
+    [myBackendId, messages],
   );
 
   return (

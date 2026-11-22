@@ -45,13 +45,6 @@ function parseHour(sentAt: string): number | null {
   return h;
 }
 
-function meanEnergy(energy: number[]): number {
-  if (!energy.length) return 0;
-  let sum = 0;
-  for (const v of energy) sum += v;
-  return sum / energy.length;
-}
-
 export function computeHourlyFlow(messages: Message[]): HourFlow[] {
   const hourBuckets: Map<number, Message[]> = new Map();
   for (const m of messages) {
@@ -61,6 +54,10 @@ export function computeHourlyFlow(messages: Message[]): HourFlow[] {
     if (bucket) bucket.push(m);
     else hourBuckets.set(h, [m]);
   }
+
+  // 백엔드가 메시지별 에너지를 주지 않으므로, 강도는 가장 메시지가 많은 시간대 대비 비율로 계산한다.
+  let maxCount = 0;
+  for (const bucket of hourBuckets.values()) maxCount = Math.max(maxCount, bucket.length);
 
   const flow: HourFlow[] = [];
   for (let h = 0; h < 24; h++) {
@@ -81,9 +78,7 @@ export function computeHourlyFlow(messages: Message[]): HourFlow[] {
         dominantCount = c;
       }
     }
-    let intensitySum = 0;
-    for (const m of bucket) intensitySum += meanEnergy(m.energy);
-    const intensity = intensitySum / bucket.length;
+    const intensity = bucket.length / maxCount;
     flow.push({ hour: h, emotion: dominant, intensity });
   }
   return flow;

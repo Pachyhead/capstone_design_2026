@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
-import { messages } from '@/data/mock';
+import { useStatsMessages } from '@/hooks/useStatsMessages';
 import { paletteFor } from '@/tokens/emotions';
 import { EMOTION_LABELS } from '@/types';
 import { BubbleCluster } from '@/components/BubbleCluster';
@@ -10,15 +10,13 @@ import {
   type AuthorFilter,
 } from '@/data/statsCompute';
 
-const PERIODS = ['하루', '주', '월', '년'] as const;
-type Period = (typeof PERIODS)[number];
-
 type Author = 'me' | 'them';
 
 export function StatsOverview() {
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<Period>('월');
   const [authors, setAuthors] = useState<AuthorFilter>(() => new Set<Author>(['me', 'them']));
+
+  const messages = useStatsMessages();
 
   const filtered = useMemo(
     () =>
@@ -26,7 +24,7 @@ export function StatsOverview() {
         const isMe = m.authorId === 'me';
         return (isMe && authors.has('me')) || (!isMe && authors.has('them'));
       }),
-    [authors],
+    [messages, authors],
   );
   const distribution = useMemo(() => computeDistribution(filtered), [filtered]);
   const flow = useMemo(() => computeHourlyFlow(filtered), [filtered]);
@@ -59,28 +57,11 @@ export function StatsOverview() {
             전체 대화 통계
           </div>
           <div className="text-[12px] text-hint mt-[4px]">
-            {filtered.length} 메시지 · 2026년 5월
+            {filtered.length} 메시지
           </div>
         </div>
 
         <AuthorToggle authors={authors} onToggle={toggleAuthor} />
-
-        <div
-          className="flex gap-1 p-[3px] rounded-[10px]"
-          style={{ background: 'rgba(20,19,15,0.05)' }}
-        >
-          {PERIODS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-[14px] py-[7px] text-[12px] rounded-[8px] transition-colors ${
-                period === p ? 'bg-white text-ink font-medium' : 'text-muted hover:text-ink'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
 
         <button
           type="button"
