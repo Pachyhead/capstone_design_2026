@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useConversations } from '@/hooks/useConversations';
 import { useMessages } from '@/hooks/useMessages';
@@ -299,6 +299,16 @@ function TextModeView({
   onError,
   onDismissError,
 }: ModeViewProps) {
+  // 방에 들어오거나 새 메시지가 생기면 가장 최근 메시지(맨 아래)가 보이게 한다.
+  // 검색 중에는 결과 목록을 위에서부터 읽으므로 건드리지 않는다.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessageId = thread.length ? thread[thread.length - 1].id : null;
+  useLayoutEffect(() => {
+    if (searchOpen) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [conversation.id, lastMessageId, searchOpen]);
+
   return (
     <div className="flex flex-col h-full w-full bg-cream min-w-0">
       <ChatHeader
@@ -321,7 +331,7 @@ function TextModeView({
       )}
       <EmotionArc messages={thread} variant="light" />
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
         <div className="px-10 py-8 flex flex-col gap-3">
           {searchOpen && highlight && thread.length === 0 && (
             <div className="self-center text-[13px] text-muted py-4">
