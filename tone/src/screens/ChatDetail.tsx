@@ -17,15 +17,11 @@ import { useProfiles } from '@/hooks/useProfiles';
 import { useInbox } from '@/hooks/useInbox';
 import { markSeen } from '@/hooks/useLastSeen';
 
-function nowHHMM(): string {
-  const d = new Date();
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
 
 export function ChatDetail() {
   const { id } = useParams<{ id: string }>();
   const conversation = conversations.find((c) => c.id === id) ?? conversations[0];
-  const { thread, append } = useMessages(conversation.backendId, conversation.id);
+  const { thread } = useMessages(conversation.backendId, conversation.id);
   const { activeProfile } = useProfiles();
   const { inbox, refresh } = useInbox();
 
@@ -107,17 +103,15 @@ export function ChatDetail() {
       setSending(false);
       return;
     }
-    const newMessage: Message = {
-      id: `local-${Date.now()}`,
-      conversationId: conversation.id,
-      authorId: 'me',
-      text: draft.text.trim(),
-      emotion: { primary: draft.emotion },
-      durationSec: draft.durationSec,
-      energy: Array.from({ length: 10 }, () => Math.random() * 0.5 + 0.4),
-      sentAt: nowHHMM(),
-    };
-    append(newMessage);
+    // 보낸 메시지는 서버 인박스에 포함돼 돌아온다. 로컬에 따로 붙이지 않고
+    // 인박스를 다시 받아 서버 기준 순서/시간으로 표시한다.
+    if (activeProfile) {
+      try {
+        await refresh(activeProfile.backendId);
+      } catch (err) {
+        console.warn('[api] refresh inbox after send failed:', err);
+      }
+    }
     setDraft(null);
     setSending(false);
   };

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import type { Message } from '@/types';
 import { useInbox } from '@/hooks/useInbox';
 import { useProfiles, type BackendId } from '@/hooks/useProfiles';
@@ -6,7 +5,6 @@ import { emotionFromBackend, type ReceivedMessage } from '@/lib/api';
 
 export interface MessagesHook {
   thread: Message[];
-  append: (m: Message) => void;
   reload: () => void;
 }
 
@@ -39,7 +37,8 @@ export function backendToMessage(
   };
 }
 
-// `peerBackendId` keys into the inbox returned by /set_my_id.
+// `peerBackendId` keys into the inbox returned by /set_my_id (both directions:
+// messages from the peer and messages I sent to the peer, time-ordered).
 // `conversationId` is the front-end-side string id (used for filtering only).
 export function useMessages(peerBackendId: BackendId, conversationId: string): MessagesHook {
   const { inbox } = useInbox();
@@ -51,16 +50,10 @@ export function useMessages(peerBackendId: BackendId, conversationId: string): M
     backendToMessage(rec, conversationId, myBackendId, peerName),
   );
 
-  // Local echo for messages the user just sent — backend's inbox is incoming-only,
-  // so outgoing bubbles live in component-local state until next mount.
-  const [appended, setAppended] = useState<Message[]>([]);
-  useEffect(() => {
-    setAppended([]);
-  }, [conversationId]);
-
   return {
-    thread: [...base, ...appended],
-    append: (m) => setAppended((prev) => [...prev, m]),
+    // 서버 인박스가 유일한 원본이다. 보낸 메시지도 서버가 함께 돌려주므로
+    // 로컬 에코를 따로 들고 있지 않는다(들고 있으면 새로고침 때 중복된다).
+    thread: base,
     // refresh button on the chat header drives the inbox; reload is a no-op now.
     reload: () => {},
   };
