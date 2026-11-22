@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { conversations } from '@/data/mock';
+import { useConversations } from '@/hooks/useConversations';
 import { BubbleCluster } from '@/components/BubbleCluster';
 import { computeDistribution } from '@/data/statsCompute';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -10,6 +10,7 @@ export function StatsList() {
   const { activeProfile } = useProfiles();
   const myBackendId = activeProfile?.backendId;
   const messages = useStatsMessages();
+  const conversations = useConversations();
   const rows = useMemo(
     () =>
       conversations
@@ -22,7 +23,7 @@ export function StatsList() {
             distribution: computeDistribution(convMessages),
           };
         }),
-    [myBackendId, messages],
+    [myBackendId, messages, conversations],
   );
 
   return (

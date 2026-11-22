@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { conversations } from '@/data/mock';
+import { useConversations } from '@/hooks/useConversations';
 import { useMessages } from '@/hooks/useMessages';
 import { paletteFor } from '@/tokens/emotions';
 import { EmotionWaveform } from '@/components/EmotionWaveform';
@@ -12,7 +12,7 @@ import { BubbleCluster } from '@/components/BubbleCluster';
 import { computeDistribution } from '@/data/statsCompute';
 import { EMOTION_LABELS } from '@/types';
 import type { Conversation, Emotion, Message } from '@/types';
-import { api, audioUrl } from '@/lib/api';
+import { api, audioUrl, describeError } from '@/lib/api';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useInbox } from '@/hooks/useInbox';
 import { markSeen } from '@/hooks/useLastSeen';
@@ -20,10 +20,12 @@ import { markSeen } from '@/hooks/useLastSeen';
 
 export function ChatDetail() {
   const { id } = useParams<{ id: string }>();
+  const conversations = useConversations();
   const conversation = conversations.find((c) => c.id === id) ?? conversations[0];
   const { thread } = useMessages(conversation.backendId, conversation.id);
   const { activeProfile } = useProfiles();
   const { inbox, refresh } = useInbox();
+  const myBackendId = activeProfile?.backendId;
 
   // 채팅방 진입/전환 시 백엔드 수신자(receiver_id)를 현재 상대로 맞춘다.
   useEffect(() => {
@@ -34,15 +36,32 @@ export function ChatDetail() {
 
   useEffect(() => {
     const bucket = inbox[conversation.backendId as 0 | 1 | 2 | 3] ?? [];
-    if (!bucket.length) return;
-    markSeen(conversation.id, bucket[bucket.length - 1].message_id);
-  }, [inbox, conversation.id, conversation.backendId]);
+    if (!bucket.length || myBackendId == null) return;
+    markSeen(myBackendId, conversation.id, bucket[bucket.length - 1].message_id);
+  }, [inbox, conversation.id, conversation.backendId, myBackendId]);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [draft, setDraft] = useState<{ text: string; emotion: Emotion; durationSec: number; audioUrl?: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // 손을 뗀 뒤 서버가 음성을 분석(STT·감정)하는 동안 true.
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 실패 안내는 잠시 보여 주고 스스로 사라진다.
+  useEffect(() => {
+    if (!error) return;
+    const timer = window.setTimeout(() => setError(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
+
+  // 녹음 시작 요청의 결과. 손을 뗄 때 이걸 기다려서 (1) 시작이 실패했으면 정지를
+  // 보내지 않고 (2) 정지가 시작보다 먼저 서버에 닿지 않게 한다.
+  const startResultRef = useRef<Promise<boolean> | null>(null);
+  // 현재 보고 있는 방. 분석 결과가 돌아왔을 때 방이 바뀌어 있으면 초안을 버린다.
+  const conversationIdRef = useRef(conversation.id);
+  conversationIdRef.current = conversation.id;
 
   const handleRefreshInbox = async () => {
     if (refreshing || !activeProfile) return;
@@ -51,14 +70,19 @@ export function ChatDetail() {
       await refresh(activeProfile.backendId);
     } catch (err) {
       console.warn('[api] refresh inbox failed:', err);
+      setError(describeError('새로고침', err));
     } finally {
       setRefreshing(false);
     }
   };
 
+  // 방을 옮기면 검색과 초안을 비운다. 초안은 이전 상대에게 보내려고 녹음한 것이라
+  // 남겨 두면 새 방의 상대에게 전송된다.
   useEffect(() => {
     setSearchOpen(false);
     setSearchQuery('');
+    setDraft(null);
+    setError(null);
   }, [conversation.id]);
 
   const trimmedQuery = searchQuery.trim();
@@ -69,22 +93,36 @@ export function ChatDetail() {
   }, [thread, searchOpen, trimmedQuery]);
   const matchCount = searchOpen && trimmedQuery ? filteredThread.length : 0;
 
-  const handlePressStart = async () => {
-    try {
-      await api.startRecording();
-    } catch (err) {
-      console.warn('[api] startRecording failed:', err);
-    }
+  const handlePressStart = () => {
+    setError(null);
+    startResultRef.current = api
+      .startRecording()
+      .then(() => true)
+      .catch((err) => {
+        console.warn('[api] startRecording failed:', err);
+        setError(describeError('녹음 시작', err));
+        return false;
+      });
   };
 
   const handlePressEnd = async () => {
+    const startedIn = conversationIdRef.current;
+    const started = await (startResultRef.current ?? Promise.resolve(false));
+    startResultRef.current = null;
+    if (!started) return;
+
     let result;
+    setProcessing(true);
     try {
       result = await api.stopRecording();
     } catch (err) {
       console.warn('[api] stopRecording failed:', err);
+      setError(describeError('음성 분석', err));
       return;
+    } finally {
+      setProcessing(false);
     }
+    if (conversationIdRef.current !== startedIn) return;
     setDraft({
       text: result.text,
       emotion: result.emotion,
@@ -100,6 +138,7 @@ export function ChatDetail() {
       await api.send(draft.text);
     } catch (err) {
       console.warn('[api] send failed:', err);
+      setError(describeError('전송', err));
       setSending(false);
       return;
     }
@@ -110,6 +149,7 @@ export function ChatDetail() {
         await refresh(activeProfile.backendId);
       } catch (err) {
         console.warn('[api] refresh inbox after send failed:', err);
+        setError('전송은 됐지만 대화 내역을 새로 받지 못했어요. 새로고침을 눌러 주세요.');
       }
     }
     setDraft(null);
@@ -146,8 +186,12 @@ export function ChatDetail() {
       onConfirmSend={handleConfirmSend}
       onCancelDraft={handleCancelDraft}
       sending={sending}
+      processing={processing}
       onRefreshInbox={handleRefreshInbox}
       refreshing={refreshing}
+      error={error}
+      onError={setError}
+      onDismissError={() => setError(null)}
     />
   );
 }
@@ -168,8 +212,12 @@ interface ModeViewProps {
   onConfirmSend: () => void;
   onCancelDraft: () => void;
   sending: boolean;
+  processing: boolean;
   onRefreshInbox: () => void;
   refreshing: boolean;
+  error: string | null;
+  onError: (message: string) => void;
+  onDismissError: () => void;
 }
 
 function HighlightedText({
@@ -244,8 +292,12 @@ function TextModeView({
   onConfirmSend,
   onCancelDraft,
   sending,
+  processing,
   onRefreshInbox,
   refreshing,
+  error,
+  onError,
+  onDismissError,
 }: ModeViewProps) {
   return (
     <div className="flex flex-col h-full w-full bg-cream min-w-0">
@@ -294,7 +346,13 @@ function TextModeView({
                   style={{ background: palette.light }}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <PlayButton emotion={m.emotion.primary} size={26} variant="light" messageId={m.id} />
+                    <PlayButton
+                      emotion={m.emotion.primary}
+                      size={26}
+                      variant="light"
+                      messageId={m.id}
+                      onError={onError}
+                    />
                     <EmotionWaveform emotion={m.emotion.primary} energy={m.energy} height={22} />
                   </div>
                   <p
@@ -327,6 +385,24 @@ function TextModeView({
         </div>
       </div>
 
+      {error && (
+        <div
+          role="alert"
+          className="mx-10 mb-3 px-4 py-[10px] rounded-[12px] flex items-center gap-3 flex-shrink-0 text-[13px]"
+          style={{ background: '#FBE3DB', color: '#7B341F' }}
+        >
+          <span className="flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={onDismissError}
+            className="text-[16px] leading-none px-1"
+            aria-label="안내 닫기"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <ChatComposer
         variant="light"
         onPressStart={onPressStart}
@@ -336,6 +412,7 @@ function TextModeView({
         onConfirmSend={onConfirmSend}
         onCancelDraft={onCancelDraft}
         sending={sending}
+        processing={processing}
       />
     </div>
   );
@@ -365,6 +442,9 @@ function ChatHeader({
     () => computeDistribution(headerThread),
     [headerThread],
   );
+  const lastSentAt = headerThread.length ? headerThread[headerThread.length - 1].sentAt : '';
+  // 팝업을 여닫는 버튼 묶음. display: contents 라서 배치에는 영향이 없다.
+  const profileAnchorRef = useRef<HTMLDivElement>(null);
 
   return (
     <header
@@ -373,6 +453,7 @@ function ChatHeader({
         borderBottom: `0.5px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(20,19,15,0.06)'}`,
       }}
     >
+      <div ref={profileAnchorRef} className="contents">
       <button
         type="button"
         onClick={() => setShowProfile((s) => !s)}
@@ -397,15 +478,17 @@ function ChatHeader({
           {conversation.name}
         </div>
         <div className="text-[12px] text-hint mt-[3px]">
-          {conversation.language} · {conversation.lastSeen}
+          {lastSentAt ? `마지막 메시지 ${lastSentAt}` : '아직 메시지가 없어요'}
         </div>
       </button>
+      </div>
 
       {showProfile && (
         <VoiceProfilePopover
           conversation={conversation}
           variant={variant}
           onClose={() => setShowProfile(false)}
+          anchorRef={profileAnchorRef}
         />
       )}
 
@@ -582,6 +665,7 @@ function ChatComposer({
   onConfirmSend,
   onCancelDraft,
   sending,
+  processing,
 }: {
   variant: 'light' | 'dark';
   onPressStart: () => void;
@@ -591,6 +675,7 @@ function ChatComposer({
   onConfirmSend: () => void;
   onCancelDraft: () => void;
   sending: boolean;
+  processing: boolean;
 }) {
   const isDark = variant === 'dark';
   const [isPressing, setIsPressing] = useState(false);
@@ -631,7 +716,7 @@ function ChatComposer({
   }, [isPressing]);
 
   const handlePointerDown = () => {
-    if (draft || sending || isPressing) return;
+    if (draft || sending || processing || isPressing) return;
     setIsPressing(true);
     onPressStart();
   };
@@ -667,7 +752,8 @@ function ChatComposer({
       <button
         type="button"
         onPointerDown={handlePointerDown}
-        className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-transform select-none"
+        disabled={processing}
+        className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-transform select-none disabled:opacity-40"
         style={{
           background: isDark ? '#F2D89E' : '#14130F',
           color: isDark ? '#3A2A1A' : '#FFFFFF',
@@ -689,7 +775,7 @@ function ChatComposer({
         className="text-[11px]"
         style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#9B8E7B' }}
       >
-        {isPressing ? '손을 떼면 종료' : '눌러서 녹음'}
+        {processing ? '음성 분석 중…' : isPressing ? '손을 떼면 종료' : '눌러서 녹음'}
       </span>
     </div>
   );

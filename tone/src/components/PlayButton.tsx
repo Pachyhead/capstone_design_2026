@@ -1,27 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Emotion } from '@/types';
 import { paletteFor } from '@/tokens/emotions';
-import { api } from '@/lib/api';
+import { api, describeError } from '@/lib/api';
 
 interface Props {
   emotion: Emotion;
   size?: number;
   variant?: 'light' | 'dark';
   messageId?: string;
+  onError?: (message: string) => void;
 }
 
-export function PlayButton({ emotion, size = 22, variant = 'light', messageId }: Props) {
+export function PlayButton({ emotion, size = 22, variant = 'light', messageId, onError }: Props) {
   const palette = paletteFor(emotion);
 
   const bg = variant === 'dark' ? palette.main : palette.deep;
   const fg = variant === 'dark' ? palette.x : '#FFFFFF';
 
   const [playing, setPlaying] = useState(false);
-  const timeoutRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
-      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
+      mountedRef.current = false;
     };
   }, []);
 
@@ -29,13 +31,13 @@ export function PlayButton({ emotion, size = 22, variant = 'light', messageId }:
     if (!messageId || playing) return;
     setPlaying(true);
     try {
-      const result = await api.playVoice(messageId);
-      const ms = Math.max(200, Math.round((result?.duration ?? 0) * 1000));
-      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = window.setTimeout(() => setPlaying(false), ms);
+      // 서버는 스피커 재생이 끝난 뒤에 응답하므로, 응답이 곧 재생 종료다.
+      await api.playVoice(messageId);
     } catch (err) {
       console.warn('[api] playVoice failed:', err);
-      setPlaying(false);
+      onError?.(describeError('음성 재생', err));
+    } finally {
+      if (mountedRef.current) setPlaying(false);
     }
   };
 

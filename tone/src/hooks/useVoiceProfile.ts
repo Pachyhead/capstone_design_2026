@@ -1,7 +1,10 @@
 import { useSyncExternalStore } from 'react';
-import type { Emotion, VoiceProfile } from '@/types';
+import type { VoiceProfile } from '@/types';
+import { useProfiles } from '@/hooks/useProfiles';
 
-const STORAGE_KEY = 'tone:voiceProfile';
+// v2: 목소리 등록 상태를 프로필(백엔드 id)별로 저장한다. 서버의 레퍼런스 음성이
+// 사용자 id별로 따로 있으므로, 브라우저의 등록 표시도 프로필마다 달라야 한다.
+const STORAGE_PREFIX = 'tone:voiceProfile:v2:';
 
 // Unregistered baseline. Onboarding writes real recorded data over this.
 const DEFAULT: VoiceProfile = {
@@ -14,36 +17,35 @@ const DEFAULT: VoiceProfile = {
 
 const subscribers = new Set<() => void>();
 
-// snapshot caching — same trick as useUserAvatar to satisfy useSyncExternalStore
-let cachedRaw: string | null | undefined = undefined;
-let cachedValue: VoiceProfile = DEFAULT;
+// snapshot caching per storage key — useSyncExternalStore needs a stable reference
+// while the underlying string is unchanged.
+const cache = new Map<string, { raw: string | null; value: VoiceProfile }>();
 
-function read(): VoiceProfile {
-  if (typeof window === 'undefined') return DEFAULT;
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (raw === cachedRaw) return cachedValue;
-  cachedRaw = raw;
-  if (!raw) {
-    cachedValue = DEFAULT;
-    return cachedValue;
-  }
-  try {
-    const parsed = JSON.parse(raw) as VoiceProfile;
-    if (parsed && typeof parsed.registered === 'boolean' && Array.isArray(parsed.detectedEmotions)) {
-      cachedValue = parsed;
-    } else {
-      cachedValue = DEFAULT;
+function read(key: string | null): VoiceProfile {
+  if (key === null || typeof window === 'undefined') return DEFAULT;
+  const raw = window.localStorage.getItem(key);
+  const hit = cache.get(key);
+  if (hit && hit.raw === raw) return hit.value;
+
+  let value = DEFAULT;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as VoiceProfile;
+      if (parsed && typeof parsed.registered === 'boolean' && Array.isArray(parsed.detectedEmotions)) {
+        value = parsed;
+      }
+    } catch {
+      value = DEFAULT;
     }
-  } catch {
-    cachedValue = DEFAULT;
   }
-  return cachedValue;
+  cache.set(key, { raw, value });
+  return value;
 }
 
 function subscribe(callback: () => void) {
   subscribers.add(callback);
   const onStorage = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY) callback();
+    if (e.key?.startsWith(STORAGE_PREFIX)) callback();
   };
   window.addEventListener('storage', onStorage);
   return () => {
@@ -52,34 +54,22 @@ function subscribe(callback: () => void) {
   };
 }
 
-export function setVoiceProfile(profile: VoiceProfile) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-  cachedRaw = undefined;
+function write(key: string, profile: VoiceProfile) {
+  window.localStorage.setItem(key, JSON.stringify(profile));
   subscribers.forEach((cb) => cb());
 }
 
-/** Build a VoiceProfile from the emotions the user recorded during onboarding. */
-export function buildProfileFromRecorded(recordedEmotions: Emotion[]): VoiceProfile {
-  // de-dupe while preserving order (first occurrence wins)
-  const seen = new Set<Emotion>();
-  const ordered: Emotion[] = [];
-  for (const e of recordedEmotions) {
-    if (!seen.has(e)) {
-      seen.add(e);
-      ordered.push(e);
-    }
-  }
-  const count = recordedEmotions.length;
-  return {
-    registered: count > 0,
-    sentenceCount: count,
-    durationSec: count * 15, // rough estimate, ~15s per sentence
-    emotionCoverage: ordered.length,
-    detectedEmotions: ordered,
-  };
-}
-
+/** Voice-registration state of the active profile. Setter is a no-op without one. */
 export function useVoiceProfile(): [VoiceProfile, (p: VoiceProfile) => void] {
-  const profile = useSyncExternalStore(subscribe, read, () => DEFAULT);
-  return [profile, setVoiceProfile];
+  const { activeProfile } = useProfiles();
+  const key = activeProfile ? `${STORAGE_PREFIX}${activeProfile.backendId}` : null;
+  const profile = useSyncExternalStore(
+    subscribe,
+    () => read(key),
+    () => DEFAULT,
+  );
+  const setProfile = (p: VoiceProfile) => {
+    if (key !== null) write(key, p);
+  };
+  return [profile, setProfile];
 }

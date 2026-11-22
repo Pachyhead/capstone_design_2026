@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { conversations } from '@/data/mock';
+import { useConversations } from '@/hooks/useConversations';
 import { paletteFor } from '@/tokens/emotions';
 import { EMOTION_LABELS } from '@/types';
 import { useProfiles, type BackendId } from '@/hooks/useProfiles';
 import { useInbox } from '@/hooks/useInbox';
-import { useLastSeen } from '@/hooks/useLastSeen';
+import { seenKey, useLastSeen } from '@/hooks/useLastSeen';
 import { emotionFromBackend } from '@/lib/api';
 
 function formatSentAt(raw: string | undefined): string {
@@ -18,6 +18,7 @@ export function ChatList() {
   const { activeProfile } = useProfiles();
   const { inbox, refresh } = useInbox();
   const lastSeen = useLastSeen();
+  const conversations = useConversations();
 
   useEffect(() => {
     if (!activeProfile) return;
@@ -38,50 +39,25 @@ export function ChatList() {
     >
       <header className="flex items-center justify-between px-5 pt-6 pb-4 flex-shrink-0">
         <h1 className="text-[20px] font-semibold text-ink leading-none">대화</h1>
-        <button
-          className="w-8 h-8 rounded-full bg-charcoal text-white flex items-center justify-center text-[18px] font-light hover:opacity-90 transition-opacity"
-          aria-label="새 대화"
-        >
-          +
-        </button>
       </header>
-
-      <div
-        className="px-4 pb-3 flex-shrink-0"
-      >
-        <div
-          className="flex items-center gap-2 px-3 py-[7px] rounded-[10px]"
-          style={{ background: 'rgba(20,19,15,0.04)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-            <circle cx="7" cy="7" r="5" stroke="#9B8E7B" strokeWidth="1.4" />
-            <path d="M11 11L14 14" stroke="#9B8E7B" strokeWidth="1.4" strokeLinecap="round" />
-          </svg>
-          <span className="text-[12px] text-hint">검색</span>
-        </div>
-      </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3 flex flex-col gap-1">
         {visible.map((conv) => {
           const bucket = inbox[conv.backendId as BackendId] ?? [];
           const last = bucket.length ? bucket[bucket.length - 1] : null;
           const previewText = last?.message ?? '';
-          const previewEmotion = last
-            ? emotionFromBackend(last.emo_type)
-            : conv.lastMessage.emotion.primary;
+          const previewEmotion = last ? emotionFromBackend(last.emo_type) : 'neutral';
           const previewSentAt = formatSentAt(last?.send_time);
           const palette = paletteFor(previewEmotion);
 
-          const seenId = lastSeen[conv.id];
-          let unreadCount = 0;
-          if (bucket.length > 0) {
-            if (!seenId) {
-              unreadCount = bucket.length;
-            } else {
-              const idx = bucket.findIndex((m) => m.message_id === seenId);
-              unreadCount = idx === -1 ? bucket.length : bucket.length - idx - 1;
-            }
-          }
+          // 마지막으로 읽은 메시지 이후에 상대가 보낸 것만 안 읽은 수로 센다
+          // (버킷에는 내가 보낸 메시지도 들어 있다).
+          const seenId =
+            activeProfile ? lastSeen[seenKey(activeProfile.backendId, conv.id)] : undefined;
+          const seenIdx = seenId ? bucket.findIndex((m) => m.message_id === seenId) : -1;
+          const unreadCount = bucket
+            .slice(seenIdx + 1)
+            .filter((m) => String(m.sender_id) === String(conv.backendId)).length;
           return (
             <NavLink
               key={conv.id}

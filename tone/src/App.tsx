@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Routes, Route, Outlet } from 'react-router-dom';
 import { ChatList } from '@/screens/ChatList';
 import { ChatDetail } from '@/screens/ChatDetail';
@@ -10,9 +11,20 @@ import { Profiles } from '@/screens/Profiles';
 import { DesktopShell } from '@/components/DesktopShell';
 import { EmptyState } from '@/components/EmptyState';
 import { useProfiles } from '@/hooks/useProfiles';
+import { useInbox } from '@/hooks/useInbox';
 
 function Shell() {
   const { activeProfile } = useProfiles();
+  const { refresh } = useInbox();
+  const myBackendId = activeProfile?.backendId;
+
+  // 엔드포인트는 재시작하면 기본 사용자 id로 돌아간다. 어느 화면으로 들어오든
+  // (새로고침 포함) 선택된 프로필을 먼저 알려서 녹음·전송·등록이 다른 사람
+  // id로 처리되지 않게 한다.
+  useEffect(() => {
+    if (myBackendId == null) return;
+    refresh(myBackendId).catch((e) => console.warn('[shell] setMyId failed', e));
+  }, [myBackendId]);
 
   // gate: must pick a profile before entering the app.
   if (!activeProfile) {

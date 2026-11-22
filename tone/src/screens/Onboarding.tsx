@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { paletteFor } from '@/tokens/emotions';
 import { EMOTION_LABELS } from '@/types';
 import type { Emotion } from '@/types';
 import { useVoiceProfile } from '@/hooks/useVoiceProfile';
-import { api } from '@/lib/api';
+import { useProfiles } from '@/hooks/useProfiles';
+import { api, describeError } from '@/lib/api';
 
 const REFERENCE_PROMPT =
   '안녕하세요, 오늘 날씨가 참 좋아서 산책하기 딱 좋은 날인 것 같네요. 주말에는 보통 집에서 책을 읽거나 가까운 카페에 가서 시간을 보냅니다.';
@@ -15,8 +16,15 @@ export function Onboarding() {
   const [step, setStep] = useState<'welcome' | 'recording' | 'done'>('welcome');
   const navigate = useNavigate();
   const [profile, setProfile] = useVoiceProfile();
+  const { activeProfile } = useProfiles();
+  // 녹음 중이거나 업로드 중이면 true. 이때 화면을 떠나면 엔드포인트의 녹음이
+  // 멈추지 않은 채 남으므로 닫기를 숨긴다.
+  const [busy, setBusy] = useState(false);
 
-  const showClose = step !== 'done' && profile.registered;
+  // 목소리는 프로필(사용자 id)에 묶여 저장되므로 프로필 없이는 등록할 수 없다.
+  if (!activeProfile) return <Navigate to="/profiles" replace />;
+
+  const showClose = step !== 'done' && profile.registered && !busy;
   const handleClose = () => navigate('/');
 
   if (step === 'welcome')
@@ -38,11 +46,16 @@ export function Onboarding() {
       setStep('done');
     };
 
+    // 이미 등록된 상태에서 건너뛰면 기존 등록을 그대로 둔다.
+    const skip = () => (profile.registered ? navigate('/me') : finish(false, 0));
+
     return (
       <Page onClose={showClose ? handleClose : undefined}>
         <Recording
+          myBackendId={activeProfile.backendId}
           onNext={(durationSec) => finish(true, durationSec)}
-          onSkip={() => finish(false, 0)}
+          onSkip={skip}
+          onBusyChange={setBusy}
         />
       </Page>
     );
@@ -111,7 +124,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
         한 문장을 녹음하면, 상대방이 받는 메시지가 당신의 목소리로 재구성됩니다.
       </p>
       <p className="text-[13px] text-hint leading-relaxed max-w-[440px] mb-10">
-        음성 데이터는 당신의 기기에서만 사용되며, 서버로 전송되지 않습니다.
+        녹음한 목소리 샘플은 음성 합성을 위해 서버에 저장됩니다.
       </p>
 
       <button
@@ -126,13 +139,26 @@ function Welcome({ onStart }: { onStart: () => void }) {
 
 // -----------------------------------------------------------------------------
 function Recording({
+  myBackendId,
   onNext,
   onSkip,
+  onBusyChange,
 }: {
+  myBackendId: number;
   onNext: (durationSec: number) => void;
   onSkip: () => void;
+  onBusyChange: (busy: boolean) => void;
 }) {
-  const [phase, setPhase] = useState<'idle' | 'recording' | 'reviewing'>('idle');
+  // starting: 녹음 시작 요청 중, uploading: 정지 후 서버로 올리는 중
+  const [phase, setPhase] = useState<
+    'idle' | 'starting' | 'recording' | 'uploading' | 'reviewing'
+  >('idle');
+  const [error, setError] = useState<string | null>(null);
+  const busy = phase === 'starting' || phase === 'recording' || phase === 'uploading';
+
+  useEffect(() => {
+    onBusyChange(busy);
+  }, [busy]);
   const [tick, setTick] = useState(0); // tenths of a second
   const [energies, setEnergies] = useState<number[]>(() =>
     Array.from({ length: LIVE_BARS }, () => 0.18),
@@ -151,49 +177,103 @@ function Recording({
   const timerStr = `${elapsedSec.toFixed(1)}s`;
   const palette = paletteFor(REFERENCE_EMOTION);
 
-  const handleStart = () => {
-    setPhase('recording');
-    api.startRecording().catch((err) => console.warn('[api] startRecording failed:', err));
+  const reset = () => {
+    setTick(0);
+    setEnergies(Array.from({ length: LIVE_BARS }, () => 0.18));
   };
 
-  const handleStop = () => {
+  const handleStart = async () => {
+    setError(null);
+    setPhase('starting');
+    try {
+      // 엔드포인트가 재시작됐을 수 있으니, 녹음 전에 내 id부터 다시 알린다.
+      // 이게 빠지면 목소리가 다른 사용자 id로 등록될 수 있다.
+      await api.setMyId(myBackendId);
+      await api.startRecording();
+    } catch (err) {
+      console.warn('[api] startRecording failed:', err);
+      setError(describeError('녹음 시작', err));
+      setPhase('idle');
+      return;
+    }
+    setPhase('recording');
+  };
+
+  const handleStop = async () => {
+    setPhase('uploading');
+    try {
+      await api.sendRef();
+    } catch (err) {
+      console.warn('[api] sendRef failed:', err);
+      setError(`${describeError('목소리 등록', err)} 다시 녹음해 주세요.`);
+      reset();
+      setPhase('idle');
+      return;
+    }
     setPhase('reviewing');
-    api.sendRef().catch((err) => console.warn('[api] sendRef failed:', err));
   };
 
   const handleRetake = () => {
     setPhase('idle');
-    setTick(0);
-    setEnergies(Array.from({ length: LIVE_BARS }, () => 0.18));
+    reset();
   };
 
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <p className="text-[12px] text-hint tracking-wider font-medium">읽어주세요</p>
-        <button
-          onClick={onSkip}
-          className="text-[13px] text-hint hover:text-muted transition-colors"
-        >
-          건너뛰기
-        </button>
+        {!busy && (
+          <button
+            onClick={onSkip}
+            className="text-[13px] text-hint hover:text-muted transition-colors"
+          >
+            건너뛰기
+          </button>
+        )}
       </div>
 
       <div className="bg-cream rounded-[14px] p-6 mb-6">
         <p className="text-[18px] text-ink leading-relaxed font-medium">"{REFERENCE_PROMPT}"</p>
       </div>
 
-      {phase === 'idle' && (
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 px-4 py-[10px] rounded-[12px] text-[13px]"
+          style={{ background: '#FBE3DB', color: '#7B341F' }}
+        >
+          {error}
+        </div>
+      )}
+
+      {(phase === 'idle' || phase === 'starting') && (
         <div className="flex flex-col items-center justify-center min-h-[180px] gap-4 mb-6">
           <button
             onClick={handleStart}
-            className="w-20 h-20 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-100"
+            disabled={phase === 'starting'}
+            className="w-20 h-20 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-100 disabled:opacity-50"
             style={{ background: '#94402C' }}
             aria-label="녹음 시작"
           >
             <span className="w-7 h-7 rounded-full" style={{ background: '#FFFFFF' }} />
           </button>
-          <p className="text-[12px] text-hint">탭해서 녹음 시작</p>
+          <p className="text-[12px] text-hint">
+            {phase === 'starting' ? '녹음 준비 중…' : '탭해서 녹음 시작'}
+          </p>
+        </div>
+      )}
+
+      {phase === 'uploading' && (
+        <div className="flex flex-col items-center justify-center min-h-[180px] gap-4 mb-6">
+          <span
+            className="w-8 h-8 rounded-full border-[2.5px]"
+            style={{
+              borderColor: '#CFC5B5',
+              borderTopColor: 'transparent',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+          <p className="text-[13px] text-muted">목소리를 서버에 등록하는 중…</p>
         </div>
       )}
 

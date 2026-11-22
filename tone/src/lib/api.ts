@@ -9,6 +9,17 @@ export class ApiError extends Error {
   }
 }
 
+/** 화면에 보여 줄 짧은 실패 사유. `action`은 "전송", "녹음" 같은 동작 이름. */
+export function describeError(action: string, err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 502 || err.status === 503) {
+      return `${action}에 실패했어요. 중계 서버에 연결할 수 없습니다.`;
+    }
+    return `${action}에 실패했어요. (오류 ${err.status})`;
+  }
+  return `${action}에 실패했어요. 엔드포인트 서버에 연결할 수 없습니다.`;
+}
+
 async function post<T = unknown>(
   path: string,
   params?: Record<string, string | number>,
@@ -61,10 +72,6 @@ export interface StartRecordingResult {
 export interface EmotionLabelResult {
   emotion_label: Emotion;
   emotion_score: number;
-}
-
-export interface PlayVoiceResult {
-  duration: number;
 }
 
 // /measure_audio_codec_sizes: each codec's size at its service bitrate (bitrate × duration).
@@ -154,7 +161,7 @@ export const api = {
   send: (message: string) => post('/send', { message }),
   sendRef: () => post('/send_ref'),
   getEmotionLabel: () => post<EmotionLabelResult>('/get_emotion_label'),
-  playVoice: (messageId: string) =>
-    post<PlayVoiceResult>('/play_voice', { message_id: messageId }),
+  // 엔드포인트 스피커로 재생한다. 서버는 재생이 끝난 뒤 true로 응답한다.
+  playVoice: (messageId: string) => post<boolean>('/play_voice', { message_id: messageId }),
   measureCodecSizes: () => post<CodecSizes>('/measure_audio_codec_sizes'),
 };

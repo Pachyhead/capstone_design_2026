@@ -16,6 +16,22 @@ function formatSentAt(raw: string | undefined): string {
   return m ? `${m[1]}:${m[2]}` : raw.slice(0, 5);
 }
 
+// 백엔드가 메시지별 에너지를 주지 않아 파형은 장식용이다. 메시지 id에서 만든
+// 고정 시드를 써서 같은 메시지는 다시 그려도 항상 같은 모양이 되게 한다.
+function placeholderEnergy(messageId: string): number[] {
+  let seed = 2166136261;
+  for (let i = 0; i < messageId.length; i++) {
+    seed = Math.imul(seed ^ messageId.charCodeAt(i), 16777619);
+  }
+  return Array.from({ length: 10 }, () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    const unit = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    return unit * 0.5 + 0.4;
+  });
+}
+
 export function backendToMessage(
   rec: ReceivedMessage,
   conversationId: string,
@@ -31,8 +47,7 @@ export function backendToMessage(
     text: rec.message,
     emotion: { primary: emotionFromBackend(rec.emo_type) },
     durationSec: 0,
-    // 10-bar placeholder energy — backend doesn't ship per-message energy yet
-    energy: Array.from({ length: 10 }, () => Math.random() * 0.5 + 0.4),
+    energy: placeholderEnergy(String(rec.message_id)),
     sentAt: formatSentAt(rec.send_time),
   };
 }

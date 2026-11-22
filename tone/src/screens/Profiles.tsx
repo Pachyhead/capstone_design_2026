@@ -6,7 +6,6 @@ import { useProfiles, type Profile } from '@/hooks/useProfiles';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { EMOTION_LABELS, AVATAR_EMOTIONS } from '@/types';
 import type { Emotion } from '@/types';
-import { api } from '@/lib/api';
 import { useInbox } from '@/hooks/useInbox';
 
 const MAX_PROFILES = 4;

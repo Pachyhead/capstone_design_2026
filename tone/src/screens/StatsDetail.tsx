@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
-import { conversations } from '@/data/mock';
+import { useConversations } from '@/hooks/useConversations';
 import { useStatsMessages } from '@/hooks/useStatsMessages';
 import { paletteFor } from '@/tokens/emotions';
 import { EMOTION_LABELS } from '@/types';
@@ -19,6 +19,7 @@ export function StatsDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const fromChat = location.pathname.startsWith('/chat/');
+  const conversations = useConversations();
   const conv = conversations.find((c) => c.id === id) ?? conversations[0];
   const messages = useStatsMessages();
   const [authors, setAuthors] = useState<AuthorFilter>(() => new Set<Author>(['me', 'them']));

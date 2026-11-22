@@ -177,8 +177,8 @@ function VoiceProfileCard() {
           )}
           <div className="text-[12px] text-muted mt-2 leading-snug">
             {isRegistered
-              ? `${voiceProfile.sentenceCount}개 문장 · ${Math.round(voiceProfile.durationSec / 60)}분 ${voiceProfile.durationSec % 60}초 · 감정 범위 ${voiceProfile.emotionCoverage}/9`
-              : '목소리를 등록해야 음성 메시지를 전송할 수 있어요.'}
+              ? `${voiceProfile.sentenceCount}개 문장 · ${voiceProfile.durationSec.toFixed(1)}초`
+              : '목소리를 등록하면 상대방이 내 목소리로 메시지를 들을 수 있어요.'}
           </div>
         </div>
       </div>
@@ -211,12 +211,6 @@ function VoiceProfileCard() {
             className="px-4 py-[8px] rounded-[10px] text-[12px] font-medium bg-charcoal text-white hover:opacity-90 transition-opacity"
           >
             {isRegistered ? '재등록' : '등록 시작'}
-          </button>
-          <button
-            className="px-4 py-[8px] rounded-[10px] text-[12px] font-medium text-muted box-border hover:bg-cream transition-colors"
-            style={{ border: '0.5px solid rgba(20,19,15,0.12)' }}
-          >
-            상세 보기
           </button>
         </div>
       </div>
