@@ -34,6 +34,12 @@ _RETRY_SERVICE_CONFIG = json.dumps({
 _CHANNEL_OPTIONS = [
     ("grpc.enable_retries", 1),
     ("grpc.service_config", _RETRY_SERVICE_CONFIG),
+    # 구독 스트림(SubscribeMessages)은 오래 조용히 열려 있으므로, 주기적인 ping으로 공유기/NAT가 연결을 끊지 않게 하고
+    # 끊긴 연결을 빨리 감지한다. 서버도 이 주기를 허용해야 한다 (server_communicate_server.SERVER_OPTIONS)
+    ("grpc.keepalive_time_ms", 30000),
+    ("grpc.keepalive_timeout_ms", 10000),
+    ("grpc.keepalive_permit_without_calls", 1),
+    ("grpc.http2.max_pings_without_data", 0),
 ]
 
 

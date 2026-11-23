@@ -1,17 +1,20 @@
 """Serve the sender and receiver features from one endpoint application."""
 
+import asyncio
+import json
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from threading import Lock
+from threading import Event, Lock
 
 import grpc
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import PROJECT_ROOT
 from grpc_getting_started.server_communicate_connect import close_connection
 from grpc_getting_started.server_communicate_sender import SendVoice
+from inbox_stream import Broadcaster, InboxSubscriber
 from receiver import Receiver
 from sender import Sender
 from utils import measure_audio_codec_sizes
@@ -20,6 +23,24 @@ from grpc_getting_started import server_communicate_pb2
 _STORAGE = PROJECT_ROOT / "storage"
 _STORAGE.mkdir(parents=True, exist_ok=True)
 _FRONTEND_DIST = PROJECT_ROOT.parent / "tone" / "dist"
+
+# 종료 신호(Ctrl+C)를 받으면 설정된다. uvicorn은 열린 연결이 끝나야 종료하므로
+# SSE(/events) 응답이 이 값을 보고 스스로 끝나게 한다.
+_SHUTTING_DOWN = Event()
+_SSE_PING_SECONDS = 15  # 브라우저 연결 확인용 주석 이벤트 주기
+
+try:
+    from uvicorn.server import Server as _UvicornServer
+
+    _uvicorn_handle_exit = _UvicornServer.handle_exit
+
+    def _handle_exit(self, sig, frame):  # noqa: ANN001
+        _SHUTTING_DOWN.set()
+        _uvicorn_handle_exit(self, sig, frame)
+
+    _UvicornServer.handle_exit = _handle_exit
+except ImportError:  # uvicorn 없이 import하는 경우 (테스트 등)
+    pass
 
 
 @asynccontextmanager
@@ -37,9 +58,19 @@ async def _lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
         application.state.receiver = receiver
         application.state.sender_lock = Lock()
         application.state.last_audio_file = None
+
+        # 새 메시지 실시간 수신: 서버 구독 스트림 -> 브라우저 SSE (/events)
+        broadcaster = Broadcaster()
+        broadcaster.bind_loop(asyncio.get_running_loop())
+        subscriber = InboxSubscriber(broadcaster)
+        subscriber.start()  # /set_my_id로 사용자가 정해지면 구독을 시작한다
+        application.state.broadcaster = broadcaster
+        application.state.inbox_subscriber = subscriber
         try:
             yield
         finally:
+            _SHUTTING_DOWN.set()
+            subscriber.stop()  # 구독 스트림을 먼저 끊고
             close_connection()  # 공유 gRPC 채널 종료
 
 
@@ -62,6 +93,46 @@ async def _grpc_error_handler(request: Request, exc: grpc.RpcError) -> JSONRespo
     return JSONResponse(
         status_code=502,
         content={"detail": f"relay server error ({code.name})", "grpc_details": details},
+    )
+
+
+@app.get("/events")
+async def events(request: Request) -> StreamingResponse:
+    """새 메시지를 Server-Sent Events로 보낸다 (event: message | resync).
+
+    아래 SPA fallback(GET /{full_path:path})보다 먼저 등록해야 한다.
+    """
+    broadcaster: Broadcaster = app.state.broadcaster
+    subscriber: InboxSubscriber = app.state.inbox_subscriber
+    queue = broadcaster.connect()
+
+    async def stream() -> AsyncGenerator[str, None]:
+        try:
+            yield "retry: 3000\n\n"  # 끊기면 브라우저가 3초 뒤 다시 접속
+            if subscriber.connected:
+                # 이미 구독 중이면 새로 연결된 탭도 목록을 한 번 맞춘다
+                yield "event: resync\ndata: null\n\n"
+            idle = 0.0
+            while not _SHUTTING_DOWN.is_set():
+                try:
+                    event, data = await asyncio.wait_for(queue.get(), timeout=1.0)
+                except asyncio.TimeoutError:
+                    idle += 1.0
+                    if await request.is_disconnected():
+                        break
+                    if idle >= _SSE_PING_SECONDS:
+                        idle = 0.0
+                        yield ": ping\n\n"
+                    continue
+                idle = 0.0
+                yield f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+        finally:
+            broadcaster.disconnect(queue)
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
@@ -96,6 +167,8 @@ def set_my_id(value: int | None = None) -> list[list[dict[str, object]]]:
     with app.state.sender_lock:
         sender.user_id = value
         receiver.user_id = value
+        # 목록 조회가 실패해도 실시간 수신은 새 사용자로 바꿔 둔다 (재접속하면서 resync)
+        app.state.inbox_subscriber.switch_user(value)
         return receiver.get_pending_messages()
 
 

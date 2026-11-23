@@ -61,30 +61,36 @@ def save_message_to_json(metadata_list):
         print(f"Error occurred: {e}")
         return False    
 
+def item_to_dict(chat_item) -> dict:
+    """MetadataItem -> dict. GetPendingMessages와 SubscribeMessages가 같은 형식을 쓰도록 공통으로 사용"""
+    return {
+        'message_id': str(chat_item.message_id),
+        'sender_id': str(chat_item.sender_id),
+        'receiver_id': str(chat_item.receiver_id),
+        'message': str(chat_item.message),
+        'emo_type': int(chat_item.emo_type),
+        'send_time': chat_item.send_time.ToDatetime()
+    }
+
 def GetPendingMessages(user_id):
     stub = set_connection()
 
     user_identifier = server_communicate_pb2.UserIdentifier(user_id=user_id) # 서비스를 호출할 userIdentifier 정의
-    chatroom_items = stub.GetPendingMessages(user_identifier, timeout=RPC_TIMEOUT) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)   
+    chatroom_items = stub.GetPendingMessages(user_identifier, timeout=RPC_TIMEOUT) # 서버 메서드 호출(메타데이터 리스트 가져옴. 약간의 구조체 있!!)
 
     # 구조체 부분 제거
     chatroom_lists = []
     for chatroom_item in chatroom_items.lists:
-        chatroom_list = []
-        for chat_item in chatroom_item.items:
-            dict_chat_item = {
-                'message_id': str(chat_item.message_id),
-                'sender_id': str(chat_item.sender_id),
-                'receiver_id': str(chat_item.receiver_id),
-                'message': str(chat_item.message),
-                'emo_type': int(chat_item.emo_type),
-                'send_time': chat_item.send_time.ToDatetime()
-            }
-            #chatroom_list.append(chat_item)
-            chatroom_list.append(dict_chat_item)
+        chatroom_list = [item_to_dict(chat_item) for chat_item in chatroom_item.items]
         chatroom_lists.append(chatroom_list)
 
     return chatroom_lists # list list dict
+
+def SubscribeMessages(user_id):
+    """새 메시지 구독 스트림을 연다. 반환한 call을 반복하면 MetadataItem을 받고, call.cancel()로 끊는다.
+    오래 열어 두는 스트림이라 타임아웃을 두지 않는다 (끊긴 연결은 keepalive가 감지)."""
+    stub = set_connection()
+    return stub.SubscribeMessages(server_communicate_pb2.UserIdentifier(user_id=user_id))
 
 def GetVoice(message_id) -> tuple[Generator, str]:
     """gRPC 서버에서 음성 청크 받기 (generator 반환)"""
