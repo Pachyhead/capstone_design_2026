@@ -1,49 +1,50 @@
-"""Prepare the offline demo's audio.
+"""Make the demo's audio browser-friendly and report its length and size.
 
-Reads the example sets (one folder per emotion, each holding reference.wav,
-source.wav and generate_emotion.wav) and writes browser-friendly copies into
-mock_ui/public/audio/<set>/{reference,source,output}.wav.
+The audio lives in mock_ui/public/audio/<backend id>/ as reference.wav,
+source.wav and output.wav (0 종찬, 1 재웅, 2 경택). Drop new recordings in
+under those names, then run:
 
-    python mock_ui/tools/build_assets.py [path/to/example_sets]
+    endpoint/.venv/Scripts/python.exe mock_ui/tools/build_assets.py
 
-Needs numpy and soundfile (both are in endpoint/.venv). It prints each file's
-length and size; copy the source.wav numbers into src/scenario.ts
-(sourceDuration, sourceBytes), then rebuild with `npm run build`.
+Files that are not 16-bit PCM (the recorder and the TTS both write 32-bit
+float WAV, which some players reject) are converted in place. Stereo is mixed
+down to mono. The printed source.wav length and size go into
+src/scenario.ts (sourceDuration, sourceBytes), and the reference.wav length
+into referenceDuration. Rebuild with `npm run build` afterwards.
+
+Needs numpy and soundfile (both are in endpoint/.venv).
 """
 
-import sys
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
 
-MOCK_UI = Path(__file__).resolve().parent.parent
-DEFAULT_SOURCE = MOCK_UI.parent / "mock_ui_example_wav" / "mock_ui_example_wav"
-FILES = {"reference": "reference.wav", "source": "source.wav", "output": "generate_emotion.wav"}
+AUDIO = Path(__file__).resolve().parent.parent / "public" / "audio"
+ROLES = ("reference", "source", "output")
 
 
 def main() -> None:
-    source_root = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_SOURCE
-    if not source_root.is_dir():
-        sys.exit(f"example sets not found: {source_root}")
+    for folder in sorted(p for p in AUDIO.iterdir() if p.is_dir()):
+        for role in ROLES:
+            path = folder / f"{role}.wav"
+            if not path.is_file():
+                print(f"{folder.name}/{role}.wav  MISSING")
+                continue
 
-    for set_dir in sorted(p for p in source_root.iterdir() if p.is_dir()):
-        for role, filename in FILES.items():
-            src = set_dir / filename
-            if not src.is_file():
-                sys.exit(f"missing file: {src}")
-            samples, rate = sf.read(src, dtype="float32")
-            if samples.ndim > 1:
-                samples = samples.mean(axis=1)
+            info = sf.info(path)
+            note = ""
+            if info.subtype != "PCM_16" or info.channels != 1:
+                samples, rate = sf.read(path, dtype="float32")
+                if samples.ndim > 1:
+                    samples = samples.mean(axis=1)
+                sf.write(path, np.clip(samples, -1.0, 1.0), rate, subtype="PCM_16")
+                note = f"  (converted from {info.subtype}, {info.channels}ch)"
+                info = sf.info(path)
 
-            # 16-bit PCM plays in every browser; the synthesized files arrive as
-            # 32-bit float WAV, which some players reject.
-            dest = MOCK_UI / "public" / "audio" / set_dir.name / f"{role}.wav"
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            sf.write(dest, np.clip(samples, -1.0, 1.0), rate, subtype="PCM_16")
             print(
-                f"{set_dir.name}/{role}.wav  {len(samples) / rate:.2f}s  "
-                f"{rate}Hz  {dest.stat().st_size} bytes"
+                f"{folder.name}/{role}.wav  {info.duration:.2f}s  {info.samplerate}Hz  "
+                f"{path.stat().st_size} bytes{note}"
             )
 
 

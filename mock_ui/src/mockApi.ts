@@ -6,7 +6,7 @@
 // 브라우저이고, 녹음 결과와 합성 음성은 미리 준비한 파일이다.
 import {
   ApiError,
-  describeError,
+  describeError as describeServerError,
   emotionFromBackend,
   type CodecName,
   type CodecSize,
@@ -19,9 +19,28 @@ import {
 } from '../../tone/src/lib/api';
 import { recordApiCall, setLastRecording } from '@/lib/metrics';
 import { clearNodes, isPanelOpen, resetPipeline, stage, type NodeId } from './pipeline';
+import { HISTORY, type HistoryMessage } from './history';
 import { DEMO_PROFILES, audioPath, setById, setForUser, type VoiceSet } from './scenario';
 
-export { ApiError, describeError, emotionFromBackend };
+export { ApiError, emotionFromBackend };
+
+/**
+ * 서버 오류가 아니라 "이 데모에서는 안 되는 동작"을 알릴 때 던진다.
+ * 화면에는 오류 코드 대신 `notice` 문장이 그대로 보인다.
+ */
+class DemoNotice extends ApiError {
+  constructor(
+    path: string,
+    public notice: string,
+  ) {
+    super(409, path, notice);
+  }
+}
+
+export function describeError(action: string, err: unknown): string {
+  if (err instanceof DemoNotice) return err.notice;
+  return describeServerError(action, err);
+}
 export type {
   CodecName,
   CodecSize,
@@ -87,20 +106,24 @@ const SERVICE_BITRATES_KBPS: Record<CodecName, number> = { opus: 16, volte: 12.6
 
 const STORAGE_KEY = 'tone-mock:messages';
 
-interface StoredMessage extends ReceivedMessage {
-  set_id: string;
-}
+// 음성이 딸린 메시지는 set_id 가 있고, 미리 넣어 둔 대화 기록(history.ts)은 null 이다.
+type StoredMessage = HistoryMessage;
 
-function loadMessages(): StoredMessage[] {
+const isHistory = (m: StoredMessage) => m.message_id.startsWith('history-');
+
+/** 데모 중에 새로 보낸 메시지. 대화 기록은 코드에 있으므로 저장하지 않는다. */
+function loadSent(): StoredMessage[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as StoredMessage[]) : [];
+    const parsed = raw ? (JSON.parse(raw) as StoredMessage[]) : [];
+    return Array.isArray(parsed) ? parsed.filter((m) => !isHistory(m)) : [];
   } catch {
     return [];
   }
 }
 
-let messages: StoredMessage[] = loadMessages();
+// 대화 기록이 먼저, 그 뒤에 이번 데모에서 보낸 메시지가 시간 순으로 붙는다.
+let messages: StoredMessage[] = [...HISTORY, ...loadSent()];
 let myId = 0;
 let peerId = 1;
 /** 마지막 녹음 결과. 전송할 때와 코덱 크기 비교에 쓴다. */
@@ -112,7 +135,7 @@ let stopPlayback: (() => void) | null = null;
 
 function persist() {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.filter((m) => !isHistory(m))));
   } catch {
     /* 저장 실패는 데모 진행에 지장이 없다 */
   }
@@ -182,11 +205,11 @@ function playFile(path: string): Promise<void> {
   });
 }
 
-/** 데모를 처음 상태로 되돌린다 (메시지 삭제). */
+/** 데모를 처음 상태로 되돌린다: 새로 보낸 메시지를 지우고 대화 기록만 남긴다. */
 export function resetMockState() {
   flow += 1;
   stopPlayback?.();
-  messages = [];
+  messages = [...HISTORY];
   recorded = null;
   window.localStorage.removeItem(STORAGE_KEY);
   resetPipeline();
@@ -208,7 +231,12 @@ export const api = {
   startRecording: () =>
     call<StartRecordingResult>('/start_recording', async () => {
       const set = setForUser(myId);
-      if (!set) throw new ApiError(500, '/start_recording', 'no demo voice set for this profile');
+      if (!set) {
+        throw new DemoNotice(
+          '/start_recording',
+          `${nameOf(myId)}은(는) 준비된 음성이 없어서 녹음할 수 없어요. 대화 기록과 통계만 볼 수 있습니다.`,
+        );
+      }
       flow += 1;
       stopPlayback?.();
       resetPipeline({ speakerSetId: set.id, speakerName: nameOf(myId) });
@@ -324,8 +352,14 @@ export const api = {
   playVoice: (messageId: string) =>
     call<boolean>('/play_voice', async () => {
       const message = messages.find((m) => m.message_id === messageId);
-      const set = message ? setById(message.set_id) : undefined;
-      if (!message || !set) throw new ApiError(404, '/play_voice', 'Such Message ID Not Found');
+      if (!message) throw new ApiError(404, '/play_voice', 'Such Message ID Not Found');
+      const set = message.set_id ? setById(message.set_id) : undefined;
+      if (!set) {
+        throw new DemoNotice(
+          '/play_voice',
+          '미리 넣어 둔 대화 기록이라 음성이 없어요. 데모에서 새로 보낸 메시지만 재생됩니다.',
+        );
+      }
 
       const MS = stageMs();
       flow += 1;

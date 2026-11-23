@@ -13,7 +13,7 @@ import { DEMO_PROFILES } from './scenario';
 // 이 값이 저장된 값과 다르면 브라우저에 남은 데모 상태를 지우고 처음 상태로 맞춘다.
 // 프로필 구성을 바꾸면 값을 올린다.
 const SEED_KEY = 'tone-mock:seed';
-const SEED_VERSION = '2';
+const SEED_VERSION = '3';
 
 /** 직접 조작할 때의 처음 상태: 프로필 3명이 모두 있다. (자동 시연은 시작할 때 따로 맞춘다.) */
 function seedDemoStorage() {

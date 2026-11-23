@@ -9,7 +9,9 @@ import { EMOTION_LABELS } from '@/types';
 import type { Emotion } from '@/types';
 import { audioUrl, resetMockState } from './mockApi';
 import { resetPipeline, setCaption } from './pipeline';
-import { AUTOPLAY, DEMO_PROFILES, audioPath, setById, type DemoProfile } from './scenario';
+import { markSeen, seenKey } from '@/hooks/useLastSeen';
+import { lastHistoryId } from './history';
+import { AUTOPLAY, DEMO_PROFILES, audioPath, setForUser, type DemoProfile } from './scenario';
 
 /**
  * short — 목소리가 등록된 상태에서 "녹음 → 전송 → 상대측 재생"만 보여 준다 (기본).
@@ -122,6 +124,11 @@ function ensureCursor(): HTMLDivElement {
   return cursor;
 }
 
+/** 대화에 떠 있는 메시지들의 재생 버튼 (오래된 것부터). 대화 기록의 버튼도 포함된다. */
+function messagePlayButtons(): HTMLElement[] {
+  return [...(appRoot()?.querySelectorAll<HTMLElement>('button[aria-label="재생"]') ?? [])];
+}
+
 function removeCursor() {
   cursor?.remove();
   cursor = null;
@@ -195,7 +202,7 @@ async function playAudio(mine: number, path: string) {
 // ---------------------------------------------------------------------------
 // 처음 상태 만들기
 // ---------------------------------------------------------------------------
-const AVATARS: Emotion[] = ['happy', 'surprised', 'neutral'];
+const AVATARS: Emotion[] = ['happy', 'surprised', 'neutral', 'sad'];
 
 function profileRecord(p: DemoProfile) {
   return {
@@ -226,12 +233,31 @@ export function seedProfiles(profiles: DemoProfile[], loggedIn?: DemoProfile) {
     entries[`tone:voiceProfile:v2:${loggedIn.backendId}`] = JSON.stringify({
       registered: true,
       sentenceCount: 1,
-      durationSec: setById(loggedIn.setId)?.referenceDuration ?? 0,
+      durationSec: setForUser(loggedIn.backendId)?.referenceDuration ?? 0,
       emotionCoverage: 1,
       detectedEmotions: ['neutral'],
     });
   }
+  // 미리 넣어 둔 대화 기록은 모두 읽은 것으로 둔다. 그래야 데모에서 새로 보낸
+  // 메시지만 "안 읽음"으로 뜬다.
+  const seen: Record<string, string> = {};
+  for (const me of DEMO_PROFILES) {
+    for (const peer of DEMO_PROFILES) {
+      const last = me === peer ? undefined : lastHistoryId(me.backendId, peer.backendId);
+      if (last) seen[seenKey(me.backendId, peer.id)] = last;
+    }
+  }
+  entries['tone:lastSeen:v2'] = JSON.stringify(seen);
+
   for (const [key, value] of Object.entries(entries)) window.localStorage.setItem(key, value);
+
+  // 읽음 기록 저장소는 storage 이벤트를 듣지 않고 메모리에 들고 있어서, 직접 알려 준다.
+  for (const me of DEMO_PROFILES) {
+    for (const peer of DEMO_PROFILES) {
+      const last = seen[seenKey(me.backendId, peer.id)];
+      if (last) markSeen(me.backendId, peer.id, last);
+    }
+  }
 
   const touched = new Set([
     ...stale,
@@ -267,7 +293,7 @@ async function createAndRegister(mine: number, sender: DemoProfile) {
   await click(mine, byButtonText('시작하기'), '시작하기 버튼', 900);
   await click(mine, bySelector('button[aria-label="녹음 시작"]'), '녹음 시작 버튼', 500);
   await waitFor(mine, byButtonText('정지'), '녹음 중 화면');
-  await playAudio(mine, audioPath(sender.setId, 'reference'));
+  await playAudio(mine, audioPath(String(sender.backendId), 'reference'));
   await wait(mine, 400);
   await click(mine, byButtonText('정지'), '정지 버튼', 400);
   await click(mine, byButtonText('완료'), '완료 버튼', 1200);
@@ -284,12 +310,14 @@ async function sendAndReceive(mine: number, sender: DemoProfile, receiver: DemoP
   resetPipeline({ caption: `녹음 — ${receiver.name}을(를) 골라 메시지를 말합니다` });
   await click(mine, bySelector(`a[href="#/chat/${receiver.id}"]`), '대화 상대', 900);
   const mic = await waitFor(mine, bySelector('button[aria-label="누르고 있는 동안 녹음"]'), '마이크 버튼');
+  // 이 방에는 이미 대화 기록이 있다. 새 메시지가 붙었는지는 개수로 확인한다.
+  const before = messagePlayButtons().length;
   await moveTo(mine, mic);
   pulse();
   ensureCursor().classList.add('is-holding');
   mic.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
   try {
-    await playAudio(mine, audioPath(sender.setId, 'source'));
+    await playAudio(mine, audioPath(String(sender.backendId), 'source'));
     await wait(mine, 300);
   } finally {
     // 정지로 빠져나가더라도 눌린 채 남지 않게 손을 뗀다.
@@ -305,7 +333,7 @@ async function sendAndReceive(mine: number, sender: DemoProfile, receiver: DemoP
   // 전송이 끝나면 초안 화면이 닫히고 메시지가 대화에 나타난다.
   // (초안 화면에도 재생 버튼이 있어서, 초안이 닫힌 것부터 확인한다.)
   await waitFor(mine, () => !appRoot()?.querySelector('textarea'), '전송 완료', 30000);
-  await waitFor(mine, bySelector('button[aria-label="재생"]'), '보낸 메시지');
+  await waitFor(mine, () => messagePlayButtons().length > before, '보낸 메시지');
   await wait(mine, 1600);
 
   // 상대측 재생
@@ -316,7 +344,8 @@ async function sendAndReceive(mine: number, sender: DemoProfile, receiver: DemoP
   await click(mine, byButtonText('프로필 전환'), '프로필 전환 버튼', 900);
   await click(mine, bySelector(`button[aria-label="${receiver.name} 프로필 선택"]`), '받는 사람 프로필', 900);
   await click(mine, bySelector(`a[href="#/chat/${sender.id}"]`), '받은 대화', 1200);
-  await click(mine, bySelector('button[aria-label="재생"]'), '재생 버튼', 300);
+  // 방금 받은 메시지는 대화의 맨 아래에 있다 (위쪽은 음성이 없는 대화 기록이다).
+  await click(mine, () => messagePlayButtons().pop() ?? null, '받은 메시지의 재생 버튼', 300);
   await waitFor(mine, bySelector('button[aria-label="재생 중"]'), '재생 시작');
   await waitFor(mine, () => !appRoot()?.querySelector('button[aria-label="재생 중"]'), '재생 끝', 90000);
   await wait(mine, 600);
