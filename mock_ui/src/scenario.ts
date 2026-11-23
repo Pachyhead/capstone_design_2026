@@ -19,6 +19,8 @@ export interface VoiceSet {
   emoType: number;
   /** output.wav 가 말하는 문장. 채팅 메시지로 보인다. */
   text: string;
+  /** reference.wav 의 길이(초). 목소리가 이미 등록된 상태로 시작할 때 표시에 쓴다. */
+  referenceDuration: number;
   /** source.wav 의 길이(초)와 크기(바이트). 녹음 결과와 전송 크기 비교에 쓴다. */
   sourceDuration: number;
   sourceBytes: number;
@@ -44,6 +46,7 @@ export const VOICE_SETS: VoiceSet[] = [
     emotion: 'happy',
     emoType: 3,
     text: '혹시 신비한 동물 사전은 다 봤나요?',
+    referenceDuration: 2.9,
     sourceDuration: 3.3,
     sourceBytes: 105772,
   },
@@ -52,6 +55,7 @@ export const VOICE_SETS: VoiceSet[] = [
     emotion: 'angry',
     emoType: 0,
     text: '니가 원하는 거 해. 아까 그 얘기 마저 하자. 그 얘기 아까 더 할 거 남아있어.',
+    referenceDuration: 5.1,
     sourceDuration: 7.3,
     sourceBytes: 232748,
   },
@@ -60,6 +64,7 @@ export const VOICE_SETS: VoiceSet[] = [
     emotion: 'fearful',
     emoType: 2,
     text: '그래서 내가 얼마만큼 이해를 해줘야 이해를 잘 해줬다고 소문이 날까. 얼마만큼 이해를 해줘야…',
+    referenceDuration: 8.2,
     sourceDuration: 3.1,
     sourceBytes: 98604,
   },

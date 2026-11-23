@@ -9,18 +9,28 @@ import { EMOTION_LABELS } from '@/types';
 import type { Emotion } from '@/types';
 import { audioUrl, resetMockState } from './mockApi';
 import { resetPipeline, setCaption } from './pipeline';
-import { AUTOPLAY, DEMO_PROFILES, audioPath, type DemoProfile } from './scenario';
+import { AUTOPLAY, DEMO_PROFILES, audioPath, setById, type DemoProfile } from './scenario';
 
-export const AUTOPLAY_STEPS = ['프로필 생성', '목소리 등록', '녹음 · 전송', '상대측 재생'] as const;
+/**
+ * short — 목소리가 등록된 상태에서 "녹음 → 전송 → 상대측 재생"만 보여 준다 (기본).
+ * full  — 프로필 생성과 목소리 등록부터 보여 준다.
+ */
+export type AutoplayMode = 'short' | 'full';
+
+export const AUTOPLAY_STEPS: Record<AutoplayMode, string[]> = {
+  short: ['녹음', '전송', '상대측 재생'],
+  full: ['프로필 생성', '목소리 등록', '녹음', '전송', '상대측 재생'],
+};
 
 export interface AutoplayState {
   status: 'idle' | 'running' | 'paused' | 'done';
-  /** 진행 중인 단계 (1~4). 시작 전은 0. */
+  mode: AutoplayMode;
+  /** 진행 중인 단계 (1부터). 시작 전은 0. */
   step: number;
   note: string;
 }
 
-let state: AutoplayState = { status: 'idle', step: 0, note: '' };
+let state: AutoplayState = { status: 'idle', mode: 'short', step: 0, note: '' };
 const subscribers = new Set<() => void>();
 
 function update(patch: Partial<AutoplayState>) {
@@ -198,39 +208,48 @@ function profileRecord(p: DemoProfile) {
 
 /**
  * 브라우저에 남은 데모 상태를 지우고 주어진 프로필만 있는 상태로 만든다.
+ * `loggedIn` 을 주면 그 프로필로 들어가 있고 목소리도 등록된 상태가 된다.
+ *
  * 실제 앱의 저장소 훅들은 `storage` 이벤트를 듣고 다시 읽으므로, 새로고침 없이 반영된다.
  * (새로고침을 하면 브라우저가 "사용자가 누른 적 없음"으로 보고 소리 재생을 막는다.)
  */
-export function seedProfiles(profiles: DemoProfile[]) {
+export function seedProfiles(profiles: DemoProfile[], loggedIn?: DemoProfile) {
   const stale = Object.keys(window.localStorage).filter((k) => k.startsWith('tone:'));
   stale.forEach((k) => window.localStorage.removeItem(k));
-  window.localStorage.setItem('tone:profiles:v3', JSON.stringify(profiles.map(profileRecord)));
-  for (const key of new Set([...stale, 'tone:profiles:v3', 'tone:activeProfileId:v3', 'tone:userAvatar'])) {
-    window.dispatchEvent(new StorageEvent('storage', { key }));
+
+  const entries: Record<string, string> = {
+    'tone:profiles:v3': JSON.stringify(profiles.map(profileRecord)),
+  };
+  if (loggedIn) {
+    entries['tone:activeProfileId:v3'] = loggedIn.id;
+    entries['tone:userAvatar'] = JSON.stringify(profileRecord(loggedIn).avatar);
+    entries[`tone:voiceProfile:v2:${loggedIn.backendId}`] = JSON.stringify({
+      registered: true,
+      sentenceCount: 1,
+      durationSec: setById(loggedIn.setId)?.referenceDuration ?? 0,
+      emotionCoverage: 1,
+      detectedEmotions: ['neutral'],
+    });
   }
+  for (const [key, value] of Object.entries(entries)) window.localStorage.setItem(key, value);
+
+  const touched = new Set([
+    ...stale,
+    ...Object.keys(entries),
+    'tone:activeProfileId:v3',
+    'tone:userAvatar',
+  ]);
+  for (const key of touched) window.dispatchEvent(new StorageEvent('storage', { key }));
 }
 
 // ---------------------------------------------------------------------------
 // 시나리오
 // ---------------------------------------------------------------------------
-async function play(mine: number) {
-  const sender = DEMO_PROFILES.find((p) => p.id === AUTOPLAY.senderId);
-  const receiver = DEMO_PROFILES.find((p) => p.id === AUTOPLAY.receiverId);
-  if (!sender || !receiver) throw new Error('scenario.ts 의 AUTOPLAY 프로필 id 가 잘못됐습니다');
-  const step = (n: number, note: string, caption: string) => {
-    update({ step: n, note });
-    resetPipeline({ caption });
-  };
 
-  // 보내는 사람만 없는 상태에서 시작한다 (그 프로필을 새로 만드는 것부터 보여 준다).
-  resetMockState();
-  seedProfiles(DEMO_PROFILES.filter((p) => p.id !== sender.id));
-  window.location.hash = '#/profiles';
-  ensureCursor();
-  await wait(mine, 900);
-
-  // 1. 프로필 생성
-  step(1, `${sender.name}의 프로필을 새로 만듭니다`, '프로필 생성 — 처음 쓰는 사람이 자기 프로필을 만듭니다');
+/** 프로필을 새로 만들고 목소리를 등록한다 (full 에서만). 끝나면 대화 목록에 있다. */
+async function createAndRegister(mine: number, sender: DemoProfile) {
+  update({ step: 1, note: `${sender.name}의 프로필을 새로 만듭니다` });
+  resetPipeline({ caption: '프로필 생성 — 처음 쓰는 사람이 자기 프로필을 만듭니다' });
   await click(mine, bySelector('button[aria-label="프로필 추가"]'), '프로필 추가 버튼');
   await type(mine, bySelector('input[placeholder="이름"]'), sender.name, '이름 입력칸');
   await click(
@@ -241,8 +260,8 @@ async function play(mine: number) {
   await click(mine, byButtonText('만들기'), '만들기 버튼', 900);
   await click(mine, bySelector(`button[aria-label="${sender.name} 프로필 선택"]`), '새 프로필', 900);
 
-  // 2. 목소리 등록
-  step(2, '정해진 문장을 읽어 목소리를 한 번 등록합니다', '목소리 등록 — 처음 한 번, 정해진 문장을 읽어 녹음합니다');
+  update({ step: 2, note: '정해진 문장을 읽어 목소리를 한 번 등록합니다' });
+  resetPipeline({ caption: '목소리 등록 — 처음 한 번, 정해진 문장을 읽어 녹음합니다' });
   await click(mine, bySelector('a[href="#/me"]'), '나 메뉴');
   await click(mine, byButtonText('등록 시작'), '등록 시작 버튼', 900);
   await click(mine, byButtonText('시작하기'), '시작하기 버튼', 900);
@@ -253,9 +272,16 @@ async function play(mine: number) {
   await click(mine, byButtonText('정지'), '정지 버튼', 400);
   await click(mine, byButtonText('완료'), '완료 버튼', 1200);
   await click(mine, byButtonText('시작하기'), '시작하기 버튼', 900);
+}
 
-  // 3. 대화 상대 선택 → 녹음 → 전송
-  step(3, `${receiver.name}에게 음성 메시지를 보냅니다`, `녹음 · 전송 — ${receiver.name}을(를) 골라 메시지를 말합니다`);
+/**
+ * 대화 목록에서 시작해 "녹음 → 전송 → 상대측 재생"을 보여 준다.
+ * `first` 는 이 구간의 첫 단계 번호다 (short 는 1, full 은 3).
+ */
+async function sendAndReceive(mine: number, sender: DemoProfile, receiver: DemoProfile, first: number) {
+  // 녹음
+  update({ step: first, note: `${receiver.name}에게 보낼 메시지를 말합니다` });
+  resetPipeline({ caption: `녹음 — ${receiver.name}을(를) 골라 메시지를 말합니다` });
   await click(mine, bySelector(`a[href="#/chat/${receiver.id}"]`), '대화 상대', 900);
   const mic = await waitFor(mine, bySelector('button[aria-label="누르고 있는 동안 녹음"]'), '마이크 버튼');
   await moveTo(mine, mic);
@@ -270,18 +296,21 @@ async function play(mine: number) {
     cursor?.classList.remove('is-holding');
     document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
   }
-  await waitFor(mine, bySelector('textarea'), '초안 화면', 15000);
-  await wait(mine, 2600); // 초안의 문장과 감정을 읽을 시간
+
+  // 전송: 분석이 끝나 초안이 뜨면 문장과 감정을 확인하고 보낸다.
+  await waitFor(mine, bySelector('textarea'), '초안 화면', 30000);
+  update({ step: first + 1, note: '인식된 문장과 감정을 확인하고 전송합니다' });
+  await wait(mine, 2200); // 초안을 읽을 시간
   await click(mine, byButtonText('전송', true), '전송 버튼', 400);
   // 전송이 끝나면 초안 화면이 닫히고 메시지가 대화에 나타난다.
   // (초안 화면에도 재생 버튼이 있어서, 초안이 닫힌 것부터 확인한다.)
   await waitFor(mine, () => !appRoot()?.querySelector('textarea'), '전송 완료', 30000);
   await waitFor(mine, bySelector('button[aria-label="재생"]'), '보낸 메시지');
-  await wait(mine, 2200);
+  await wait(mine, 1600);
 
-  // 4. 상대측에서 재생
+  // 상대측 재생
   // 여기서는 패널을 지우지 않는다: 지나온 송신·서버 단계가 그대로 남아 있어야 흐름이 이어져 보인다.
-  update({ step: 4, note: `${receiver.name}의 화면에서 메시지를 재생합니다` });
+  update({ step: first + 2, note: `${receiver.name}의 화면으로 바꿔 메시지를 재생합니다` });
   setCaption(`상대측 — ${receiver.name}이(가) 받은 메시지를 확인합니다`);
   await click(mine, bySelector('a[href="#/me"]'), '나 메뉴');
   await click(mine, byButtonText('프로필 전환'), '프로필 전환 버튼', 900);
@@ -293,11 +322,33 @@ async function play(mine: number) {
   await wait(mine, 600);
 }
 
-export function startAutoplay() {
+async function play(mine: number, mode: AutoplayMode) {
+  const sender = DEMO_PROFILES.find((p) => p.id === AUTOPLAY.senderId);
+  const receiver = DEMO_PROFILES.find((p) => p.id === AUTOPLAY.receiverId);
+  if (!sender || !receiver) throw new Error('scenario.ts 의 AUTOPLAY 프로필 id 가 잘못됐습니다');
+
+  resetMockState();
+  if (mode === 'full') {
+    // 보내는 사람만 없는 상태에서 시작한다 (그 프로필을 새로 만드는 것부터 보여 준다).
+    seedProfiles(DEMO_PROFILES.filter((p) => p.id !== sender.id));
+    window.location.hash = '#/profiles';
+  } else {
+    // 보내는 사람으로 이미 들어가 있고 목소리도 등록된 상태에서 시작한다.
+    seedProfiles(DEMO_PROFILES, sender);
+    window.location.hash = '#/';
+  }
+  ensureCursor();
+  await wait(mine, 900);
+
+  if (mode === 'full') await createAndRegister(mine, sender);
+  await sendAndReceive(mine, sender, receiver, mode === 'full' ? 3 : 1);
+}
+
+export function startAutoplay(mode: AutoplayMode = 'short') {
   stopAutoplay();
   const mine = run;
-  update({ status: 'running', step: 0, note: '' });
-  play(mine)
+  update({ status: 'running', mode, step: 0, note: '' });
+  play(mine, mode)
     .then(() => {
       if (mine !== run) return;
       removeCursor();

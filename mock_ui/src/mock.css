@@ -104,20 +104,6 @@
   background: #faf6ef;
 }
 
-.pl-reopen {
-  position: fixed;
-  left: 88px;
-  bottom: 16px;
-  z-index: 40;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  background: #14130f;
-  color: #faf6ef;
-  box-shadow: 0 4px 12px rgba(20, 19, 15, 0.18);
-}
-
 .pl-body {
   display: flex;
   align-items: stretch;

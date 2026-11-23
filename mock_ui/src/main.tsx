@@ -36,14 +36,14 @@ seedDemoStorage();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <div className="mock-root">
-      <AutoplayBar />
+      <AutoplayBar onReset={restart} />
       <div className="mock-stage">
         <div className="mock-app">
           <App />
         </div>
         <ClickShield />
       </div>
-      <PipelinePanel onReset={restart} />
+      <PipelinePanel />
       <StartOverlay />
     </div>
   </React.StrictMode>,

@@ -18,7 +18,7 @@ import {
   type StartRecordingResult,
 } from '../../tone/src/lib/api';
 import { recordApiCall, setLastRecording } from '@/lib/metrics';
-import { clearNodes, resetPipeline, stage, type NodeId } from './pipeline';
+import { clearNodes, isPanelOpen, resetPipeline, stage, type NodeId } from './pipeline';
 import { DEMO_PROFILES, audioPath, setById, setForUser, type VoiceSet } from './scenario';
 
 export { ApiError, describeError, emotionFromBackend };
@@ -39,19 +39,48 @@ export function audioUrl(path: string): string {
   return `./${path.replace(/^\/+/, '')}`;
 }
 
-// 각 단계를 화면에 머무르게 하는 시간(ms). 실제 처리 시간이 아니라, 청중이 그 단계의
-// 설명을 읽고 그림에서 위치를 확인할 여유다.
-const MS = {
-  split: 2200, // 음성을 Whisper STT · emotion2vec 에 넣는다
-  splitResult: 2400, // 텍스트 + 1024d 감정 벡터로 나뉜다
-  compress: 2400, // FSQ 인코더: 1024d → 8d
-  upload: 2200, // 텍스트 + 24bit 를 한 번에 전송
-  restore: 2400, // 서버: 24bit → 1024d 로 되돌려 MySQL 에 저장
-  gather: 2200, // TTS 입력 모으기
-  synth: 2600, // Qwen3-TTS
-  stream: 1800, // gRPC 스트리밍
+// 각 단계에 걸리는 시간(ms). 두 벌이 있다.
+//   QUICK  — 파이프라인 패널이 접혀 있을 때. 실제 시스템의 체감 속도에 가깝게 짧다.
+//   EXPLAIN — 패널이 펼쳐져 있을 때. 청중이 단계 설명을 읽고 그림에서 위치를 찾을 여유를 준다.
+// 어느 쪽도 실제 측정값은 아니다.
+interface StageMs {
+  split: number; // 음성을 Whisper STT · emotion2vec 에 넣는다
+  splitResult: number; // 텍스트 + 1024d 감정 벡터로 나뉜다
+  compress: number; // FSQ 인코더: 1024d → 8d
+  upload: number; // 텍스트 + 24bit 를 한 번에 전송
+  restore: number; // 서버: 24bit → 1024d 로 되돌려 MySQL 에 저장
+  gather: number; // TTS 입력 모으기
+  synth: number; // Qwen3-TTS
+  stream: number; // gRPC 스트리밍
+  refUpload: number;
+}
+
+const QUICK: StageMs = {
+  split: 700,
+  splitResult: 400,
+  compress: 400,
+  upload: 500,
+  restore: 400,
+  gather: 300,
+  synth: 1100,
+  stream: 300,
+  refUpload: 800,
+};
+
+const EXPLAIN: StageMs = {
+  split: 2200,
+  splitResult: 2400,
+  compress: 2400,
+  upload: 2200,
+  restore: 2400,
+  gather: 2200,
+  synth: 2600,
+  stream: 1800,
   refUpload: 1500,
 };
+
+/** 호출이 시작될 때의 패널 상태로 정한다 (도중에 여닫아도 그 호출은 그대로 간다). */
+const stageMs = (): StageMs => (isPanelOpen() ? EXPLAIN : QUICK);
 
 // endpoint/sender_src/utils.py 의 SERVICE_BITRATES_KBPS 와 같은 값
 const SERVICE_BITRATES_KBPS: Record<CodecName, number> = { opus: 16, volte: 12.65, codec2: 0.7 };
@@ -196,6 +225,7 @@ export const api = {
     call<RecordResult>('/stop_recording', async () => {
       const set = setForUser(myId);
       if (!set) throw new ApiError(500, '/stop_recording', 'no demo voice set for this profile');
+      const MS = stageMs();
       const mine = flow;
       const show = (nodes: NodeId[], caption: string, patch = {}) => {
         if (mine === flow) stage(nodes, caption, patch);
@@ -236,6 +266,7 @@ export const api = {
     call('/send', async () => {
       const set = recorded ?? setForUser(myId);
       if (!set) throw new ApiError(400, '/send', 'no encoded message available');
+      const MS = stageMs();
       const mine = flow;
       const show = (nodes: NodeId[], caption: string, patch = {}) => {
         if (mine === flow) stage(nodes, caption, patch);
@@ -274,6 +305,7 @@ export const api = {
   sendRef: () =>
     call('/send_ref', async () => {
       const set = setForUser(myId);
+      const MS = stageMs();
       flow += 1;
       resetPipeline({ speakerSetId: set?.id ?? null, speakerName: nameOf(myId) });
       stage(['ref'], `목소리 등록 — ${nameOf(myId)}의 ref 음성을 서버에 보관합니다`);
@@ -295,6 +327,7 @@ export const api = {
       const set = message ? setById(message.set_id) : undefined;
       if (!message || !set) throw new ApiError(404, '/play_voice', 'Such Message ID Not Found');
 
+      const MS = stageMs();
       flow += 1;
       const mine = flow;
       const current = () => mine === flow;

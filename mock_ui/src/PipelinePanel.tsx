@@ -3,7 +3,13 @@ import { EMOTION_LABELS } from '@/types';
 import { paletteFor } from '@/tokens/emotions';
 import { useProfiles } from '@/hooks/useProfiles';
 import { audioUrl } from './mockApi';
-import { usePipeline, type NodeId, type PipelineState } from './pipeline';
+import {
+  setPanelOpen,
+  usePanelOpen,
+  usePipeline,
+  type NodeId,
+  type PipelineState,
+} from './pipeline';
 import { audioPath, setForUser } from './scenario';
 
 // 포스터의 System Architecture 그림을 그대로 옮긴 패널.
@@ -196,30 +202,13 @@ function ReferenceButton({ setId }: { setId: string | null }) {
   );
 }
 
-export function PipelinePanel({ onReset }: { onReset: () => void }) {
+export function PipelinePanel() {
   const state = usePipeline();
   const { activeProfile } = useProfiles();
-  const [open, setOpen] = useState(true);
+  const open = usePanelOpen();
 
-  // P 키로 패널을 여닫는다 (글자를 입력하는 중에는 제외).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === 'p' || e.key === 'P') setOpen((o) => !o);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, []);
-
-  if (!open) {
-    return (
-      <button type="button" className="pl-reopen" onClick={() => setOpen(true)}>
-        파이프라인 보기 (P)
-      </button>
-    );
-  }
+  // 기본은 접혀 있다. 위쪽 제어 줄의 "구조 보기"나 P 키로 편다.
+  if (!open) return null;
 
   // 진행 중인 흐름의 화자가 없으면, 지금 로그인한 프로필의 ref 음성을 들려준다.
   const refSetId =
@@ -242,10 +231,7 @@ export function PipelinePanel({ onReset }: { onReset: () => void }) {
         <p className="pl-caption" aria-live="polite" key={state.caption}>
           {state.caption}
         </p>
-        <button type="button" className="pl-btn" onClick={onReset}>
-          처음부터
-        </button>
-        <button type="button" className="pl-btn" onClick={() => setOpen(false)}>
+        <button type="button" className="pl-btn" onClick={() => setPanelOpen(false)}>
           숨기기 (P)
         </button>
       </header>

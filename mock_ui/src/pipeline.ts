@@ -87,6 +87,32 @@ export function clearNodes(nodes: NodeId[]) {
   });
 }
 
+// 패널이 펼쳐져 있는지. 기본은 접힘: 이 데모의 목적은 실제 시스템처럼 보이는 것이고,
+// 구조 설명은 포스터가 맡는다. 펼치면 mockApi 가 단계마다 설명을 읽을 시간을 준다.
+let panelOpen = false;
+const panelSubscribers = new Set<() => void>();
+
+export function isPanelOpen(): boolean {
+  return panelOpen;
+}
+
+export function setPanelOpen(open: boolean) {
+  panelOpen = open;
+  panelSubscribers.forEach((cb) => cb());
+}
+
+export function usePanelOpen(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      panelSubscribers.add(cb);
+      return () => {
+        panelSubscribers.delete(cb);
+      };
+    },
+    () => panelOpen,
+  );
+}
+
 export function usePipeline(): PipelineState {
   return useSyncExternalStore(
     (cb) => {
