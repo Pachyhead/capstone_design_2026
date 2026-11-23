@@ -39,17 +39,19 @@ export function audioUrl(path: string): string {
   return `./${path.replace(/^\/+/, '')}`;
 }
 
-// 각 단계를 화면에 머무르게 하는 시간(ms). 실제 처리 시간이 아니라 설명을 읽을 여유다.
+// 각 단계를 화면에 머무르게 하는 시간(ms). 실제 처리 시간이 아니라, 청중이 그 단계의
+// 설명을 읽고 그림에서 위치를 확인할 여유다.
 const MS = {
-  analyze: 1500, // Whisper STT + emotion2vec
-  encode: 1100, // FSQ 인코더
-  upload: 1100, // gRPC 전송
-  store: 800, // MySQL 저장
-  restore: 900, // FSQ 복원
-  gather: 900, // TTS 입력 모으기
-  synth: 1700, // Qwen3-TTS
-  stream: 800, // gRPC 스트리밍
-  refUpload: 1200,
+  split: 2200, // 음성을 Whisper STT · emotion2vec 에 넣는다
+  splitResult: 2400, // 텍스트 + 1024d 감정 벡터로 나뉜다
+  compress: 2400, // FSQ 인코더: 1024d → 8d
+  upload: 2200, // 텍스트 + 24bit 를 한 번에 전송
+  restore: 2200, // 서버: 24bit → 1024d
+  store: 1700, // MySQL 저장
+  gather: 2200, // TTS 입력 모으기
+  synth: 2600, // Qwen3-TTS
+  stream: 1800, // gRPC 스트리밍
+  refUpload: 1500,
 };
 
 // endpoint/sender_src/utils.py 의 SERVICE_BITRATES_KBPS 와 같은 값
@@ -182,7 +184,12 @@ export const api = {
       flow += 1;
       stopPlayback?.();
       resetPipeline({ speakerSetId: set.id, speakerName: nameOf(myId) });
-      stage(['record'], `녹음 — ${nameOf(myId)}이(가) 메시지를 말합니다`);
+      // 같은 녹음 호출을 목소리 등록 화면도 쓴다. 그때는 메시지 녹음이 아니다.
+      if (window.location.hash.includes('/onboarding')) {
+        stage(['ref'], `목소리 등록 — ${nameOf(myId)}이(가) 정해진 문장을 읽습니다`);
+      } else {
+        stage(['record'], `녹음 — ${nameOf(myId)}이(가) 메시지를 말합니다`);
+      }
       return { status: 'recording start' };
     }),
 
@@ -197,15 +204,23 @@ export const api = {
 
       show(
         ['stt', 'emotion2vec'],
-        'Whisper STT · emotion2vec — 음성에서 문장과 감정을 따로 뽑습니다',
+        '분리 — 녹음한 음성을 Whisper STT와 emotion2vec에 함께 넣습니다',
       );
-      await sleep(MS.analyze);
-      show(['text', 'fsqEncode'], 'FSQ 인코더 — 1024차원 감정을 24bit 코드로 압축합니다', {
+      await sleep(MS.split);
+      show(['text'], '분리 결과 — 음성이 텍스트와 1024차원 감정 벡터로 나뉩니다', {
         text: set.text,
         emotion: set.emotion,
+        vector: '1024',
+        code: set.emotionCode ?? null,
       });
-      await sleep(MS.encode);
-      show(['bits'], '전송 준비 — 보낼 것은 텍스트와 감정 24bit뿐입니다. 확인하고 전송을 누르세요');
+      await sleep(MS.splitResult);
+      show(['fsqEncode'], '압축 — FSQ 인코더가 감정 벡터를 1024차원에서 8차원으로 줄입니다', {
+        vector: '8',
+      });
+      await sleep(MS.compress);
+      show(['bits'], '양자화 — 8차원 격자를 24bit 코드로 만듭니다. 이제 보낼 준비가 끝났습니다', {
+        vector: '24',
+      });
 
       recorded = set;
       const result: RecordResult = {
@@ -227,11 +242,17 @@ export const api = {
         if (mine === flow) stage(nodes, caption, patch);
       };
 
-      show(['grpcUp'], 'gRPC 전송 — 음성 파일 대신 텍스트와 24bit만 서버로 보냅니다', {
-        text: message,
-      });
+      show(
+        ['grpcUp'],
+        '전송 — 텍스트와 24bit를 한 번에 서버로 보냅니다. 음성 파일은 보내지 않습니다',
+        { text: message, vector: '24' },
+      );
       await sleep(MS.upload);
-      show(['mysql'], 'MySQL — 서버가 메시지를 저장합니다');
+      show(['fsqRestore'], '복원 — 서버가 24bit(8차원)를 다시 1024차원 감정 벡터로 늘립니다', {
+        restored: true,
+      });
+      await sleep(MS.restore);
+      show(['mysql'], '저장 — 서버가 텍스트와 감정 벡터를 MySQL에 저장합니다');
       await sleep(MS.store);
 
       messages = [
@@ -247,7 +268,7 @@ export const api = {
         },
       ];
       persist();
-      show([], `전송 완료 — ${nameOf(peerId)} 프로필로 바꿔서 재생해 보세요`);
+      show([], `전송 완료 — ${nameOf(peerId)}이(가) 재생을 누르면 합성이 시작됩니다`);
       return { message: 'sent', text: message };
     }),
 
@@ -281,39 +302,30 @@ export const api = {
       const speaker = nameOf(Number(message.sender_id));
 
       stopPlayback?.();
-      clearNodes([
-        'fsqRestore',
-        'ref',
-        'ttsText',
-        'ttsSpeaker',
-        'ttsEmotion',
-        'tts',
-        'grpcDown',
-        'play',
-      ]);
-      const patch = {
-        text: message.message,
-        emotion: set.emotion,
-        speakerSetId: set.id,
-        speakerName: speaker,
-      };
+      clearNodes(['ref', 'ttsText', 'ttsSpeaker', 'ttsEmotion', 'tts', 'grpcDown', 'play']);
 
-      stage(['fsqRestore'], 'FSQ 복원 — 24bit 코드를 1024차원 감정으로 되돌립니다', patch);
-      await sleep(MS.restore);
-      if (!current()) return true;
       stage(
         ['ref', 'ttsText', 'ttsSpeaker', 'ttsEmotion'],
-        `TTS 입력 — 텍스트, ${speaker}의 등록된 목소리, 감정을 모읍니다`,
+        `합성 준비 — 텍스트, ${speaker}의 등록된 목소리, 감정 벡터를 TTS에 넣습니다`,
+        {
+          text: message.message,
+          emotion: set.emotion,
+          vector: '24',
+          code: set.emotionCode ?? null,
+          restored: true,
+          speakerSetId: set.id,
+          speakerName: speaker,
+        },
       );
       await sleep(MS.gather);
       if (!current()) return true;
-      stage(['tts'], `Qwen3-TTS — ${speaker}의 목소리와 감정으로 음성을 합성합니다`);
+      stage(['tts'], `합성 — Qwen3-TTS가 ${speaker}의 목소리와 감정으로 음성을 만듭니다`);
       await sleep(MS.synth);
       if (!current()) return true;
-      stage(['grpcDown'], 'gRPC 스트리밍 — 합성된 음성을 문장 단위로 전달합니다');
+      stage(['grpcDown'], '전달 — 합성된 음성을 gRPC 스트리밍으로 받는 쪽에 보냅니다');
       await sleep(MS.stream);
       if (!current()) return true;
-      stage(['play'], `합성 음성 재생 — ${speaker}의 목소리와 감정으로 들립니다`);
+      stage(['play'], `재생 — ${speaker}의 목소리와 감정으로 들립니다`);
       await playFile(audioPath(set.id, 'output'));
       if (current()) stage([], '재생 완료');
       return true;

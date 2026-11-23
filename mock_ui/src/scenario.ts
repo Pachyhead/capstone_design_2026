@@ -3,9 +3,12 @@ import type { Emotion } from '@/types';
 // 데모 시나리오. 문장·이름을 바꾸려면 이 파일을 고치고 `npm run build` 를 다시 한다.
 //
 // 음성 세트 하나의 구성 (public/audio/<id>/):
-//   reference.wav — 화자가 미리 등록한 목소리 샘플
-//   source.wav    — 감정이 담긴 발화. 여기서 감정만 뽑는다
-//   output.wav    — 합성 결과. reference 의 목소리로 `text` 를 source 의 감정으로 말한다
+//   reference.wav — 목소리 등록 때 정해진 문장을 읽는 소리 (자동 시연 2단계에서 들린다)
+//   source.wav    — 보내는 사람이 메시지를 말하는 소리 (3단계 녹음에서 들린다)
+//   output.wav    — 받는 쪽에서 합성된 소리 (4단계 재생에서 들린다). `text` 를 말한다
+//
+// 지금 들어 있는 파일은 임시다. 팀원 목소리로 녹음한 파일을 받으면 같은 이름으로
+// 바꿔 넣고 tools/build_assets.py 를 다시 돌린다.
 //
 // 문장은 음성을 Whisper 로 받아 적은 것이라 틀린 곳이 있을 수 있다.
 
@@ -19,6 +22,12 @@ export interface VoiceSet {
   /** source.wav 의 길이(초)와 크기(바이트). 녹음 결과와 전송 크기 비교에 쓴다. */
   sourceDuration: number;
   sourceBytes: number;
+  /**
+   * DB 에 저장된 실제 감정 코드: FSQ 인덱스 8개, 각각 0~7 (3bit × 8 = 24bit).
+   * 넣어 두면 파이프라인 도식의 8d 막대와 24bit 칸이 이 값을 그대로 보여 준다.
+   * 없으면 도식은 크기만 맞춘 장식으로 그려진다.
+   */
+  emotionCode?: number[];
 }
 
 export interface DemoProfile {
@@ -61,6 +70,14 @@ export const DEMO_PROFILES: DemoProfile[] = [
   { id: 'jaewoong', name: '재웅', backendId: 1, setId: 'angry' },
   { id: 'kyungtaek', name: '경택', backendId: 2, setId: 'fearful' },
 ];
+
+// 자동 시연에서 누가 누구에게 보내는지. 보내는 사람의 프로필을 새로 만드는 것부터 보여 준다.
+export const AUTOPLAY: { senderId: string; receiverId: string; avatar: Emotion } = {
+  senderId: 'jaewoong',
+  receiverId: 'jongchan',
+  /** 프로필을 만들 때 고르는 아바타 표정 */
+  avatar: 'happy',
+};
 
 export function setById(id: string): VoiceSet | undefined {
   return VOICE_SETS.find((s) => s.id === id);

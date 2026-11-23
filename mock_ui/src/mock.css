@@ -7,10 +7,18 @@
   overflow: hidden;
 }
 
+/* Tone 화면이 놓이는 자리. 자동 시연 중에는 이 위를 .ap-shield 가 덮는다. */
+.mock-stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+}
+
 /* transform 을 주면 안쪽의 position: fixed (지표 버튼)가 이 영역 기준으로 놓인다. */
 .mock-app {
   flex: 1;
-  min-height: 0;
+  min-width: 0;
   position: relative;
   transform: translateZ(0);
   overflow: auto;
@@ -62,12 +70,25 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #14130f;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* 문구가 바뀔 때마다 다시 나타난다 (key 로 요소가 새로 만들어진다) */
+  animation: pl-caption-in 0.35s ease-out;
+}
+
+@keyframes pl-caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .pl-btn {
@@ -135,6 +156,7 @@
 
 /* ---- nodes ---- */
 .pl-node {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;

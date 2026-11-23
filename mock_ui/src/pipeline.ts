@@ -28,6 +28,12 @@ export interface PipelineState {
   /** 지금 흐름에서 드러난 값들. 해당 단계가 끝나야 채워진다. */
   text: string | null;
   emotion: Emotion | null;
+  /** 송신 단말에서 감정 벡터가 지금 어떤 모양인지: 1024d → 8d → 24bit */
+  vector: '1024' | '8' | '24' | null;
+  /** 이 메시지의 실제 감정 코드(FSQ 인덱스 8개). 없으면 도식은 장식으로 그린다. */
+  code: number[] | null;
+  /** 서버가 24bit 를 1024d 로 되돌렸는지 */
+  restored: boolean;
   /** 지금 흐름의 화자가 쓰는 음성 세트 (ref 음성 미리듣기에 쓴다) */
   speakerSetId: string | null;
   speakerName: string | null;
@@ -41,6 +47,9 @@ const EMPTY: PipelineState = {
   caption: IDLE_CAPTION,
   text: null,
   emotion: null,
+  vector: null,
+  code: null,
+  restored: false,
   speakerSetId: null,
   speakerName: null,
 };
@@ -63,6 +72,11 @@ export function resetPipeline(patch: Partial<PipelineState> = {}) {
 export function stage(active: NodeId[], caption: string, patch: Partial<PipelineState> = {}) {
   const done = [...new Set([...state.done, ...state.active])].filter((n) => !active.includes(n));
   update({ ...patch, active, done, caption });
+}
+
+/** 설명 문구만 바꾼다 (켜진 노드와 값은 그대로 둔다). */
+export function setCaption(caption: string) {
+  update({ caption });
 }
 
 /** 지정한 노드의 완료 표시를 지운다 (같은 메시지를 다시 재생할 때). */

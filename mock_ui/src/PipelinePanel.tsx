@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { EMOTION_LABELS } from '@/types';
 import { paletteFor } from '@/tokens/emotions';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -7,13 +7,26 @@ import { usePipeline, type NodeId, type PipelineState } from './pipeline';
 import { audioPath, setForUser } from './scenario';
 
 // 포스터의 System Architecture 그림을 그대로 옮긴 패널.
-// 지금 진행 중인 단계가 켜지고, 지나간 단계는 옅게 남는다.
+// 지금 진행 중인 단계와 그 단계가 속한 구역이 강조되고, 나머지는 흐려진다.
 
 type Tone = 'plain' | 'text' | 'emotion';
 
-function nodeClass(state: PipelineState, id: NodeId, tone: Tone, extra = ''): string {
-  const status = state.active.includes(id) ? 'is-active' : state.done.includes(id) ? 'is-done' : '';
-  return `pl-node pl-${tone} ${status} ${extra}`.trim();
+const SENDER_NODES: NodeId[] = ['record', 'stt', 'text', 'emotion2vec', 'fsqEncode', 'bits'];
+const SERVER_NODES: NodeId[] = [
+  'mysql',
+  'fsqRestore',
+  'ref',
+  'ttsText',
+  'ttsSpeaker',
+  'ttsEmotion',
+  'tts',
+];
+const RECEIVER_NODES: NodeId[] = ['play'];
+
+function statusOf(state: PipelineState, id: NodeId): string {
+  if (state.active.includes(id)) return 'is-active';
+  if (state.done.includes(id)) return 'is-done';
+  return '';
 }
 
 function Node({
@@ -22,7 +35,7 @@ function Node({
   label,
   sub,
   tone = 'plain',
-  className,
+  className = '',
   children,
 }: {
   state: PipelineState;
@@ -34,7 +47,7 @@ function Node({
   children?: ReactNode;
 }) {
   return (
-    <div className={nodeClass(state, id, tone, className)}>
+    <div className={`pl-node pl-${tone} ${statusOf(state, id)} ${className}`}>
       <span className="pl-label">{label}</span>
       {sub && <span className="pl-sub">{sub}</span>}
       {children}
@@ -44,6 +57,32 @@ function Node({
 
 function Arrow() {
   return <span className="pl-arrow" aria-hidden />;
+}
+
+/** 구역 하나(송신 단말 / 서버 / 수신 단말). 지금 단계가 이 안에 있으면 테두리가 켜진다. */
+function Box({
+  state,
+  nodes,
+  title,
+  className,
+  children,
+}: {
+  state: PipelineState;
+  nodes: NodeId[];
+  title: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const current = state.active.some((n) => nodes.includes(n));
+  return (
+    <div className={`pl-box ${className} ${current ? 'is-current' : ''}`}>
+      <h4>
+        {title}
+        {current && <span className="pl-now">지금</span>}
+      </h4>
+      {children}
+    </div>
+  );
 }
 
 /** 단말과 서버 사이의 전송 구간. 진행 중이면 점선이 흐른다. */
@@ -58,13 +97,66 @@ function Link({
   top: string;
   bottom: string;
 }) {
-  const status = state.active.includes(id) ? 'is-active' : state.done.includes(id) ? 'is-done' : '';
   return (
-    <div className={`pl-link ${status}`}>
+    <div className={`pl-link ${statusOf(state, id)}`}>
       <span className="pl-link-top">{top}</span>
       <span className="pl-link-line" aria-hidden />
       <span className="pl-link-bottom">{bottom}</span>
     </div>
+  );
+}
+
+/**
+ * 감정 벡터의 크기 변화를 보여 주는 도식: 1024d(촘촘한 막대) → 8d(막대 8개) → 24bit(칸 24개).
+ *
+ * `code`(실제 FSQ 인덱스 8개, 각 0~7)가 있으면 8d 막대와 24bit 칸은 그 값을 그대로 그린다.
+ * 없을 때, 그리고 1024d 는 항상, 크기만 맞춘 장식이다(실제 값이 아니다).
+ */
+function VectorViz({
+  kind,
+  seed,
+  code,
+}: {
+  kind: '1024' | '8' | '24';
+  seed: string;
+  code: number[] | null;
+}) {
+  const real = kind !== '1024' && code !== null && code.length === 8;
+
+  const values = useMemo(() => {
+    if (real && kind === '8') return code.map((v) => (v + 1) / 8);
+    if (real && kind === '24') {
+      // 인덱스 하나가 3bit (상위 비트부터)
+      return code.flatMap((v) => [(v >> 2) & 1, (v >> 1) & 1, v & 1]);
+    }
+    let h = 2166136261;
+    for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+    const count = kind === '1024' ? 56 : kind === '8' ? 8 : 24;
+    return Array.from({ length: count }, () => {
+      h = (h + 0x6d2b79f5) | 0;
+      let t = Math.imul(h ^ (h >>> 15), 1 | h);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    });
+  }, [kind, seed, code, real]);
+
+  const label = kind === '24' ? '24bit' : `${kind}d`;
+  const title = real
+    ? `감정 코드 ${label}: ${code.join(' ')}`
+    : `감정 벡터 ${label} (크기만 나타낸 도식)`;
+  return (
+    <span className={`pl-vec pl-vec-${kind}`} key={kind} title={title}>
+      <span className="pl-vec-cells" aria-hidden>
+        {values.map((v, i) =>
+          kind === '24' ? (
+            <i key={i} className={v > 0.5 ? 'on' : ''} />
+          ) : (
+            <i key={i} style={{ height: `${20 + v * 80}%` }} />
+          ),
+        )}
+      </span>
+      <span className="pl-vec-label">{real && kind === '8' ? code.join(' ') : label}</span>
+    </span>
   );
 }
 
@@ -134,12 +226,20 @@ export function PipelinePanel({ onReset }: { onReset: () => void }) {
     state.speakerSetId ?? (activeProfile ? (setForUser(activeProfile.backendId)?.id ?? null) : null);
   const refOwner = state.speakerName ?? activeProfile?.name ?? null;
   const emotionPalette = state.emotion ? paletteFor(state.emotion) : null;
+  const seed = state.speakerSetId ?? 'tone';
+  const busy = state.active.length > 0;
+
+  const emotionChip = state.emotion && emotionPalette && (
+    <span className="pl-chip" style={{ background: emotionPalette.main, color: emotionPalette.x }}>
+      {EMOTION_LABELS[state.emotion]}
+    </span>
+  );
 
   return (
-    <section className="pl" aria-label="시스템 파이프라인">
+    <section className={`pl ${busy ? 'has-active' : ''}`} aria-label="시스템 파이프라인">
       <header className="pl-head">
         <span className="pl-title">SYSTEM ARCHITECTURE</span>
-        <p className="pl-caption" aria-live="polite">
+        <p className="pl-caption" aria-live="polite" key={state.caption}>
           {state.caption}
         </p>
         <button type="button" className="pl-btn" onClick={onReset}>
@@ -151,8 +251,7 @@ export function PipelinePanel({ onReset }: { onReset: () => void }) {
       </header>
 
       <div className="pl-body">
-        <div className="pl-box pl-sender">
-          <h4>SENDER · 송신 단말</h4>
+        <Box state={state} nodes={SENDER_NODES} title="SENDER · 송신 단말" className="pl-sender">
           <div className="pl-flow">
             <Node state={state} id="record" label="녹음" />
             <div className="pl-branches">
@@ -173,24 +272,21 @@ export function PipelinePanel({ onReset }: { onReset: () => void }) {
             </div>
           </div>
           <div className="pl-values">
-            <span className="pl-value-text" title={state.text ?? undefined}>
-              {state.text ? `“${state.text}”` : '1024d → 8d 격자 → 24bit'}
-            </span>
-            {state.emotion && emotionPalette && (
-              <span
-                className="pl-chip"
-                style={{ background: emotionPalette.main, color: emotionPalette.x }}
-              >
-                {EMOTION_LABELS[state.emotion]}
+            {state.text ? (
+              <span className="pl-value-text" title={state.text}>
+                “{state.text}”
               </span>
+            ) : (
+              <span className="pl-value-text">1024d → 8d 격자 → 24bit</span>
             )}
+            {emotionChip}
+            {state.vector && <VectorViz kind={state.vector} seed={seed} code={state.code} />}
           </div>
-        </div>
+        </Box>
 
         <Link state={state} id="grpcUp" top="gRPC" bottom="텍스트+24bit" />
 
-        <div className="pl-box pl-server">
-          <h4>SERVER · gRPC + MySQL</h4>
+        <Box state={state} nodes={SERVER_NODES} title="SERVER · gRPC + MySQL" className="pl-server">
           <div className="pl-server-top">
             <Node state={state} id="mysql" label="MySQL" sub="데이터 저장" />
             <Node
@@ -199,7 +295,9 @@ export function PipelinePanel({ onReset }: { onReset: () => void }) {
               label="FSQ 복원"
               sub="24bit → 1024d"
               tone="emotion"
-            />
+            >
+              {state.restored && <VectorViz kind="1024" seed={seed} code={state.code} />}
+            </Node>
             <Node
               state={state}
               id="ref"
@@ -228,12 +326,16 @@ export function PipelinePanel({ onReset }: { onReset: () => void }) {
               />
             </div>
           </div>
-        </div>
+        </Box>
 
         <Link state={state} id="grpcDown" top="합성 음성" bottom="gRPC 스트리밍" />
 
-        <div className="pl-box pl-receiver">
-          <h4>RECEIVER · 수신 단말</h4>
+        <Box
+          state={state}
+          nodes={RECEIVER_NODES}
+          title="RECEIVER · 수신 단말"
+          className="pl-receiver"
+        >
           <Node
             state={state}
             id="play"
@@ -251,7 +353,7 @@ export function PipelinePanel({ onReset }: { onReset: () => void }) {
               />
             </svg>
           </Node>
-        </div>
+        </Box>
       </div>
     </section>
   );
