@@ -10,6 +10,7 @@ const mockSrc = path.resolve(__dirname, 'src');
 // mock 구현으로 바꿔 끼운다.
 //   @/lib/api        → mockApi.ts   백엔드 호출을 시나리오대로 응답
 //   @/data/mock      → mockData.ts  대화 상대 목록을 데모 프로필 3명으로
+//   @/components/MetricsDock → noMetricsDock.tsx  시스템 지표 버튼을 띄우지 않음
 //   react-router-dom → routerShim.ts  file:// 에서 열리도록 HashRouter 사용
 const mock = (file: string) => path.join(mockSrc, file);
 
@@ -38,6 +39,7 @@ export default defineConfig({
     alias: [
       { find: /^@\/lib\/api$/, replacement: mock('mockApi.ts') },
       { find: /^@\/data\/mock$/, replacement: mock('mockData.ts') },
+      { find: /^@\/components\/MetricsDock$/, replacement: mock('noMetricsDock.tsx') },
       { find: '@', replacement: toneSrc },
     ],
     // tone/src 의 파일도 이 폴더의 React 한 벌만 쓰게 한다(두 벌이면 훅이 깨진다).

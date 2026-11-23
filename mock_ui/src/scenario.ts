@@ -78,8 +78,8 @@ export const DEMO_PROFILES: DemoProfile[] = [
 
 // 자동 시연에서 누가 누구에게 보내는지. 보내는 사람의 프로필을 새로 만드는 것부터 보여 준다.
 export const AUTOPLAY: { senderId: string; receiverId: string; avatar: Emotion } = {
-  senderId: 'jaewoong',
-  receiverId: 'jongchan',
+  senderId: 'jongchan',
+  receiverId: 'jaewoong',
   /** 프로필을 만들 때 고르는 아바타 표정 */
   avatar: 'happy',
 };
