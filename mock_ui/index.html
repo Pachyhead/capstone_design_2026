@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tone 오프라인 데모</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // 이 파일은 빌드 전 원본이라, 파일로 직접 열면 화면이 뜨지 않는다.
+      // 그럴 때는 빌드된 데모(site/index.html)로 넘긴다. 빌드된 쪽과 개발 서버에서는
+      // 화면이 이미 떠 있으므로 아무 일도 하지 않는다.
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          var blank = document.getElementById('root').children.length === 0;
+          var built = /\/site\/[^/]*$/.test(location.pathname);
+          if (blank && location.protocol === 'file:' && !built) {
+            location.replace('site/index.html');
+          }
+        }, 300);
+      });
+    </script>
+  </body>
+</html>

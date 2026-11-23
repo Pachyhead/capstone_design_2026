@@ -1,0 +1,426 @@
+/* 자동 시연용 스타일: 파이프라인의 "지금 어디인지" 강조, 감정 벡터 도식,
+   위쪽 제어 줄, 시작 화면, 가상 커서. 색 변수(--pl-*)는 mock.css 의 .pl 에 있다. */
+
+/* ---- 지금 어디인지 강조 ----
+   진행 중인 단계가 있으면: 그 단계가 속한 구역은 테두리가 켜지고,
+   다른 구역과 다른 노드는 흐려진다. */
+.pl-box {
+  transition: opacity 0.3s, box-shadow 0.3s, border-color 0.3s, background 0.3s;
+}
+
+.pl.has-active .pl-box:not(.is-current) {
+  opacity: 0.6;
+}
+
+.pl.has-active .pl-node:not(.is-active) {
+  opacity: 0.6;
+}
+
+.pl-box.is-current {
+  border-color: #1f3440;
+  background: #f7fbfc;
+  box-shadow: 0 0 0 4px rgba(42, 127, 176, 0.22);
+}
+
+.pl-now {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--pl-emo);
+  color: #fff;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0;
+  animation: pl-blink 1s ease-in-out infinite;
+}
+
+@keyframes pl-blink {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 지금 단계의 노드에서 퍼져 나가는 고리 */
+.pl-node.is-active::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 12px;
+  border: 2px solid #1f3440;
+  pointer-events: none;
+  animation: pl-ring 1.1s ease-out infinite;
+}
+.pl-text.is-active::after {
+  border-color: var(--pl-text);
+}
+.pl-emotion.is-active::after {
+  border-color: var(--pl-emo);
+}
+
+@keyframes pl-ring {
+  from {
+    transform: scale(0.96);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+
+/* ---- 감정 벡터 도식: 1024d → 8d → 24bit ---- */
+.pl-vec {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  animation: pl-morph 0.45s ease-out;
+}
+
+@keyframes pl-morph {
+  from {
+    opacity: 0;
+    transform: scaleX(1.5);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pl-vec-cells {
+  display: flex;
+  align-items: flex-end;
+  height: 20px;
+  gap: 1px;
+}
+
+.pl-vec-cells i {
+  display: block;
+  background: var(--pl-emo);
+}
+
+.pl-vec-1024 .pl-vec-cells i {
+  width: 2px;
+  opacity: 0.8;
+}
+
+.pl-vec-8 .pl-vec-cells {
+  gap: 3px;
+}
+.pl-vec-8 .pl-vec-cells i {
+  width: 7px;
+  border-radius: 1.5px;
+}
+
+.pl-vec-24 .pl-vec-cells {
+  align-items: center;
+  gap: 2px;
+}
+.pl-vec-24 .pl-vec-cells i {
+  width: 5px;
+  height: 12px;
+  border-radius: 1.5px;
+  background: transparent;
+  border: 1px solid var(--pl-emo);
+}
+.pl-vec-24 .pl-vec-cells i.on {
+  background: var(--pl-emo);
+}
+/* 3bit 씩 끊어 보이게 */
+.pl-vec-24 .pl-vec-cells i:nth-child(3n):not(:last-child) {
+  margin-right: 3px;
+}
+
+.pl-vec-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pl-emo);
+  font-family: Consolas, 'SFMono-Regular', monospace;
+}
+
+/* 노드 안에 들어갈 때는 작게, 라벨 없이 */
+.pl-node .pl-vec {
+  margin-top: 3px;
+}
+.pl-node .pl-vec-cells {
+  height: 12px;
+}
+.pl-node .pl-vec-1024 .pl-vec-cells i {
+  width: 1px;
+}
+.pl-node .pl-vec-label {
+  display: none;
+}
+.pl-node.is-active .pl-vec-cells i {
+  background: #fff;
+}
+
+/* ---- 위쪽 제어 줄 ---- */
+.ap-bar {
+  flex-shrink: 0;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  background: #14130f;
+  color: #faf6ef;
+}
+
+.ap-brand {
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ap-steps {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.ap-steps li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 6px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: rgba(250, 246, 239, 0.5);
+  background: rgba(250, 246, 239, 0.06);
+  transition: background 0.3s, color 0.3s;
+}
+
+.ap-num {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(250, 246, 239, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ap-steps li.is-done {
+  color: rgba(250, 246, 239, 0.85);
+}
+.ap-steps li.is-done .ap-num {
+  background: #2d6852;
+  color: #fff;
+}
+
+.ap-steps li.is-active {
+  background: #f2d89e;
+  color: #14130f;
+  font-weight: 700;
+}
+.ap-steps li.is-active .ap-num {
+  background: #14130f;
+  color: #f2d89e;
+}
+
+.ap-note {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: rgba(250, 246, 239, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ap-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #faf6ef;
+  border: 1px solid rgba(250, 246, 239, 0.3);
+}
+
+.ap-btn:hover {
+  background: rgba(250, 246, 239, 0.1);
+}
+
+/* 덜 중요한 버튼 (구조 보기, 초기화) */
+.ap-quiet {
+  border-color: transparent;
+  color: rgba(250, 246, 239, 0.7);
+  font-weight: 500;
+}
+
+.ap-primary,
+.ap-primary:hover {
+  background: #f2d89e;
+  color: #14130f;
+  border-color: #f2d89e;
+}
+
+/* ---- 시작 화면 ---- */
+.ap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 19, 15, 0.55);
+}
+
+.ap-card {
+  width: 460px;
+  max-width: calc(100vw - 40px);
+  padding: 40px 36px 28px;
+  border-radius: 22px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(20, 19, 15, 0.3);
+}
+
+.ap-logo {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+  border-radius: 14px;
+  background: #14130f;
+  color: #faf6ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ap-card h1 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #14130f;
+}
+
+.ap-card p {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #6b5f4f;
+}
+
+.ap-start {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  border-radius: 14px;
+  background: #14130f;
+  color: #faf6ef;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ap-start:hover {
+  opacity: 0.9;
+}
+
+.ap-second {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #14130f;
+  border: 1px solid rgba(20, 19, 15, 0.18);
+}
+
+.ap-second span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #9b8e7b;
+}
+
+.ap-second:hover {
+  background: #faf6ef;
+}
+
+.ap-manual {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #6b5f4f;
+}
+
+.ap-manual:hover {
+  background: #faf6ef;
+}
+
+.ap-card p.ap-keys {
+  margin: 16px 0 0;
+  font-size: 11.5px;
+  color: #9b8e7b;
+}
+
+/* ---- 화면 덮개와 가상 커서 ---- */
+.ap-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  cursor: progress;
+}
+
+.mock-cursor {
+  position: fixed;
+  z-index: 90;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  background: rgba(20, 19, 15, 0.78);
+  border: 2.5px solid #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  transition: left 0.55s cubic-bezier(0.4, 0, 0.2, 1), top 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.2s, box-shadow 0.2s;
+}
+
+.mock-cursor.is-clicking {
+  animation: ap-click 0.45s ease-out;
+}
+
+/* 마이크를 누르고 있는 동안 */
+.mock-cursor.is-holding {
+  background: #94402c;
+  box-shadow: 0 0 0 9px rgba(148, 64, 44, 0.28);
+}
+
+@keyframes ap-click {
+  0% {
+    transform: scale(0.65);
+    box-shadow: 0 0 0 0 rgba(20, 19, 15, 0.5);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 16px rgba(20, 19, 15, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-node.is-active::after,
+  .pl-now {
+    animation: none;
+  }
+  .mock-cursor {
+    transition: none;
+  }
+}
