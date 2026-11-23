@@ -26,7 +26,7 @@ SERVER_OPTIONS = [
     ("grpc.keepalive_time_ms", 60000),                              # 서버 -> 클라이언트 ping 주기
     ("grpc.keepalive_timeout_ms", 20000),                           # ping 응답 대기
     ("grpc.keepalive_permit_without_calls", 1),                     # 호출이 없어도 ping 허용
-    ("grpc.http2.min_recv_ping_interval_without_data_ms", 10000),   # 클라이언트 ping 최소 간격(이보다 잦으면 거부)
+    ("grpc.http2.min_ping_interval_without_data_ms", 10000),       # 클라이언트 ping 최소 허용 간격 (이보다 잦으면 too_many_pings로 연결 종료)
     ("grpc.http2.max_pings_without_data", 0),                       # 데이터 없이 보내는 ping 수 제한 없음
 ]
 
