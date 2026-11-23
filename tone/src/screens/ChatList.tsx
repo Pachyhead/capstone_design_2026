@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useConversations } from '@/hooks/useConversations';
 import { paletteFor } from '@/tokens/emotions';
@@ -16,16 +15,10 @@ function formatSentAt(raw: string | undefined): string {
 
 export function ChatList() {
   const { activeProfile } = useProfiles();
-  const { inbox, refresh } = useInbox();
+  // 목록 갱신은 App.tsx(Shell: 프로필이 정해질 때)와 실시간 수신(useInboxEvents)이 맡는다.
+  const { inbox } = useInbox();
   const lastSeen = useLastSeen();
   const conversations = useConversations();
-
-  useEffect(() => {
-    if (!activeProfile) return;
-    refresh(activeProfile.backendId).catch((e) =>
-      console.warn('[chatlist] inbox refresh failed', e),
-    );
-  }, [activeProfile?.backendId]);
 
   const visible = conversations.filter((c) => c.backendId !== activeProfile?.backendId);
   return (

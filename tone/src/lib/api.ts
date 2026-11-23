@@ -15,6 +15,9 @@ export function describeError(action: string, err: unknown): string {
     if (err.status === 502 || err.status === 503) {
       return `${action}에 실패했어요. 중계 서버에 연결할 수 없습니다.`;
     }
+    if (err.status === 409) {
+      return '엔드포인트가 다시 시작돼 사용자 정보를 맞추는 중이에요. 잠시 후 다시 시도해 주세요.';
+    }
     return `${action}에 실패했어요. (오류 ${err.status})`;
   }
   return `${action}에 실패했어요. 엔드포인트 서버에 연결할 수 없습니다.`;
@@ -51,6 +54,8 @@ async function post<T = unknown>(
     if (!opts?.silentStatuses?.includes(res.status)) {
       console.warn(`${label} → ${res.status}`, parsed);
     }
+    // 409: 엔드포인트가 사용자/수신자 id를 모름 (재시작 직후). 다시 알려 준다.
+    if (res.status === 409) endpointResetHandler?.();
     throw new ApiError(res.status, path, text || res.statusText);
   }
   console.log(`${label} → ${res.status}`, parsed);
@@ -136,21 +141,37 @@ export function audioUrl(path: string): string {
 // set_receiver_id는 sender 서버 전용. receiver 서버(receiver/main.py)엔 없어 405가 난다.
 // 첫 405를 감지해 이후 호출을 생략한다(같은 dist를 두 서버가 공유 서빙하므로 origin만으론 구분 불가).
 let setReceiverSupported = true;
+// 마지막으로 보낸 수신자 id. 엔드포인트가 재시작되면 다시 보낸다 (resendReceiverId).
+let lastReceiverId: number | null = null;
+
+// 엔드포인트가 id를 잃었을 때(409) 부를 함수. useInboxEvents가 등록한다.
+let endpointResetHandler: (() => void) | null = null;
+export function setEndpointResetHandler(fn: (() => void) | null): void {
+  endpointResetHandler = fn;
+}
+
+async function setReceiverId(id: number) {
+  lastReceiverId = id;
+  if (!setReceiverSupported) return;
+  try {
+    return await post('/set_receiver_id', { value: id }, { silentStatuses: [405] });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 405) {
+      setReceiverSupported = false;
+      console.info('[api] /set_receiver_id 미지원 서버(receiver) 감지 — 이후 호출 생략');
+      return;
+    }
+    throw err;
+  }
+}
 
 export const api = {
   setMyId: (id: number) => post<InboxBuckets>('/set_my_id', { value: id, my_id: id }),
-  setReceiverId: async (id: number) => {
-    if (!setReceiverSupported) return;
-    try {
-      return await post('/set_receiver_id', { value: id }, { silentStatuses: [405] });
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 405) {
-        setReceiverSupported = false;
-        console.info('[api] /set_receiver_id 미지원 서버(receiver) 감지 — 이후 호출 생략');
-        return;
-      }
-      throw err;
-    }
+  setReceiverId,
+  /** 마지막으로 고른 수신자를 다시 알린다. 아직 고른 적이 없으면 아무것도 하지 않는다. */
+  resendReceiverId: async () => {
+    if (lastReceiverId == null) return;
+    return setReceiverId(lastReceiverId);
   },
   startRecording: () => post<StartRecordingResult>('/start_recording'),
   stopRecording: async () => {

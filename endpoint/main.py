@@ -58,6 +58,11 @@ async def _lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
         application.state.receiver = receiver
         application.state.sender_lock = Lock()
         application.state.last_audio_file = None
+        # 화면이 /set_my_id, /set_receiver_id를 보냈는지. 엔드포인트를 재시작하면
+        # 위의 기본값(사용자 1, 수신자 2)으로 돌아가므로, 화면이 다시 알려 주기 전에는
+        # 녹음·전송을 받지 않는다 (_require_ids).
+        application.state.user_set = False
+        application.state.peer_set = False
 
         # 새 메시지 실시간 수신: 서버 구독 스트림 -> 브라우저 SSE (/events)
         broadcaster = Broadcaster()
@@ -96,6 +101,19 @@ async def _grpc_error_handler(request: Request, exc: grpc.RpcError) -> JSONRespo
     )
 
 
+def _require_ids(*, peer: bool = False) -> None:
+    """사용자 id(필요하면 수신자 id)를 아직 받지 못했으면 409로 거부한다.
+
+    화면은 409를 받으면 id를 다시 보낸다 (tone/src/lib/api.ts).
+    """
+    if not app.state.user_set:
+        raise HTTPException(status_code=409, detail="user id not set. call /set_my_id first")
+    if peer and not app.state.peer_set:
+        raise HTTPException(
+            status_code=409, detail="receiver id not set. call /set_receiver_id first"
+        )
+
+
 @app.get("/events")
 async def events(request: Request) -> StreamingResponse:
     """새 메시지를 Server-Sent Events로 보낸다 (event: message | resync).
@@ -103,15 +121,13 @@ async def events(request: Request) -> StreamingResponse:
     아래 SPA fallback(GET /{full_path:path})보다 먼저 등록해야 한다.
     """
     broadcaster: Broadcaster = app.state.broadcaster
-    subscriber: InboxSubscriber = app.state.inbox_subscriber
     queue = broadcaster.connect()
 
     async def stream() -> AsyncGenerator[str, None]:
         try:
-            yield "retry: 3000\n\n"  # 끊기면 브라우저가 3초 뒤 다시 접속
-            if subscriber.connected:
-                # 이미 구독 중이면 새로 연결된 탭도 목록을 한 번 맞춘다
-                yield "event: resync\ndata: null\n\n"
+            # 끊기면 브라우저가 3초 뒤 다시 접속한다. 다시 접속한 화면은 스스로
+            # /set_my_id, /set_receiver_id를 다시 보내므로 여기서 resync는 보내지 않는다.
+            yield "retry: 3000\n\n"
             idle = 0.0
             while not _SHUTTING_DOWN.is_set():
                 try:
@@ -167,6 +183,7 @@ def set_my_id(value: int | None = None) -> list[list[dict[str, object]]]:
     with app.state.sender_lock:
         sender.user_id = value
         receiver.user_id = value
+        app.state.user_set = True
         # 목록 조회가 실패해도 실시간 수신은 새 사용자로 바꿔 둔다 (재접속하면서 resync)
         app.state.inbox_subscriber.switch_user(value)
         return receiver.get_pending_messages()
@@ -181,15 +198,19 @@ def set_receiver_id(value: int | None = None) -> dict[str, str | int]:
         )
     sender: Sender = app.state.sender
     with app.state.sender_lock:
-        if value == sender.user_id:
+        # 사용자 id를 받기 전의 user_id는 기본값이라 비교하지 않는다
+        # (화면을 새로 열면 /set_receiver_id가 /set_my_id보다 먼저 올 수 있음)
+        if app.state.user_set and value == sender.user_id:
             raise ValueError("Sender ID and receiver ID cannot be the same")
         sender.peer_id = value
+        app.state.peer_set = True
     return {"message": "receiver_id updated", "receiver_id": value}
 
 
 @app.post("/start_recording")
 def start_recording() -> dict[str, str]:
     """Start recording through the endpoint's microphone."""
+    _require_ids()
     sender: Sender = app.state.sender
     with app.state.sender_lock:
         sender.recoder.start_recording()
@@ -228,6 +249,7 @@ def stop_recording() -> dict[str, str | float]:
 @app.post("/send")
 def send(message: str | None = None) -> dict[str, str]:
     """Send the encoded message to the selected peer."""
+    _require_ids(peer=True)
     sender: Sender = app.state.sender
     with app.state.sender_lock:
         if message is None:
@@ -243,6 +265,7 @@ def send(message: str | None = None) -> dict[str, str]:
 @app.post("/send_ref")
 def send_ref() -> dict[str, str]:
     """Upload the just-recorded reference voice to the relay."""
+    _require_ids()
     sender: Sender = app.state.sender
     with app.state.sender_lock:
         _result, _duration, filepath = sender.recoder.stop_recording(encording=False)
