@@ -12,6 +12,7 @@ import { DesktopShell } from '@/components/DesktopShell';
 import { EmptyState } from '@/components/EmptyState';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useInbox } from '@/hooks/useInbox';
+import { useInboxEvents } from '@/hooks/useInboxEvents';
 
 function Shell() {
   const { activeProfile } = useProfiles();
@@ -25,6 +26,9 @@ function Shell() {
     if (myBackendId == null) return;
     refresh(myBackendId).catch((e) => console.warn('[shell] setMyId failed', e));
   }, [myBackendId]);
+
+  // 새 메시지 실시간 수신 (엔드포인트 /events). 새로고침 버튼은 수동 복구용으로 남겨 둔다.
+  useInboxEvents(myBackendId);
 
   // gate: must pick a profile before entering the app.
   if (!activeProfile) {
