@@ -61,6 +61,11 @@ class SpeechRelayStub(object):
                 request_serializer=grpc__getting__started_dot_server__communicate__pb2.MessageIdentifier.SerializeToString,
                 response_deserializer=grpc__getting__started_dot_server__communicate__pb2.AudioFrame.FromString,
                 _registered_method=True)
+        self.SubscribeMessages = channel.unary_stream(
+                '/SpeechRelay/SubscribeMessages',
+                request_serializer=grpc__getting__started_dot_server__communicate__pb2.UserIdentifier.SerializeToString,
+                response_deserializer=grpc__getting__started_dot_server__communicate__pb2.MetadataItem.FromString,
+                _registered_method=True)
 
 
 class SpeechRelayServicer(object):
@@ -105,6 +110,15 @@ class SpeechRelayServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SubscribeMessages(self, request, context):
+        """서버 -> 수신측: 새 메시지 실시간 전달(구독 로직)
+        접속 중인 동안 스트림을 열어 두면, 해당 사용자가 받거나 보낸 메시지가 저장될 때마다 서버가 보낸다.
+        구독이 등록되면 initial metadata로 ("subscribed", "1")을 먼저 보낸다.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SpeechRelayServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -132,6 +146,11 @@ def add_SpeechRelayServicer_to_server(servicer, server):
                     servicer.GetVoice,
                     request_deserializer=grpc__getting__started_dot_server__communicate__pb2.MessageIdentifier.FromString,
                     response_serializer=grpc__getting__started_dot_server__communicate__pb2.AudioFrame.SerializeToString,
+            ),
+            'SubscribeMessages': grpc.unary_stream_rpc_method_handler(
+                    servicer.SubscribeMessages,
+                    request_deserializer=grpc__getting__started_dot_server__communicate__pb2.UserIdentifier.FromString,
+                    response_serializer=grpc__getting__started_dot_server__communicate__pb2.MetadataItem.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -271,6 +290,33 @@ class SpeechRelay(object):
             '/SpeechRelay/GetVoice',
             grpc__getting__started_dot_server__communicate__pb2.MessageIdentifier.SerializeToString,
             grpc__getting__started_dot_server__communicate__pb2.AudioFrame.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SubscribeMessages(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/SpeechRelay/SubscribeMessages',
+            grpc__getting__started_dot_server__communicate__pb2.UserIdentifier.SerializeToString,
+            grpc__getting__started_dot_server__communicate__pb2.MetadataItem.FromString,
             options,
             channel_credentials,
             insecure,

@@ -28,6 +28,8 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sender_src import config  # noqa: F401 - 저장소 루트를 sys.path에 추가
 from grpc_getting_started import server_communicate_pb2 as pb2
 from grpc_getting_started import server_communicate_pb2_grpc as pb2_grpc
+from grpc_getting_started.message_broker import MessageBroker
+from grpc_getting_started.server_communicate_server import MAX_WORKERS, SERVER_OPTIONS
 from src.utils.bitpacking import decode_packet
 from src.utils.text_compress import decompress_text
 
@@ -57,6 +59,7 @@ class MockRelay(pb2_grpc.SpeechRelayServicer):
         self.lock = Lock()
         self.messages: list[dict] = []
         self.ref_sizes: dict[str, int] = {}
+        self.broker = MessageBroker()  # 실제 relay와 같은 실시간 전달(SubscribeMessages)
 
         # 어떤 프로필을 골라도 목록과 재생을 바로 시험할 수 있도록 쌍마다 하나씩
         start = datetime.now(timezone.utc) - timedelta(minutes=10)
@@ -108,6 +111,7 @@ class MockRelay(pb2_grpc.SpeechRelayServicer):
                 datetime.now(timezone.utc),
             )
         print(f"[Send] saved as {message_id}")
+        self._notify(message_id)
         return pb2.UploadStatus(accepted=True)
 
     def SendPacket(self, request, context):
@@ -130,7 +134,26 @@ class MockRelay(pb2_grpc.SpeechRelayServicer):
         with self.lock:
             message_id = self._add(sender, receiver, text, emo_type, datetime.now(timezone.utc))
         print(f"[SendPacket] saved as {message_id}")
+        self._notify(message_id)
         return pb2.UploadStatus(accepted=True)
+
+    def _notify(self, message_id: str) -> None:
+        # 실제 relay의 _notify_saved와 같이 받는 사람과 보낸 사람의 구독자 모두에게 보낸다
+        with self.lock:
+            message = next(m for m in self.messages if m["message_id"] == message_id)
+        item = self._item(message)
+        for user_id in {item.sender_id, item.receiver_id}:
+            count = self.broker.publish(user_id, item)
+            print(f"[Subscribe] {message_id} -> user {user_id}: {count} subscriber(s)")
+
+    def SubscribeMessages(self, request, context):
+        if request.user_id not in _VALID_IDS:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "user_id must be in range(0, 4)")
+        print(f"[Subscribe] user {request.user_id} connected")
+        try:
+            yield from self.broker.stream(request.user_id, context)
+        finally:
+            print(f"[Subscribe] user {request.user_id} disconnected")
 
     def GetPendingMessages(self, request, context):
         if request.user_id not in _VALID_IDS:
@@ -192,7 +215,7 @@ def main() -> None:
 
     # .env는 sender_src.config가 저장소 루트에서 읽어 둔다
     port = os.environ.get("SERV_PORT") or "50051"
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=MAX_WORKERS), options=SERVER_OPTIONS)
     pb2_grpc.add_SpeechRelayServicer_to_server(MockRelay(wav), server)
     # SERV_TLS=1일 때만 TLS. 기본값은 평문이며, TLS 인증서는 gen_mock_certs.sh가 만든 테스트 체인을 쓴다
     tls = os.environ.get("SERV_TLS", "0") == "1"

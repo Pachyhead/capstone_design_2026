@@ -195,7 +195,7 @@ class FileSpeechHandler(AbstractSpeechHandler):
             raise OSError(f"File save error: {e}")
 
     # 송신측이 보낸 데이터를 수신자id.json으로 서버에 저장
-    def save_incoming_speech(self, sender_id, receiver_id, message, emo_type, emotion_vector) -> bool:
+    def save_incoming_speech(self, sender_id, receiver_id, message, emo_type, emotion_vector) -> str | None:
         try:
             int_sender_id = int(sender_id)
             int_receiver_id = int(receiver_id)
@@ -214,11 +214,16 @@ class FileSpeechHandler(AbstractSpeechHandler):
                 emo_path=str(fpath),
                 emo_type=emo_type,
             )
-            return True
+            return unique_msg_id # 실시간 전달(SubscribeMessages)에서 저장된 메시지를 다시 조회할 때 사용
         except (OSError, Exception) as e:
             print(f"{e}")
-            return False
-    
+            return None
+
+    def get_message_metadata(self, message_id: str) -> dict | None:
+        # get_pending_metadata 항목과 같은 형식 (ChatTable.to_dict)
+        chat_row: ChatTable | None = self.dbmanager.get_chat_by_id(message_id)
+        return chat_row.to_dict() if chat_row else None
+
     def get_pending_metadata(self, user_id: str) -> list[list[dict]]:
         int_user_id = int(user_id)
         

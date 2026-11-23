@@ -9,10 +9,15 @@ class AbstractSpeechHandler(ABC):
         pass
 
     @abstractmethod
-    def save_incoming_speech(self, sender_id: str, receiver_id: str, message: str, emo_type: int, emotion_vector: list) -> bool:
-        """송신측의 데이터 처리 (현재는 json으로 저장 -> 추후 AudoEncoder/DB 연동)"""
+    def save_incoming_speech(self, sender_id: str, receiver_id: str, message: str, emo_type: int, emotion_vector: list) -> str | None:
+        """송신측의 데이터 처리. 저장한 메시지의 message_id를 반환하고, 실패하면 None"""
         pass
-    
+
+    @abstractmethod
+    def get_message_metadata(self, message_id: str) -> dict | None:
+        """message_id 하나의 메타데이터 (get_pending_metadata 항목과 같은 형식). 없으면 None"""
+        pass
+
     @abstractmethod
     def get_pending_metadata(self, user_id: str) -> list:
         """수신측의 대기 메시지 전달"""
