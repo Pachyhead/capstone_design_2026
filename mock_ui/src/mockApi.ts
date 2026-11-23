@@ -46,8 +46,7 @@ const MS = {
   splitResult: 2400, // 텍스트 + 1024d 감정 벡터로 나뉜다
   compress: 2400, // FSQ 인코더: 1024d → 8d
   upload: 2200, // 텍스트 + 24bit 를 한 번에 전송
-  restore: 2200, // 서버: 24bit → 1024d
-  store: 1700, // MySQL 저장
+  restore: 2400, // 서버: 24bit → 1024d 로 되돌려 MySQL 에 저장
   gather: 2200, // TTS 입력 모으기
   synth: 2600, // Qwen3-TTS
   stream: 1800, // gRPC 스트리밍
@@ -248,12 +247,12 @@ export const api = {
         { text: message, vector: '24' },
       );
       await sleep(MS.upload);
-      show(['fsqRestore'], '복원 — 서버가 24bit(8차원)를 다시 1024차원 감정 벡터로 늘립니다', {
-        restored: true,
-      });
+      show(
+        ['fsqRestore', 'mysql'],
+        '복원 · 저장 — 서버가 24bit(8차원)를 다시 1024차원 감정 벡터로 늘려 저장합니다',
+        { restored: true },
+      );
       await sleep(MS.restore);
-      show(['mysql'], '저장 — 서버가 텍스트와 감정 벡터를 MySQL에 저장합니다');
-      await sleep(MS.store);
 
       messages = [
         ...messages,
