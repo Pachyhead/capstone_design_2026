@@ -345,7 +345,7 @@ export const api = {
   getEmotionLabel: () =>
     call<EmotionLabelResult>('/get_emotion_label', async () => {
       if (!recorded) throw new ApiError(400, '/get_emotion_label', 'no encoded result found');
-      return { emotion_label: recorded.emotion, emotion_score: 1 };
+      return { emotion_label: recorded.emotion, emotion_score: recorded.emotionScore };
     }),
 
   // 실제 시스템처럼 재생을 누르는 순간 합성 과정을 거쳐 소리가 난다.

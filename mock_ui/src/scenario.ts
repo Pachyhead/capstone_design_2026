@@ -8,9 +8,6 @@ import type { Emotion } from '@/types';
 //   source.wav    — 메시지를 보낼 때 말하는 소리 (녹음 구간에서 들린다)
 //   output.wav    — 받는 쪽에서 합성된 소리 (상대측 재생에서 들린다). `text` 를 말한다
 //
-// 지금 들어 있는 파일은 임시다. 팀원 목소리로 녹음한 파일을 받으면 같은 이름으로
-// 바꿔 넣는다. 문장은 음성을 Whisper 로 받아 적은 것이라 틀린 곳이 있을 수 있다.
-//
 // 처음부터 들어 있는 대화 기록(음성 없음)은 history.ts 에 있다.
 
 export type BackendId = 0 | 1 | 2 | 3;
@@ -20,8 +17,10 @@ export interface VoiceSet {
   /** 음성 폴더 이름. 그 사람의 백엔드 id 와 같다. */
   id: string;
   emotion: Emotion;
-  /** 백엔드 EmotionLabel 번호 (angry 0, fearful 2, happy 3 …) */
+  /** 백엔드 EmotionLabel 번호 (angry 0, fearful 2, happy 3, surprised 7 …) */
   emoType: number;
+  /** 감정 분류의 확신도 (0~1). 실제 인코딩 결과의 emotion_score. */
+  emotionScore: number;
   /** output.wav 가 말하는 문장. 채팅 메시지로 보인다. */
   text: string;
   /** reference.wav 의 길이(초). 목소리가 이미 등록된 상태로 시작할 때 표시에 쓴다. */
@@ -50,35 +49,24 @@ export const DEMO_PROFILES: DemoProfile[] = [
   { id: 'taewon', name: '태원', backendId: 3 },
 ];
 
-// 준비된 음성. 태원(3)은 음성이 없어서, 태원으로는 대화 기록과 통계만 볼 수 있고
+// 준비된 음성. 지금은 종찬(0)만 있다. 나머지 프로필로는 대화 기록과 통계만 볼 수 있고,
 // 새 메시지를 녹음하면 "준비된 음성이 없다"는 안내가 뜬다.
+//
+// 종찬의 값은 실제 시스템이 이 source.wav 를 인코딩한 결과(EncodeResult)를 그대로 옮긴 것이다:
+//   text='진짜? 재웅이가 그런 걸 했다고?', emotion_indices=(0, 7, 7, 3, 7, 2, 0, 4),
+//   emotion_label=SURPRISED(7), emotion_score=0.9943621158599854
 export const VOICE_SETS: VoiceSet[] = [
   {
     id: '0',
-    emotion: 'happy',
-    emoType: 3,
-    text: '혹시 신비한 동물 사전은 다 봤나요?',
+    emotion: 'surprised',
+    emoType: 7,
+    emotionScore: 0.9943621158599854,
+    emotionCode: [0, 7, 7, 3, 7, 2, 0, 4],
+    text: '진짜? 재웅이가 그런 걸 했다고?',
     referenceDuration: 8.7,
-    sourceDuration: 3.3,
-    sourceBytes: 105772,
-  },
-  {
-    id: '1',
-    emotion: 'angry',
-    emoType: 0,
-    text: '니가 원하는 거 해. 아까 그 얘기 마저 하자. 그 얘기 아까 더 할 거 남아있어.',
-    referenceDuration: 5.1,
-    sourceDuration: 7.3,
-    sourceBytes: 232748,
-  },
-  {
-    id: '2',
-    emotion: 'fearful',
-    emoType: 2,
-    text: '그래서 내가 얼마만큼 이해를 해줘야 이해를 잘 해줬다고 소문이 날까. 얼마만큼 이해를 해줘야…',
-    referenceDuration: 8.2,
-    sourceDuration: 3.1,
-    sourceBytes: 98604,
+    sourceDuration: 2.2,
+    // 녹음기가 저장한 원본(32비트 float WAV)의 크기. public/audio 의 파일은 16비트로 변환한 사본이다.
+    sourceBytes: 141370,
   },
 ];
 
