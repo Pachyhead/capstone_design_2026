@@ -1,6 +1,6 @@
 """Make the demo's audio browser-friendly and report its length and size.
 
-The audio lives in mock_ui/public/audio/<backend id>/ as reference.wav,
+The audio lives in mock_ui/src/audio/<backend id>/ as reference.wav,
 source.wav and output.wav (0 종찬, 1 재웅, 2 경택). Drop new recordings in
 under those names, then run:
 
@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-AUDIO = Path(__file__).resolve().parent.parent / "public" / "audio"
+AUDIO = Path(__file__).resolve().parent.parent / "src" / "audio"
 ROLES = ("reference", "source", "output")
 
 

@@ -3,7 +3,7 @@ import type { Emotion } from '@/types';
 // 데모 시나리오. 문장·이름을 바꾸려면 이 파일을 고치고 `npm run build` 를 다시 한다.
 //
 // 프로필은 백엔드 id 로 구분한다: 0 종찬, 1 재웅, 2 경택, 3 태원.
-// 음성은 그 사람의 id 폴더에 둔다 (public/audio/<id>/):
+// 음성은 그 사람의 id 폴더에 둔다 (src/audio/<id>/):
 //   reference.wav — 목소리 등록 때 정해진 문장을 읽는 소리
 //   source.wav    — 메시지를 보낼 때 말하는 소리 (녹음 구간에서 들린다)
 //   output.wav    — 받는 쪽에서 합성된 소리 (상대측 재생에서 들린다). `text` 를 말한다
@@ -65,7 +65,7 @@ export const VOICE_SETS: VoiceSet[] = [
     text: '진짜? 재웅이가 그런 걸 했다고?',
     referenceDuration: 8.7,
     sourceDuration: 2.2,
-    // 녹음기가 저장한 원본(32비트 float WAV)의 크기. public/audio 의 파일은 16비트로 변환한 사본이다.
+    // 녹음기가 저장한 원본(32비트 float WAV)의 크기. src/audio 의 파일은 16비트로 변환한 사본이다.
     sourceBytes: 141370,
   },
 ];

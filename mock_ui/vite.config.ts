@@ -49,6 +49,8 @@ export default defineConfig({
     port: 3100,
     fs: { allow: [path.resolve(__dirname, '..')] },
   },
+  // 음성은 src/audio 에서 불러와 HTML 안에 넣으므로, 따로 복사할 파일이 없다.
+  publicDir: false,
   build: {
     // 저장소 루트 .gitignore 가 dist/ 를 무시하므로, 커밋해 둘 결과물은 site/ 에 둔다.
     outDir: 'site',

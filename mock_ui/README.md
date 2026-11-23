@@ -7,7 +7,9 @@
 ## 실행
 
 `site/index.html`을 더블클릭해서 Chrome이나 Edge로 연다. 설치·빌드·인터넷이 필요 없다.
-발표용 PC로 옮길 때는 `site/` 폴더를 통째로 복사한다(`audio/` 폴더가 함께 있어야 소리가 난다).
+
+화면과 음성이 모두 이 파일 하나에 들어 있다(약 1MB). 발표용 PC나 USB로 옮길 때는
+`site/index.html`만 복사하면 되고, 파일 이름을 바꿔도 된다.
 
 ## 자동 시연
 
@@ -60,7 +62,7 @@
 
 | 번호 | 프로필 | 음성 폴더 |
 |---|---|---|
-| 0 | 종찬 | `public/audio/0/` |
+| 0 | 종찬 | `src/audio/0/` |
 | 1 | 재웅 | 없음 |
 | 2 | 경택 | 없음 |
 | 3 | 태원 | 없음 |
@@ -92,6 +94,7 @@
 
 1. 파일을 번호 폴더에 넣는다.
 2. 브라우저용으로 변환하고 길이·크기를 확인한다. 16비트가 아닌 파일은 그 자리에서 변환된다.
+   음성은 빌드할 때 HTML 안에 들어가므로, 음성이 길수록 `site/index.html`도 커진다.
 
    ```
    endpoint/.venv/Scripts/python.exe mock_ui/tools/build_assets.py
@@ -131,7 +134,8 @@ npm run dev     # 고치면서 볼 때 (http://localhost:3100)
 | `src/main.tsx` | 화면 배치와 처음 상태 |
 | `src/noMetricsDock.tsx` | 오른쪽 아래 시스템 지표 버튼을 빼는 자리 표시 (서버가 없어 측정값이 없다) |
 | `vite.config.ts` | `tone/src`의 어떤 모듈을 mock으로 바꿔 끼우는지 |
-| `tools/build_assets.py` | `public/audio`의 음성을 브라우저용(16비트 WAV)으로 변환하고 길이·크기를 출력 |
+| `src/audio/<번호>/` | 음성 파일. 빌드할 때 HTML 안에 들어간다 |
+| `tools/build_assets.py` | `src/audio`의 음성을 브라우저용(16비트 WAV)으로 변환하고 길이·크기를 출력 |
 
 `tone/src`의 화면을 고치면 이 데모에도 반영된다. 다만 `site/`는 빌드 결과물이라
 `npm run build`를 다시 해야 바뀐다. 자동 시연은 버튼의 글자와 `aria-label`로 화면을

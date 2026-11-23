@@ -52,10 +52,26 @@ export type {
   StartRecordingResult,
 };
 
-/** 파일로 직접 열어도 찾을 수 있게 index.html 기준 상대 경로로 돌려준다. */
+// 음성은 빌드할 때 HTML 안에 통째로 들어간다(base64 data URL). 그래서 site/index.html
+// 파일 하나만 들고 다니면 된다. 키는 './audio/0/source.wav' 같은 경로다.
+const EMBEDDED_AUDIO = import.meta.glob<string>('./audio/*/*.wav', {
+  query: '?inline',
+  import: 'default',
+  eager: true,
+});
+
+/**
+ * 'audio/0/source.wav' 같은 경로를 재생할 수 있는 주소로 바꾼다.
+ *
+ * 끝에 '#' 을 붙이는 이유: 화면 코드가 캐시를 피하려고 주소 뒤에 `?t=시각` 을 덧붙이는데,
+ * data URL 에 그게 그대로 붙으면 음성 데이터가 깨진다. '#' 뒤는 브라우저가 무시하므로
+ * 덧붙은 글자가 데이터에 섞이지 않는다.
+ */
 export function audioUrl(path: string): string {
-  if (/^https?:/i.test(path)) return path;
-  return `./${path.replace(/^\/+/, '')}`;
+  if (/^(https?|data|blob):/i.test(path)) return path;
+  const key = `./${path.replace(/^(\.?\/)+/, '')}`;
+  const embedded = EMBEDDED_AUDIO[key];
+  return embedded ? `${embedded}#` : key;
 }
 
 // 각 단계에 걸리는 시간(ms). 두 벌이 있다.
